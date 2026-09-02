@@ -224,30 +224,21 @@ phase_3_hyprland_installation() {
         log_warn "Some build dependencies were missing, build may fail"
     fi
     
-    # Clone and build Hyprland
-    local build_dir="/tmp/hyprland-build"
-    rm -rf "${build_dir}"
-    mkdir -p "${build_dir}"
+    # Use official Hyprland installation method
+    log_info "Using official Hyprland installation method..."
     
-    log_info "Cloning Hyprland repository..."
-    if command -v git &>/dev/null; then
-        if git clone https://github.com/hyprwm/Hyprland.git "${build_dir}/Hyprland"; then
-            log_success "Repository cloned"
+    if command -v bash &>/dev/null && command -v curl &>/dev/null; then
+        log_info "Downloading and running official Hyprland install script..."
+        if curl -s https://raw.githubusercontent.com/hyprwm/Hyprland/main/install.sh | bash; then
+            log_success "Hyprland installed successfully using official script"
         else
-            log_error "Failed to clone Hyprland repository"
+            log_error "Failed to install Hyprland using official script"
+            log_info "You may need to install Hyprland manually"
+            log_info "See docs/installation.md for manual installation instructions"
             return 1
         fi
     else
-        log_error "git is not installed, cannot clone repository"
-        return 1
-    fi
-    
-    log_info "Building Hyprland..."
-    cd "${build_dir}/Hyprland"
-    if ./install.sh; then
-        log_success "Hyprland installed successfully"
-    else
-        log_error "Failed to build/install Hyprland"
+        log_error "bash or curl not found, cannot run official install script"
         log_info "You may need to install Hyprland manually"
         log_info "See docs/installation.md for manual installation instructions"
         return 1
@@ -321,14 +312,39 @@ phase_5_quickshell_skeleton() {
     
     log_info "Building Quickshell..."
     cd "${build_dir}/quickshell"
-    mkdir -p build && cd build
-    if cmake .. && make && sudo make install; then
-        log_success "Quickshell installed successfully"
+    
+    # Check for build script and use appropriate method
+    if [ -f "./install.sh" ]; then
+        log_info "Using official install script..."
+        if ./install.sh; then
+            log_success "Quickshell installed successfully"
+        else
+            log_error "Failed to build/install Quickshell using install script"
+            log_info "You may need to install Quickshell manually"
+            log_info "See docs/installation.md for manual installation instructions"
+            return 1
+        fi
+    elif [ -f "./Makefile" ]; then
+        log_info "Using Makefile..."
+        if make && sudo make install; then
+            log_success "Quickshell installed successfully"
+        else
+            log_error "Failed to build/install Quickshell using Makefile"
+            log_info "You may need to install Quickshell manually"
+            log_info "See docs/installation.md for manual installation instructions"
+            return 1
+        fi
     else
-        log_error "Failed to build/install Quickshell"
-        log_info "You may need to install Quickshell manually"
-        log_info "See docs/installation.md for manual installation instructions"
-        return 1
+        log_info "No install script found, trying manual cmake build..."
+        mkdir -p build && cd build
+        if cmake .. && make && sudo make install; then
+            log_success "Quickshell installed successfully"
+        else
+            log_error "Failed to build/install Quickshell using cmake"
+            log_info "You may need to install Quickshell manually"
+            log_info "See docs/installation.md for manual installation instructions"
+            return 1
+        fi
     fi
     
     # Cleanup
