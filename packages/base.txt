@@ -8,3 +8,6 @@ htop
 tree
 ripgrep
 fd-find
+build-essential
+cmake
+g++

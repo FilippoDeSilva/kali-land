@@ -1,68 +1,56 @@
 # Quick Start Guide
 
-## Current Status
+## 🚀 Fully Automated Installation
 
-✅ **Completed:**
-- Phase 0: Platform detection ✓
-- Phase 1: Repository foundation ✓
-- Phase 2: Wayland foundation ✓ (Wayland packages installed!)
-
-⏳ **Next Steps:**
-- Phase 3: Hyprland installation (manual - requires building from source)
-- Phase 4: Desktop services (manual - requires sudo)
-- Phase 5+: Quickshell and desktop components
-
-## Manual Installation Commands
-
-### Phase 4: Desktop Services (Run with sudo)
+The installation is now **fully automated**! Just run:
 
 ```bash
-# Update package cache
-sudo apt update
-
-# Install desktop services
-sudo apt install -y \
-  xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-wlr \
-  pipewire pipewire-audio-client-libraries pipewire-pulse wireplumber \
-  pavucontrol network-manager blueman bluez bluez-firmware \
-  dunst libnotify-bin cliphist swayidle swaylock wlogout
+sudo ./bootstrap/install.sh
 ```
 
-### Phase 3: Hyprland Installation (Manual - Build from Source)
+That's it! The installer will:
+- ✅ Detect your platform and system
+- ✅ Install all required dependencies
+- ✅ Build Hyprland from source automatically
+- ✅ Build Quickshell from source automatically
+- ✅ Install desktop services
+- ✅ Set up configuration files
+- ✅ Create theme system
+- ✅ Configure VMware optimizations
 
-```bash
-# Install build dependencies
-sudo apt install -y cmake g++ libpango-1.0-0 libpangocairo-1.0-0 libxkbcommon0 libxkbcommon-x11-0 libxcb-icccm4 libxcb-keysyms1 libxcb-render-util0 libxcb-xinerama0 libxcb-xkb1 libxcb-cursor0 libxcb-res0
+## What You Need
 
-# Clone and build Hyprland
-git clone https://github.com/hyprwm/Hyprland.git /tmp/Hyprland
-cd /tmp/Hyprland
-./install.sh
-```
+- Kali Linux running in VMware
+- Sudo access
+- Internet connection
+- ~30 minutes (depends on your system)
 
-### Phase 5: Quickshell Installation (Manual - Build from Source)
+## Installation Process
 
-```bash
-# Install Qt6 dependencies
-sudo apt install -y qt6-base-dev qt6-declarative-dev qt6-wayland-dev cmake
+The installer runs through 13 phases automatically:
 
-# Clone and build Quickshell
-git clone https://github.com/prairielearner/quickshell.git /tmp/quickshell
-cd /tmp/quickshell
-mkdir build && cd build
-cmake ..
-make
-sudo make install
-```
+1. **Platform Detection** - Analyzes your Kali system
+2. **Repository Foundation** - Sets up project structure
+3. **Base Packages** - Installs build tools (cmake, g++, git)
+4. **Wayland Foundation** - Installs Wayland and XWayland
+5. **Hyprland Installation** - Builds and installs Hyprland from source
+6. **Desktop Services** - Installs audio, network, notifications, etc.
+7. **Quickshell Skeleton** - Builds and installs Quickshell from source
+8. **Quickshell Bar** - Sets up the desktop bar
+9. **Launcher** - Configures application launcher
+10. **Control Center** - Sets up system controls
+11. **Power/Lock/Session** - Configures power management
+12. **Visual Theming** - Applies Catppuccin Mocha theme
+13. **VMware Optimization** - Optimizes for VMware environment
 
 ## After Installation
 
-1. Run the doctor to check status:
+1. **Check the status:**
    ```bash
    ./bootstrap/doctor.sh
    ```
 
-2. Create Hyprland session file (if needed):
+2. **Create Hyprland session:**
    ```bash
    sudo bash -c 'cat > /usr/share/xsessions/hyprland.desktop <<EOF
 [Desktop Entry]
@@ -73,60 +61,66 @@ Type=Application
 EOF'
    ```
 
-3. Logout and select "Hyprland" from the session menu
+3. **Logout and select "Hyprland" from the session menu**
 
-## What's Working So Far
+4. **Enjoy your new Omarchy-inspired Kali desktop!** 🎨
 
-✅ Repository structure set up
-✅ Bootstrap system functional
-✅ Wayland packages installed
-✅ Documentation complete
-✅ Theme system created
-✅ Git repository initialized
+## What Gets Installed
 
-## What Still Needs Manual Work
+**Core Components:**
+- Hyprland (Wayland compositor)
+- Quickshell (Desktop shell)
+- PipeWire (Audio)
+- NetworkManager (Networking)
+- Dunst (Notifications)
+- Swaylock (Lock screen)
+- Wlogout (Power menu)
 
-❌ Hyprland (not in Kali repos - needs manual build)
-❌ Quickshell (not in Kali repos - needs manual build)
-❌ Desktop services (need sudo to install)
-❌ Configuration files (need to be linked after install)
+**Applications:**
+- Kitty (Terminal)
+- Thunar (File manager)
+- Firefox (Browser)
+- Geany (Editor)
 
-## Why Some Components Are Manual
-
-- **Hyprland**: Not available in Kali repositories, requires building from source
-- **Quickshell**: Not available in Kali repositories, requires building from source
-- **Desktop services**: Need sudo permissions to install system packages
-
-This is intentional per the AGENT.md philosophy: **Architecture first, automation where safe, manual where necessary.**
-
-## Next Steps
-
-1. Run the Phase 4 commands above (desktop services)
-2. Build and install Hyprland (Phase 3)
-3. Build and install Quickshell (Phase 5)
-4. Run the installer script again to complete Phases 6-13
-5. Test the desktop environment
+**Theme:**
+- Catppuccin Mocha color scheme
+- Consistent visual language
+- Polished animations
 
 ## Troubleshooting
 
-If you run into issues:
+If anything goes wrong:
 
 ```bash
 # Check system status
 ./bootstrap/doctor.sh
 
-# Check logs
+# Check installation logs
 ~/.local/state/kali-omarchy/logs/
 
 # See detailed troubleshooting guide
 docs/troubleshooting.md
 ```
 
-## Summary
+## Rollback
 
-You've successfully completed the foundation phases! The remaining work is primarily:
-1. Installing system packages (requires sudo)
-2. Building Hyprland and Quickshell from source (not in Kali repos)
-3. Configuring the desktop environment
+If you want to remove the desktop:
 
-The architecture is solid and ready for the remaining components. 🚀
+```bash
+./bootstrap/uninstall.sh
+```
+
+This will restore your original XFCE desktop.
+
+## Features
+
+- **Keyboard-first workflow** - Super + Space for launcher
+- **Modular architecture** - Easy to customize
+- **Git-tracked configs** - Version controlled
+- **Automatic backups** - Safe to experiment
+- **VMware optimized** - Great performance in VMs
+- **Kali native** - Preserves security tools
+
+## Enjoy Your New Desktop!
+
+You now have a professional, modular, and beautiful Omarchy-inspired desktop environment on Kali Linux. The installation handles everything automatically - you just sit back and wait for the magic to happen! ✨

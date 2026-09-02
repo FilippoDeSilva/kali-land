@@ -68,28 +68,46 @@ install_packages() {
     
     log_info "Packages to install: ${packages[*]}"
     
-    # Check if packages are available
+    # Check if packages are available and filter out unavailable ones
     log_info "Checking package availability..."
+    local available_packages=()
     local missing_packages=()
     for pkg in "${packages[@]}"; do
-        if ! apt-cache policy "${pkg}" &>/dev/null; then
-            log_warn "Package not available: ${pkg}"
+        if apt-cache policy "${pkg}" &>/dev/null; then
+            available_packages+=("${pkg}")
+        else
+            log_warn "Package not available in repos, skipping: ${pkg}"
             missing_packages+=("${pkg}")
         fi
     done
     
-    if [ ${#missing_packages[@]} -gt 0 ]; then
-        log_error "The following packages are not available:"
-        for pkg in "${missing_packages[@]}"; do
-            log_error "  - ${pkg}"
-        done
-        return 1
+    if [ ${#available_packages[@]} -eq 0 ]; then
+        log_warn "No available packages to install"
+        if [ ${#missing_packages[@]} -gt 0 ]; then
+            log_info "The following packages were not available:"
+            for pkg in "${missing_packages[@]}"; do
+                log_info "  - ${pkg}"
+            done
+        fi
+        return 0
     fi
     
-    # Install packages
-    log_command "${PACKAGE_MANAGER} install -y ${packages[*]}"
-    if ${PACKAGE_MANAGER} install -y "${packages[@]}"; then
+    if [ ${#missing_packages[@]} -gt 0 ]; then
+        log_info "Some packages were not available and will be skipped:"
+        for pkg in "${missing_packages[@]}"; do
+            log_info "  - ${pkg}"
+        done
+        log_info "Continuing with available packages..."
+    fi
+    
+    # Install available packages
+    log_info "Installing ${#available_packages[@]} available packages..."
+    log_command "${PACKAGE_MANAGER} install -y ${available_packages[*]}"
+    if ${PACKAGE_MANAGER} install -y "${available_packages[@]}"; then
         log_success "Packages installed successfully"
+        if [ ${#missing_packages[@]} -gt 0 ]; then
+            log_info "Skipped ${#missing_packages[@]} unavailable packages"
+        fi
         return 0
     else
         log_failure "Failed to install packages"

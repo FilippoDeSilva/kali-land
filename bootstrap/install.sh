@@ -122,6 +122,9 @@ htop
 tree
 ripgrep
 fd-find
+build-essential
+cmake
+g++
 EOF
     
     # Wayland packages
@@ -148,7 +151,7 @@ network-manager
 blueman
 bluez
 bluez-firmware
-mako
+dunst
 libnotify-bin
 cliphist
 swayidle
@@ -169,6 +172,19 @@ EOF
     log_success "Phase 1 complete"
 }
 
+# phase_base_packages() - Install base build packages
+phase_base_packages() {
+    log_step "Installing Base Build Packages"
+    
+    detect_package_manager
+    update_package_cache
+    
+    log_info "Installing base build packages"
+    install_packages "${REPO_ROOT}/packages/base.txt"
+    
+    log_success "Base packages installed"
+}
+
 # phase_2_wayland_foundation() - Install Wayland foundation
 phase_2_wayland_foundation() {
     log_step "Phase 2: Wayland Foundation"
@@ -186,14 +202,62 @@ phase_2_wayland_foundation() {
 phase_3_hyprland_installation() {
     log_step "Phase 3: Hyprland Installation"
     
-    log_warn "Hyprland is not available in Kali repositories"
-    log_info "This phase requires manual installation or building from source"
-    log_info "See docs/installation.md for Hyprland installation instructions"
+    log_info "Hyprland is not available in Kali repositories"
+    log_info "Building Hyprland from source..."
     
-    log_info "Skipping automated Hyprland installation"
-    log_info "Phase 3 will be completed manually"
+    # Install build dependencies
+    log_info "Installing Hyprland build dependencies..."
+    local build_deps="cmake g++ libpango-1.0-0 libpangocairo-1.0-0 libxkbcommon0 libxkbcommon-x11-0 libxcb-icccm4 libxcb-keysyms1 libxcb-render-util0 libxcb-xinerama0 libxcb-xkb1 libxcb-cursor0 libxcb-res0 git"
     
-    log_success "Phase 3 marked for manual completion"
+    # Install dependencies with graceful failure handling
+    local missing_deps=()
+    for dep in ${build_deps}; do
+        if apt-cache policy "${dep}" &>/dev/null; then
+            ${PACKAGE_MANAGER} install -y "${dep}" || log_warn "Failed to install ${dep}, continuing..."
+        else
+            log_warn "Build dependency not available: ${dep}"
+            missing_deps+=("${dep}")
+        fi
+    done
+    
+    if [ ${#missing_deps[@]} -gt 0 ]; then
+        log_warn "Some build dependencies were missing, build may fail"
+    fi
+    
+    # Clone and build Hyprland
+    local build_dir="/tmp/hyprland-build"
+    rm -rf "${build_dir}"
+    mkdir -p "${build_dir}"
+    
+    log_info "Cloning Hyprland repository..."
+    if command -v git &>/dev/null; then
+        if git clone https://github.com/hyprwm/Hyprland.git "${build_dir}/Hyprland"; then
+            log_success "Repository cloned"
+        else
+            log_error "Failed to clone Hyprland repository"
+            return 1
+        fi
+    else
+        log_error "git is not installed, cannot clone repository"
+        return 1
+    fi
+    
+    log_info "Building Hyprland..."
+    cd "${build_dir}/Hyprland"
+    if ./install.sh; then
+        log_success "Hyprland installed successfully"
+    else
+        log_error "Failed to build/install Hyprland"
+        log_info "You may need to install Hyprland manually"
+        log_info "See docs/installation.md for manual installation instructions"
+        return 1
+    fi
+    
+    # Cleanup
+    cd "${REPO_ROOT}"
+    rm -rf "${build_dir}"
+    
+    log_success "Phase 3 complete"
 }
 
 # phase_4_desktop_services() - Install desktop services
@@ -213,9 +277,63 @@ phase_4_desktop_services() {
 phase_5_quickshell_skeleton() {
     log_step "Phase 5: Quickshell Skeleton"
     
-    log_warn "Quickshell is not available in Kali repositories"
-    log_info "This phase requires manual installation"
-    log_info "See docs/installation.md for Quickshell installation instructions"
+    log_info "Quickshell is not available in Kali repositories"
+    log_info "Building Quickshell from source..."
+    
+    # Install Qt6 dependencies
+    log_info "Installing Qt6 build dependencies..."
+    local qt_deps="qt6-base-dev qt6-declarative-dev qt6-waylandclient-dev cmake"
+    
+    # Try to install Qt6 dependencies, skip unavailable ones
+    for dep in ${qt_deps}; do
+        if apt-cache policy "${dep}" &>/dev/null; then
+            log_info "Installing ${dep}..."
+            ${PACKAGE_MANAGER} install -y "${dep}" || log_warn "Failed to install ${dep}, continuing..."
+        else
+            log_warn "Qt6 dependency not available: ${dep}, skipping..."
+        fi
+    done
+    
+    if ${PACKAGE_MANAGER} install -y ${qt_deps}; then
+        log_success "Qt6 dependencies installed"
+    else
+        log_error "Failed to install Qt6 dependencies"
+        return 1
+    fi
+    
+    # Clone and build Quickshell
+    local build_dir="/tmp/quickshell-build"
+    rm -rf "${build_dir}"
+    mkdir -p "${build_dir}"
+    
+    log_info "Cloning Quickshell repository..."
+    if command -v git &>/dev/null; then
+        if git clone https://github.com/prairielearner/quickshell.git "${build_dir}/quickshell"; then
+            log_success "Repository cloned"
+        else
+            log_error "Failed to clone Quickshell repository"
+            return 1
+        fi
+    else
+        log_error "git is not installed, cannot clone repository"
+        return 1
+    fi
+    
+    log_info "Building Quickshell..."
+    cd "${build_dir}/quickshell"
+    mkdir -p build && cd build
+    if cmake .. && make && sudo make install; then
+        log_success "Quickshell installed successfully"
+    else
+        log_error "Failed to build/install Quickshell"
+        log_info "You may need to install Quickshell manually"
+        log_info "See docs/installation.md for manual installation instructions"
+        return 1
+    fi
+    
+    # Cleanup
+    cd "${REPO_ROOT}"
+    rm -rf "${build_dir}"
     
     log_info "Creating Quickshell configuration structure"
     
@@ -239,7 +357,7 @@ ApplicationWindow {
 }
 EOF
     
-    log_success "Phase 5 complete (Quickshell requires manual installation)"
+    log_success "Phase 5 complete"
 }
 
 # phase_6_quickshell_bar() - Build Quickshell bar
@@ -436,6 +554,7 @@ main() {
     # Run phases
     phase_0_platform_detection
     phase_1_repository_foundation
+    phase_base_packages
     phase_2_wayland_foundation
     phase_3_hyprland_installation
     phase_4_desktop_services
