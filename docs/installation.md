@@ -73,8 +73,10 @@ sudo apt install -y \
   xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-wlr \
   pipewire pipewire-audio-client-libraries pipewire-pulse wireplumber \
   pavucontrol network-manager blueman bluez bluez-firmware \
-  mako libnotify-bin cliphist swayidle swaylock wlogout
+  dunst libnotify-bin cliphist swayidle swaylock wlogout
 ```
+
+**Note**: `mako` is not available in Kali repositories, so we use `dunst` instead as the notification daemon.
 
 ### Phase 5: Quickshell Installation (Manual)
 

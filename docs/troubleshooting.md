@@ -215,9 +215,9 @@ sudo ./bootstrap/install.sh
 **Problem**: No notification popups
 
 **Solution**:
-1. Check mako status:
+1. Check dunst status:
    ```bash
-   systemctl --user status mako
+   systemctl --user status dunst
    ```
 
 2. Test notification:
@@ -225,9 +225,9 @@ sudo ./bootstrap/install.sh
    notify-send "Test" "This is a test notification"
    ```
 
-3. Check mako config:
+3. Check dunst config:
    ```bash
-   cat ~/.config/mako/config
+   cat ~/.config/dunst/dunstrc
    ```
 
 #### Clipboard Not Working
