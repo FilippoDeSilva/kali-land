@@ -1,0 +1,10 @@
+# Base system packages
+curl
+wget
+git
+vim
+nano
+htop
+tree
+ripgrep
+fd-find

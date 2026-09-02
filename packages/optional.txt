@@ -1,0 +1,28 @@
+# Optional packages for enhanced functionality
+# Install manually if needed
+
+# Additional terminals
+alacritty
+wezterm
+
+# Additional editors
+neovim
+vim-gtk3
+
+# File managers
+pcmanfm
+nautilus
+
+# Additional browsers
+chromium
+torbrowser-launcher
+
+# Development tools
+build-essential
+cmake
+pkg-config
+
+# Media tools
+mpv
+imagemagick
+feh

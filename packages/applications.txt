@@ -1,0 +1,6 @@
+# Terminal and applications
+kitty
+foot
+thunar
+firefox-esr
+geany

@@ -1,0 +1,91 @@
+# Environment and secrets
+.env
+*.env
+.env.local
+*.pem
+*.key
+*.crt
+*.csr
+id_*
+id_rsa*
+id_ed25519*
+credentials*
+secrets*
+secret*
+password*
+passwd
+
+# Machine-specific files
+machine-specific
+local-config
+*.local
+
+# Runtime state and cache
+.cache/
+cache/
+*.cache
+logs/
+log/
+*.log
+tmp/
+temp/
+*.tmp
+*.swp
+*.swo
+*~
+
+# Backup files
+backup/
+backups/
+*.bak
+*.backup
+
+# User runtime data
+.local/state/
+.local/share/
+.config/*.bak
+
+# IDE and editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+build/
+dist/
+target/
+*.o
+*.so
+*.a
+
+# Package manager files
+node_modules/
+vendor/
+.bundle/
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Temporary installation files
+*.deb
+*.rpm
+*.tar.gz
+*.tar.xz
+*.zip
+
+# Snapshots (VMware specific)
+*.vmss
+*.vmsn
+*.vswp
+
+# But keep important config files
+!config/
+!packages/
+!bootstrap/
+!scripts/
+!themes/
+!docs/

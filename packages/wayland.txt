@@ -1,0 +1,5 @@
+# Wayland core packages
+wayland-protocols
+wayland-utils
+libwayland-dev
+xwayland

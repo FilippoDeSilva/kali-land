@@ -1,0 +1,3 @@
+# Hyprland packages (note: Hyprland not in Kali repos)
+# This file is for reference only - manual installation required
+# See docs/installation.md for installation instructions
