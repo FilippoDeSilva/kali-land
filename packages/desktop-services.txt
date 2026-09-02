@@ -11,7 +11,7 @@ network-manager
 blueman
 bluez
 bluez-firmware
-mako
+dunst
 libnotify-bin
 cliphist
 swayidle
