@@ -133,8 +133,8 @@ test_services() {
     fi
     
     # Notifications test
-    if command -v mako &>/dev/null || command -v dunst &>/dev/null; then
-        echo "  Notifications   PASS (mako/dunst available)"
+    if command -v dunst &>/dev/null || command -v mako &>/dev/null; then
+        echo "  Notifications   PASS (dunst/mako available)"
         TEST_RESULTS[Notifications]=PASS
     else
         echo "  Notifications   INFO (notification daemon not found)"
