@@ -45,10 +45,10 @@ Hyprland is available in Kali repositories. The script will attempt to install i
 
 ```bash
 sudo apt update
-sudo apt install -y hyprland hyprland-guiutils
+sudo apt install -y hyprland
 ```
 
-**Note**: `hyprland-guiutils` is a recommended runtime dependency for some Hyprland dialogs.
+**Note**: `hyprland-guiutils` is included in the desktop-services package list and will be installed automatically by the install script.
 
 ### Phase 4: Desktop Services (Requires Sudo)
 

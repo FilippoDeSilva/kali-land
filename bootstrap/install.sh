@@ -208,6 +208,7 @@ cliphist
 swayidle
 swaylock
 wlogout
+hyprland-guiutils
 EOF
     
     # Applications packages
@@ -368,14 +369,6 @@ phase_4_desktop_services() {
     log_info "Installing desktop services"
     if ! install_packages "${REPO_ROOT}/packages/desktop-services.txt"; then
         log_warn "Failed to install some desktop services, continuing..."
-    fi
-    
-    # Install hyprland-guiutils specifically for Hyprland dialogs
-    log_info "Installing hyprland-guiutils for Hyprland dialogs..."
-    if apt-cache policy hyprland-guiutils &>/dev/null; then
-        ${PACKAGE_MANAGER} install -y hyprland-guiutils || log_warn "Failed to install hyprland-guiutils"
-    else
-        log_warn "hyprland-guiutils not available in repositories"
     fi
     
     log_success "Phase 4 complete"

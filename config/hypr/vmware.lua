@@ -4,9 +4,6 @@
 -- VMware-specific optimizations
 hl.config({
     general = {
-        -- Direct scanout can be better for VMs
-        direct_scanout = false,
-        
         -- Performance optimizations for VMs
         allow_tearing = false,
     },

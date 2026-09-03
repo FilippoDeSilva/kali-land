@@ -160,12 +160,12 @@ test_services() {
     fi
     
     # hyprland-guiutils test
-    if dpkg -l | grep -q "hyprland-guiutils"; then
+    if dpkg -s hyprland-guiutils &>/dev/null; then
         echo "  Hyprland GUI Utils PASS (hyprland-guiutils available)"
         TEST_RESULTS[HyprlandGuiUtils]=PASS
     else
-        echo "  Hyprland GUI Utils INFO (hyprland-guiutils not installed - optional)"
-        TEST_RESULTS[HyprlandGuiUtils]=INFO
+        echo "  Hyprland GUI Utils WARN (hyprland-guiutils not installed - run install script)"
+        TEST_RESULTS[HyprlandGuiUtils]=WARN
     fi
     
     echo ""
