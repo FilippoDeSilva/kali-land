@@ -14,7 +14,7 @@ hl.env("VDPAU_DRIVER", "va_gl")
 -- Default applications
 -- Use foot for VMs (native Wayland), kitty for bare metal (GPU accelerated)
 -- The install script will auto-detect VM vs bare metal and set the appropriate terminal
--- Currently using qterminal as fallback until foot is installed
-hl.env("TERMINAL", "qterminal")
+-- Default to kitty (GPU accelerated), installer will change to foot for VMs
+hl.env("TERMINAL", "kitty")
 hl.env("BROWSER", "firefox-esr")
 hl.env("EDITOR", "geany")

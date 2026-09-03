@@ -5,8 +5,7 @@
 local mainMod = "SUPER"
 -- Use the TERMINAL environment variable (set in environment.lua)
 -- For VMs: foot (native Wayland), for bare metal: kitty/alacritty (GPU accelerated)
--- Fallback to qterminal if others not available
-local terminal = os.getenv("TERMINAL") or "qterminal"
+local terminal = os.getenv("TERMINAL") or "kitty"
 local fileManager = "thunar"
 
 -- Window management
