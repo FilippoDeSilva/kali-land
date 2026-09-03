@@ -151,12 +151,21 @@ test_services() {
     fi
     
     # Portal test
-    if command -v xdg-desktop-portal &>/dev/null; then
+    if dpkg -s xdg-desktop-portal &>/dev/null; then
         echo "  Portal          PASS (xdg-desktop-portal available)"
         TEST_RESULTS[Portal]=PASS
     else
         echo "  Portal          WARN (xdg-desktop-portal not found)"
         TEST_RESULTS[Portal]=WARN
+    fi
+    
+    # hyprland-guiutils test
+    if dpkg -l | grep -q "hyprland-guiutils"; then
+        echo "  Hyprland GUI Utils PASS (hyprland-guiutils available)"
+        TEST_RESULTS[HyprlandGuiUtils]=PASS
+    else
+        echo "  Hyprland GUI Utils INFO (hyprland-guiutils not installed - optional)"
+        TEST_RESULTS[HyprlandGuiUtils]=INFO
     fi
     
     echo ""
