@@ -78,16 +78,17 @@ hl.window_rule({
 })
 
 -- Set window sizes for specific applications
-hl.window_rule({
-    name = "size-pavucontrol",
-    match = { class = "pavucontrol" },
-    size = { 800, 600 }
-})
-hl.window_rule({
-    name = "size-nm-connection-editor",
-    match = { class = "nm-connection-editor" },
-    size = { 600, 400 }
-})
+-- Note: size syntax may vary by Hyprland version, using default for now
+-- hl.window_rule({
+--     name = "size-pavucontrol",
+--     match = { class = "pavucontrol" },
+--     size = { width = 800, height = 600 }
+-- })
+-- hl.window_rule({
+--     name = "size-nm-connection-editor",
+--     match = { class = "nm-connection-editor" },
+--     size = { width = 600, height = 400 }
+-- })
 
 -- Make windows ignore workspace rules
 hl.window_rule({
@@ -117,24 +118,25 @@ hl.window_rule({
 hl.window_rule({
     name = "noborder-pip",
     match = { title = "Picture-in-Picture" },
-    noborder = true
+    border_size = 0
 })
 
 -- Set opacity for inactive windows
 hl.window_rule({
     name = "opacity-inactive",
     match = { class = ".*" },
-    opacity = { 0.8, 0.8 }
+    opacity = 0.8
 })
 
--- Focus rules
-hl.window_rule({
-    name = "focusonactivate-all",
-    match = { class = ".*" },
-    focusonactivate = true
-})
-hl.window_rule({
-    name = "stayfocused-firefox",
-    match = { class = "firefox" },
-    stayfocused = true
-})
+-- Focus rules (commented out as focusonactivate is not available in v0.56.2)
+-- hl.window_rule({
+--     name = "focusonactivate-all",
+--     match = { class = ".*" },
+--     focusonactivate = true
+-- })
+-- stayfocused may not be available in v0.56.2
+-- hl.window_rule({
+--     name = "stayfocused-firefox",
+--     match = { class = "firefox" },
+--     stay_focused = true
+-- })
