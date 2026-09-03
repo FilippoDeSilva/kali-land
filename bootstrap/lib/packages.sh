@@ -89,7 +89,7 @@ install_packages() {
                 log_info "  - ${pkg}"
             done
         fi
-        return 0
+        return 1
     fi
     
     if [ ${#missing_packages[@]} -gt 0 ]; then

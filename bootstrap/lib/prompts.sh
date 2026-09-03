@@ -9,10 +9,16 @@ readonly PROMPTS_SH_SOURCED=1
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${LIB_DIR}/logging.sh"
 
-# Colors for prompts
-COLOR_PROMPT='\033[0;36m'
-COLOR_CONFIRM='\033[0;32m'
-COLOR_CANCEL='\033[0;31m'
+# Colors for prompts (use same color support as logging)
+if ${SUPPORTS_COLOR:-false}; then
+    COLOR_PROMPT='\033[0;36m'
+    COLOR_CONFIRM='\033[0;32m'
+    COLOR_CANCEL='\033[0;31m'
+else
+    COLOR_PROMPT=''
+    COLOR_CONFIRM=''
+    COLOR_CANCEL=''
+fi
 
 # confirm() - Ask for user confirmation
 # Usage: confirm <message> [default]
@@ -31,7 +37,9 @@ confirm() {
     fi
     
     # Read response
-    read -p "${prompt}" response
+    # Use printf with -e to properly handle escape sequences
+    printf "%b" "${prompt}"
+    read response
     
     # Handle empty response (use default)
     if [ -z "${response}" ]; then
@@ -54,10 +62,12 @@ prompt() {
     local response
     
     if [ -n "${default}" ]; then
-        read -p "${COLOR_PROMPT}${message} [${default}]:${COLOR_RESET} " response
+        printf "%b" "${COLOR_PROMPT}${message} [${default}]:${COLOR_RESET} "
+        read response
         [ -z "${response}" ] && response="${default}"
     else
-        read -p "${COLOR_PROMPT}${message}:${COLOR_RESET} " response
+        printf "%b" "${COLOR_PROMPT}${message}:${COLOR_RESET} "
+        read response
     fi
     
     echo "${response}"
@@ -70,7 +80,7 @@ select_option() {
     shift
     local options=("$@")
     
-    echo "${COLOR_PROMPT}${message}${COLOR_RESET}"
+    printf "%b\n" "${COLOR_PROMPT}${message}${COLOR_RESET}"
     
     local i=1
     for option in "${options[@]}"; do
@@ -79,7 +89,8 @@ select_option() {
     done
     
     local choice
-    read -p "${COLOR_PROMPT}Select [1-${#options[@]}]:${COLOR_RESET} " choice
+    printf "%b" "${COLOR_PROMPT}Select [1-${#options[@]}]:${COLOR_RESET} "
+    read choice
     
     # Validate choice
     if [[ ! "${choice}" =~ ^[0-9]+$ ]] || [ "${choice}" -lt 1 ] || [ "${choice}" -gt ${#options[@]} ]; then
@@ -128,7 +139,8 @@ show_menu() {
     
     echo ""
     local choice
-    read -p "Select [1-${#options[@]}]: " choice
+    printf "Select [1-${#options[@]}]: "
+    read choice
     
     # Validate choice
     if [[ ! "${choice}" =~ ^[0-9]+$ ]] || [ "${choice}" -lt 1 ] || [ "${choice}" -gt ${#options[@]} ]; then

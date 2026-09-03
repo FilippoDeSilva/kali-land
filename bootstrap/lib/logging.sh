@@ -19,13 +19,45 @@ LOG_WARN=2
 LOG_ERROR=3
 LOG_CURRENT_LEVEL=${LOG_INFO}
 
+# Check if terminal supports colors
+# Note: Running with sudo can affect terminal detection, so we check both stdout and stderr
+if [ -t 1 ] || [ -t 2 ]; then
+    colors=$(tput colors 2>/dev/null || echo 0)
+    if [ "${colors}" -ge 8 ]; then
+        SUPPORTS_COLOR=true
+    else
+        SUPPORTS_COLOR=false
+    fi
+else
+    SUPPORTS_COLOR=false
+fi
+
+# Additional check: if we're running with sudo, assume no color support to be safe
+if [ -n "${SUDO_USER:-}" ] || [ -n "${SUDO_UID:-}" ]; then
+    # Try to use colors anyway, but handle potential issues
+    if ! command -v tput &>/dev/null; then
+        SUPPORTS_COLOR=false
+    fi
+fi
+
+export SUPPORTS_COLOR
+
 # Colors for terminal output
-COLOR_RESET='\033[0m'
-COLOR_RED='\033[0;31m'
-COLOR_YELLOW='\033[0;33m'
-COLOR_GREEN='\033[0;32m'
-COLOR_BLUE='\033[0;34m'
-COLOR_GRAY='\033[0;90m'
+if ${SUPPORTS_COLOR}; then
+    COLOR_RESET='\033[0m'
+    COLOR_RED='\033[0;31m'
+    COLOR_YELLOW='\033[0;33m'
+    COLOR_GREEN='\033[0;32m'
+    COLOR_BLUE='\033[0;34m'
+    COLOR_GRAY='\033[0;90m'
+else
+    COLOR_RESET=''
+    COLOR_RED=''
+    COLOR_YELLOW=''
+    COLOR_GREEN=''
+    COLOR_BLUE=''
+    COLOR_GRAY=''
+fi
 
 # log() - Generic logging function
 # Usage: log <level> <message>

@@ -14,6 +14,14 @@ source "${SCRIPT_DIR}/lib/packages.sh"
 source "${SCRIPT_DIR}/lib/filesystem.sh"
 source "${SCRIPT_DIR}/lib/prompts.sh"
 
+# Load environment variables if .env file exists
+if [ -f "${REPO_ROOT}/.env" ]; then
+    log_info "Loading environment variables from .env file"
+    set -a
+    source "${REPO_ROOT}/.env"
+    set +a
+fi
+
 # Installation phases
 PHASE=0
 DRY_RUN=false
@@ -79,6 +87,49 @@ welcome() {
     echo "  Phase 12: Reliability testing"
     echo "  Phase 13: Documentation"
     echo ""
+}
+
+# get_github_credentials() - Get GitHub credentials from environment or prompt
+get_github_credentials() {
+    if [ -n "${GITHUB_USERNAME:-}" ] && [ -n "${GITHUB_TOKEN:-}" ]; then
+        log_info "Using GitHub credentials from environment"
+        return 0
+    fi
+    
+    if ${INTERACTIVE}; then
+        log_info "GitHub credentials not found in environment"
+        log_info "Enter GitHub credentials if you need to clone private repositories"
+        log_info "Leave blank to use public cloning (recommended for most users)"
+        
+        read -p "GitHub username (optional): " GITHUB_USERNAME
+        read -s -p "GitHub token/personal access token (optional): " GITHUB_TOKEN
+        echo ""
+        
+        if [ -n "${GITHUB_USERNAME}" ] && [ -n "${GITHUB_TOKEN}" ]; then
+            log_info "GitHub credentials provided"
+            export GITHUB_USERNAME
+            export GITHUB_TOKEN
+        else
+            log_info "No GitHub credentials provided, using public cloning"
+        fi
+    else
+        log_info "No GitHub credentials in environment, using public cloning"
+    fi
+}
+
+# clone_with_credentials() - Clone repository with optional credentials
+clone_with_credentials() {
+    local repo_url="$1"
+    local target_dir="$2"
+    
+    if [ -n "${GITHUB_USERNAME:-}" ] && [ -n "${GITHUB_TOKEN:-}" ]; then
+        # Convert HTTPS URL to authenticated URL
+        local auth_url="${repo_url/https:\/\//https:\/\/${GITHUB_USERNAME}:${GITHUB_TOKEN}@}"
+        git clone --recursive "${auth_url}" "${target_dir}"
+    else
+        # Use public cloning
+        git clone --recursive "${repo_url}" "${target_dir}"
+    fi
 }
 
 # phase_0_platform_detection() - Platform detection and validation
@@ -180,7 +231,10 @@ phase_base_packages() {
     update_package_cache
     
     log_info "Installing base build packages"
-    install_packages "${REPO_ROOT}/packages/base.txt"
+    if ! install_packages "${REPO_ROOT}/packages/base.txt"; then
+        log_error "Failed to install base packages"
+        return 1
+    fi
     
     log_success "Base packages installed"
 }
@@ -193,7 +247,10 @@ phase_2_wayland_foundation() {
     update_package_cache
     
     log_info "Installing Wayland packages"
-    install_packages "${REPO_ROOT}/packages/wayland.txt"
+    if ! install_packages "${REPO_ROOT}/packages/wayland.txt"; then
+        log_error "Failed to install Wayland packages"
+        return 1
+    fi
     
     log_success "Phase 2 complete"
 }
@@ -202,51 +259,101 @@ phase_2_wayland_foundation() {
 phase_3_hyprland_installation() {
     log_step "Phase 3: Hyprland Installation"
     
-    log_info "Hyprland is not available in Kali repositories"
-    log_info "Building Hyprland from source..."
+    detect_package_manager
+    update_package_cache
     
-    # Install build dependencies
-    log_info "Installing Hyprland build dependencies..."
-    local build_deps="cmake g++ libpango-1.0-0 libpangocairo-1.0-0 libxkbcommon0 libxkbcommon-x11-0 libxcb-icccm4 libxcb-keysyms1 libxcb-render-util0 libxcb-xinerama0 libxcb-xkb1 libxcb-cursor0 libxcb-res0 git"
-    
-    # Install dependencies with graceful failure handling
-    local missing_deps=()
-    for dep in ${build_deps}; do
-        if apt-cache policy "${dep}" &>/dev/null; then
-            ${PACKAGE_MANAGER} install -y "${dep}" || log_warn "Failed to install ${dep}, continuing..."
+    # Check if Hyprland is available in Kali repositories
+    if apt-cache policy hyprland &>/dev/null; then
+        log_info "Hyprland is available in Kali repositories"
+        log_info "Installing packaged Hyprland..."
+        
+        if ${PACKAGE_MANAGER} install -y hyprland; then
+            log_success "Hyprland installed successfully from package"
         else
-            log_warn "Build dependency not available: ${dep}"
-            missing_deps+=("${dep}")
-        fi
-    done
-    
-    if [ ${#missing_deps[@]} -gt 0 ]; then
-        log_warn "Some build dependencies were missing, build may fail"
-    fi
-    
-    # Use official Hyprland installation method
-    log_info "Using official Hyprland installation method..."
-    
-    if command -v bash &>/dev/null && command -v curl &>/dev/null; then
-        log_info "Downloading and running official Hyprland install script..."
-        if curl -s https://raw.githubusercontent.com/hyprwm/Hyprland/main/install.sh | bash; then
-            log_success "Hyprland installed successfully using official script"
-        else
-            log_error "Failed to install Hyprland using official script"
+            log_error "Failed to install Hyprland package"
             log_info "You may need to install Hyprland manually"
             log_info "See docs/installation.md for manual installation instructions"
             return 1
         fi
     else
-        log_error "bash or curl not found, cannot run official install script"
-        log_info "You may need to install Hyprland manually"
-        log_info "See docs/installation.md for manual installation instructions"
-        return 1
+        log_info "Hyprland is not available in Kali repositories"
+        log_info "Building Hyprland from source..."
+        
+        # Install build dependencies
+        log_info "Installing Hyprland build dependencies..."
+        local build_deps="cmake g++ libpango-1.0-0 libpangocairo-1.0-0 libxkbcommon0 libxkbcommon-x11-0 libxcb-icccm4 libxcb-keysyms1 libxcb-render-util0 libxcb-xinerama0 libxcb-xkb1 libxcb-cursor0 libxcb-res0 git libcairo2-dev libpango1.0-dev libxcb-randr0-dev libxcb-util-dev libxcb-xfixes0-dev libxcb-shape0-dev libxcb-xinerama0-dev libxcb-render0-dev libgl1-mesa-dev libglvnd-dev libegl1-mesa-dev libpixman-1-dev libxkbcommon-dev xorg-dev glslang-dev glslang-tools libaquamarine-dev"
+        
+        # Install dependencies with graceful failure handling
+        local missing_deps=()
+        for dep in ${build_deps}; do
+            if apt-cache policy "${dep}" &>/dev/null; then
+                log_info "Installing ${dep}..."
+                ${PACKAGE_MANAGER} install -y "${dep}" || log_warn "Failed to install ${dep}, continuing..."
+            else
+                log_warn "Build dependency not available: ${dep}"
+                missing_deps+=("${dep}")
+            fi
+        done
+        
+        if [ ${#missing_deps[@]} -gt 0 ]; then
+            log_warn "Some build dependencies were missing, build may fail"
+        fi
+        
+        # Clone and build Hyprland
+        local build_dir="/tmp/hyprland-build"
+        rm -rf "${build_dir}"
+        mkdir -p "${build_dir}"
+        
+        log_info "Cloning Hyprland repository..."
+        if command -v git &>/dev/null; then
+            if clone_with_credentials "https://github.com/hyprwm/Hyprland.git" "${build_dir}/hyprland"; then
+                log_success "Repository cloned"
+            else
+                log_error "Failed to clone Hyprland repository"
+                log_info "You may need to install Hyprland manually"
+                log_info "See docs/installation.md for manual installation instructions"
+                return 1
+            fi
+        else
+            log_error "git is not installed, cannot clone repository"
+            log_info "You may need to install Hyprland manually"
+            log_info "See docs/installation.md for manual installation instructions"
+            return 1
+        fi
+        
+        log_info "Building Hyprland..."
+        cd "${build_dir}/hyprland"
+        
+        # Check for install script and use appropriate method
+        if [ -f "./install.sh" ]; then
+            log_info "Using official install script..."
+            if ./install.sh; then
+                log_success "Hyprland installed successfully"
+            else
+                log_error "Failed to build/install Hyprland using install script"
+                log_info "You may need to install Hyprland manually"
+                log_info "See docs/installation.md for manual installation instructions"
+                return 1
+            fi
+        else
+            log_info "No install script found, trying manual cmake build..."
+            mkdir -p build && cd build
+            if cmake .. && make && sudo make install; then
+                log_success "Hyprland installed successfully"
+            else
+                log_error "Failed to build/install Hyprland using cmake"
+                log_info "You may need to install Hyprland manually"
+                log_info "See docs/installation.md for manual installation instructions"
+                return 1
+            fi
+        fi
+        
+        # Cleanup
+        cd "${REPO_ROOT}"
+        if [ -d "${build_dir}" ]; then
+            rm -rf "${build_dir}" || log_warn "Failed to cleanup build directory: ${build_dir}"
+        fi
     fi
-    
-    # Cleanup
-    cd "${REPO_ROOT}"
-    rm -rf "${build_dir}"
     
     log_success "Phase 3 complete"
 }
@@ -259,7 +366,10 @@ phase_4_desktop_services() {
     update_package_cache
     
     log_info "Installing desktop services"
-    install_packages "${REPO_ROOT}/packages/desktop-services.txt"
+    if ! install_packages "${REPO_ROOT}/packages/desktop-services.txt"; then
+        log_warn "Failed to install some desktop services, continuing..."
+        return 0  # Non-critical, allow continuation
+    fi
     
     log_success "Phase 4 complete"
 }
@@ -268,88 +378,114 @@ phase_4_desktop_services() {
 phase_5_quickshell_skeleton() {
     log_step "Phase 5: Quickshell Skeleton"
     
-    log_info "Quickshell is not available in Kali repositories"
-    log_info "Building Quickshell from source..."
+    detect_package_manager
+    update_package_cache
     
-    # Install Qt6 dependencies
-    log_info "Installing Qt6 build dependencies..."
-    local qt_deps="qt6-base-dev qt6-declarative-dev qt6-waylandclient-dev cmake"
-    
-    # Try to install Qt6 dependencies, skip unavailable ones
-    for dep in ${qt_deps}; do
-        if apt-cache policy "${dep}" &>/dev/null; then
-            log_info "Installing ${dep}..."
-            ${PACKAGE_MANAGER} install -y "${dep}" || log_warn "Failed to install ${dep}, continuing..."
+    # Check if Quickshell is available in Kali repositories
+    if apt-cache policy quickshell &>/dev/null; then
+        log_info "Quickshell is available in Kali repositories"
+        log_info "Installing packaged Quickshell..."
+        
+        if ${PACKAGE_MANAGER} install -y quickshell; then
+            log_success "Quickshell installed successfully from package"
         else
-            log_warn "Qt6 dependency not available: ${dep}, skipping..."
-        fi
-    done
-    
-    if ${PACKAGE_MANAGER} install -y ${qt_deps}; then
-        log_success "Qt6 dependencies installed"
-    else
-        log_error "Failed to install Qt6 dependencies"
-        return 1
-    fi
-    
-    # Clone and build Quickshell
-    local build_dir="/tmp/quickshell-build"
-    rm -rf "${build_dir}"
-    mkdir -p "${build_dir}"
-    
-    log_info "Cloning Quickshell repository..."
-    if command -v git &>/dev/null; then
-        if git clone https://github.com/prairielearner/quickshell.git "${build_dir}/quickshell"; then
-            log_success "Repository cloned"
-        else
-            log_error "Failed to clone Quickshell repository"
-            return 1
-        fi
-    else
-        log_error "git is not installed, cannot clone repository"
-        return 1
-    fi
-    
-    log_info "Building Quickshell..."
-    cd "${build_dir}/quickshell"
-    
-    # Check for build script and use appropriate method
-    if [ -f "./install.sh" ]; then
-        log_info "Using official install script..."
-        if ./install.sh; then
-            log_success "Quickshell installed successfully"
-        else
-            log_error "Failed to build/install Quickshell using install script"
-            log_info "You may need to install Quickshell manually"
-            log_info "See docs/installation.md for manual installation instructions"
-            return 1
-        fi
-    elif [ -f "./Makefile" ]; then
-        log_info "Using Makefile..."
-        if make && sudo make install; then
-            log_success "Quickshell installed successfully"
-        else
-            log_error "Failed to build/install Quickshell using Makefile"
+            log_error "Failed to install Quickshell package"
             log_info "You may need to install Quickshell manually"
             log_info "See docs/installation.md for manual installation instructions"
             return 1
         fi
     else
-        log_info "No install script found, trying manual cmake build..."
-        mkdir -p build && cd build
-        if cmake .. && make && sudo make install; then
-            log_success "Quickshell installed successfully"
+        log_info "Quickshell is not available in Kali repositories"
+        log_info "Building Quickshell from source..."
+        
+        # Ensure package manager is detected
+        detect_package_manager
+        
+        # Install Qt6 dependencies
+        log_info "Installing Qt6 build dependencies..."
+        local qt_deps="qt6-base-dev qt6-declarative-dev qt6-wayland-dev cmake extra-cmake-modules qt6-tools-dev qt6-scxml-dev libqt6waylandclient6"
+        
+        # Try to install Qt6 dependencies, skip unavailable ones
+        local missing_qt_deps=()
+        for dep in ${qt_deps}; do
+            if apt-cache policy "${dep}" &>/dev/null; then
+                log_info "Installing ${dep}..."
+                ${PACKAGE_MANAGER} install -y "${dep}" || log_warn "Failed to install ${dep}, continuing..."
+            else
+                log_warn "Qt6 dependency not available: ${dep}, skipping..."
+                missing_qt_deps+=("${dep}")
+            fi
+        done
+        
+        if [ ${#missing_qt_deps[@]} -gt 0 ]; then
+            log_warn "Some Qt6 dependencies were missing, Quickshell build may fail"
+        fi
+        
+        # Clone and build Quickshell
+        local build_dir="/tmp/quickshell-build"
+        rm -rf "${build_dir}"
+        mkdir -p "${build_dir}"
+        
+        log_info "Cloning Quickshell repository..."
+        if command -v git &>/dev/null; then
+            if clone_with_credentials "https://github.com/quickshell-mirror/quickshell.git" "${build_dir}/quickshell"; then
+                log_success "Repository cloned"
+            else
+                log_error "Failed to clone Quickshell repository"
+                log_info "You may need to install Quickshell manually"
+                log_info "See docs/installation.md for manual installation instructions"
+                return 1
+            fi
         else
-            log_error "Failed to build/install Quickshell using cmake"
+            log_error "git is not installed, cannot clone repository"
             log_info "You may need to install Quickshell manually"
             log_info "See docs/installation.md for manual installation instructions"
             return 1
         fi
+        
+        log_info "Building Quickshell..."
+        cd "${build_dir}/quickshell"
+        
+        # Check for build script and use appropriate method
+        if [ -f "./install.sh" ]; then
+            log_info "Using official install script..."
+            if ./install.sh; then
+                log_success "Quickshell installed successfully"
+            else
+                log_error "Failed to build/install Quickshell using install script"
+                log_info "You may need to install Quickshell manually"
+                log_info "See docs/installation.md for manual installation instructions"
+                return 1
+            fi
+        elif [ -f "./Makefile" ]; then
+            log_info "Using Makefile..."
+            if make && sudo make install; then
+                log_success "Quickshell installed successfully"
+            else
+                log_error "Failed to build/install Quickshell using Makefile"
+                log_info "You may need to install Quickshell manually"
+                log_info "See docs/installation.md for manual installation instructions"
+                return 1
+            fi
+        else
+            log_info "No install script found, trying manual cmake build..."
+            mkdir -p build && cd build
+            if cmake .. && make && sudo make install; then
+                log_success "Quickshell installed successfully"
+            else
+                log_error "Failed to build/install Quickshell using cmake"
+                log_info "You may need to install Quickshell manually"
+                log_info "See docs/installation.md for manual installation instructions"
+                return 1
+            fi
+        fi
+        
+        # Cleanup
+        cd "${REPO_ROOT}"
+        if [ -d "${build_dir}" ]; then
+            rm -rf "${build_dir}" || log_warn "Failed to cleanup build directory: ${build_dir}"
+        fi
     fi
-    
-    # Cleanup
-    cd "${REPO_ROOT}"
-    rm -rf "${build_dir}"
     
     log_info "Creating Quickshell configuration structure"
     
@@ -554,9 +690,32 @@ EOF
     log_success "Phase 13 complete"
 }
 
+# check_privileges() - Check if running with sufficient privileges
+check_privileges() {
+    if [ "$EUID" -ne 0 ]; then
+        log_warn "This script requires root privileges for package installation"
+        log_info "Please run with sudo: sudo $0"
+        if ${INTERACTIVE}; then
+            if ! confirm "Continue anyway (some operations will fail)?" "n"; then
+                log_info "Installation cancelled"
+                exit 1
+            fi
+        else
+            log_error "Installation halted due to insufficient privileges"
+            exit 1
+        fi
+    fi
+}
+
 # main() - Main installation function
 main() {
     welcome
+    
+    # Check for privileges
+    check_privileges
+    
+    # Get GitHub credentials for private repositories if needed
+    get_github_credentials
     
     if ${INTERACTIVE} && ! confirm "Begin installation?" "y"; then
         log_info "Installation cancelled"
@@ -567,26 +726,66 @@ main() {
         log_info "Dry run mode - no changes will be made"
     fi
     
-    # Run phases
-    phase_0_platform_detection
-    phase_1_repository_foundation
-    phase_base_packages
-    phase_2_wayland_foundation
-    phase_3_hyprland_installation
-    phase_4_desktop_services
-    phase_5_quickshell_skeleton
-    phase_6_quickshell_bar
-    phase_7_launcher
-    phase_8_control_center
-    phase_9_power_lock_session
-    phase_10_visual_theming
-    phase_11_vmware_optimization
-    phase_12_reliability_testing
-    phase_13_documentation
+    # Run phases with error handling
+    local phase_failed=false
     
-    log_success "Installation complete!"
-    log_info "Please check the logs at: ${LOG_FILE}"
-    log_info "Run ./bootstrap/doctor.sh for system status"
+    # Critical phases that must succeed
+    phase_0_platform_detection || phase_failed=true
+    phase_1_repository_foundation || phase_failed=true
+    phase_base_packages || phase_failed=true
+    phase_2_wayland_foundation || phase_failed=true
+    
+    # Critical component installations
+    if ! phase_3_hyprland_installation; then
+        log_error "Critical phase failed: Hyprland installation"
+        log_error "Cannot continue without Hyprland"
+        if ${INTERACTIVE}; then
+            if ! confirm "Continue anyway (desktop will be incomplete)?" "n"; then
+                log_info "Installation cancelled due to critical failure"
+                exit 1
+            fi
+        else
+            log_error "Installation halted due to critical failure"
+            exit 1
+        fi
+    fi
+    
+    phase_4_desktop_services || log_warn "Desktop services installation failed, continuing..."
+    
+    # Critical component installation
+    if ! phase_5_quickshell_skeleton; then
+        log_error "Critical phase failed: Quickshell installation"
+        log_error "Cannot continue without Quickshell"
+        if ${INTERACTIVE}; then
+            if ! confirm "Continue anyway (desktop will be incomplete)?" "n"; then
+                log_info "Installation cancelled due to critical failure"
+                exit 1
+            fi
+        else
+            log_error "Installation halted due to critical failure"
+            exit 1
+        fi
+    fi
+    
+    # Optional phases - can fail gracefully
+    phase_6_quickshell_bar || log_warn "Quickshell bar phase failed, continuing..."
+    phase_7_launcher || log_warn "Launcher phase failed, continuing..."
+    phase_8_control_center || log_warn "Control center phase failed, continuing..."
+    phase_9_power_lock_session || log_warn "Power/lock/session phase failed, continuing..."
+    phase_10_visual_theming || log_warn "Visual theming phase failed, continuing..."
+    phase_11_vmware_optimization || log_warn "VMware optimization phase failed, continuing..."
+    phase_12_reliability_testing || log_warn "Reliability testing phase failed, continuing..."
+    phase_13_documentation || log_warn "Documentation phase failed, continuing..."
+    
+    if ${phase_failed}; then
+        log_warn "Some phases failed during installation"
+        log_info "Please check the logs at: ${LOG_FILE}"
+        log_info "Run ./bootstrap/doctor.sh for system status"
+    else
+        log_success "Installation complete!"
+        log_info "Please check the logs at: ${LOG_FILE}"
+        log_info "Run ./bootstrap/doctor.sh for system status"
+    fi
 }
 
 # Run main function
