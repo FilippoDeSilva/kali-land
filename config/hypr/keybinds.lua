@@ -8,8 +8,9 @@ local fileManager = "thunar"
 
 -- Window management
 hl.bind(mainMod .. " + return", hl.dsp.exec_cmd(terminal))
+hl.bind(mainMod .. " + t", hl.dsp.exec_cmd(terminal)) -- Alternative terminal shortcut
 hl.bind(mainMod .. " + q", hl.dsp.window.close())
-hl.bind(mainMod .. " + m", hl.dsp.exec_cmd("hyprctl dispatch exit"))
+hl.bind(mainMod .. " + SHIFT + q", hl.dsp.exec_cmd("hyprctl dispatch exit")) -- Safer exit
 hl.bind(mainMod .. " + e", hl.dsp.exec_cmd(fileManager))
 hl.bind(mainMod .. " + f", hl.dsp.window.float({ action = "toggle" }))
 hl.bind(mainMod .. " + space", hl.dsp.window.float({ action = "toggle" }))

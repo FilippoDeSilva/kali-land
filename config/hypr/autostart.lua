@@ -3,7 +3,7 @@
 
 -- Start on Hyprland launch
 hl.on("hyprland.start", function()
-    -- Start terminal
+    -- Start terminal (critical for usability)
     hl.exec_cmd("kitty")
     
     -- Start notification daemon
