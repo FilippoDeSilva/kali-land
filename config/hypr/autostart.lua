@@ -15,9 +15,9 @@ hl.on("hyprland.start", function()
     -- Start network applet if available
     hl.exec_cmd("nm-applet")
     
-    -- Start wallpaper manager (will be configured later)
-    -- hl.exec_cmd("hyprpaper &")
+    -- Start Quickshell desktop shell
+    hl.exec_cmd("quickshell")
     
-    -- Start desktop components (Quickshell will be added later)
-    -- hl.exec_cmd("quickshell &")
+    -- Set a simple background (we'll add proper wallpaper support later)
+    -- For now, the dark background is fine
 end)
