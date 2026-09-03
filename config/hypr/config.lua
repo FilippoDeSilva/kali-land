@@ -24,6 +24,9 @@ hl.config({
         
         -- Layout
         layout = "dwindle",
+        
+        -- Ensure full screen coverage
+        no_direct_scanout = false,
     },
     
     decoration = {

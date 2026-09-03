@@ -11,9 +11,7 @@ local fileManager = "thunar"
 
 -- Window management
 hl.bind(mainMod .. " + return", hl.dsp.exec_cmd(terminal))
-hl.bind(mainMod .. " + t", hl.dsp.exec_cmd(terminal)) -- Alternative terminal shortcut
 hl.bind(mainMod .. " + q", hl.dsp.window.close())
-hl.bind(mainMod .. " + SHIFT + q", hl.dsp.exec_cmd("hyprctl dispatch exit")) -- Safer exit
 hl.bind(mainMod .. " + e", hl.dsp.exec_cmd(fileManager))
 hl.bind(mainMod .. " + f", hl.dsp.window.float({ action = "toggle" }))
 hl.bind(mainMod .. " + space", hl.dsp.window.float({ action = "toggle" }))
@@ -95,7 +93,10 @@ hl.bind(mainMod .. " + period", hl.dsp.exec_cmd("quickshell"))
 -- Application launcher shortcuts
 hl.bind(mainMod .. " + b", hl.dsp.exec_cmd("firefox-esr"))
 hl.bind(mainMod .. " + g", hl.dsp.exec_cmd("geany"))
-hl.bind(mainMod .. " + t", hl.dsp.exec_cmd(terminal))
+
+-- Configuration management
+hl.bind(mainMod .. " + SHIFT + r", hl.dsp.exec_cmd("hyprctl reload"))
+hl.bind(mainMod .. " + SHIFT + q", hl.dsp.exec_cmd("hyprctl dispatch exit"))
 
 -- System controls
 hl.bind(mainMod .. " + SHIFT + e", hl.dsp.exec_cmd("wlogout"))
