@@ -3,8 +3,8 @@
 
 -- Start on Hyprland launch
 hl.on("hyprland.start", function()
-    -- Start terminal (critical for usability) - use TERMINAL env var
-    local terminal = os.getenv("TERMINAL") or "foot"
+    -- Start terminal (critical for usability) - use fallback chain
+    local terminal = os.getenv("TERMINAL") or "qterminal"
     hl.exec_cmd(terminal)
     
     -- Start notification daemon

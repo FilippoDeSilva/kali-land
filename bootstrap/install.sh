@@ -209,6 +209,7 @@ swayidle
 swaylock
 wlogout
 hyprland-guiutils
+foot
 EOF
     
     # Applications packages
@@ -586,6 +587,13 @@ EOF
         else
             log_info "Bare metal detected - keeping terminal as kitty (GPU accelerated)"
             # kitty is already the default, no change needed
+        fi
+        
+        # Ensure fallback terminal is available
+        if ! command -v foot &>/dev/null && ! command -v kitty &>/dev/null; then
+            log_info "Neither foot nor kitty available, using qterminal as fallback"
+            sed -i 's/local terminal = os.getenv("TERMINAL") or "foot"/local terminal = os.getenv("TERMINAL") or "qterminal"/' "${hypr_config_dir}/keybinds.lua"
+            sed -i 's/local terminal = os.getenv("TERMINAL") or "qterminal"/local terminal = os.getenv("TERMINAL") or "qterminal"/' "${hypr_config_dir}/autostart.lua"
         fi
         
         log_success "Hyprland Lua configuration installed"

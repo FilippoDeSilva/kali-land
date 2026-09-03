@@ -18,3 +18,4 @@ swayidle
 swaylock
 wlogout
 hyprland-guiutils
+foot
