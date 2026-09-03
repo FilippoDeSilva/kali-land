@@ -1,6 +1,7 @@
 # Terminal and applications
 kitty
 foot
+qterminal
 thunar
 firefox-esr
 geany

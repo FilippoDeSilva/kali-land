@@ -217,6 +217,7 @@ EOF
 # Terminal and applications
 kitty
 foot
+qterminal
 thunar
 firefox-esr
 geany
@@ -370,6 +371,11 @@ phase_4_desktop_services() {
     log_info "Installing desktop services"
     if ! install_packages "${REPO_ROOT}/packages/desktop-services.txt"; then
         log_warn "Failed to install some desktop services, continuing..."
+    fi
+    
+    log_info "Installing terminal applications"
+    if ! install_packages "${REPO_ROOT}/packages/applications.txt"; then
+        log_warn "Failed to install some terminal applications, continuing..."
     fi
     
     log_success "Phase 4 complete"
@@ -589,11 +595,12 @@ EOF
             # kitty is already the default, no change needed
         fi
         
-        # Ensure fallback terminal is available
-        if ! command -v foot &>/dev/null && ! command -v kitty &>/dev/null; then
-            log_info "Neither foot nor kitty available, using qterminal as fallback"
-            sed -i 's/local terminal = os.getenv("TERMINAL") or "foot"/local terminal = os.getenv("TERMINAL") or "qterminal"/' "${hypr_config_dir}/keybinds.lua"
-            sed -i 's/local terminal = os.getenv("TERMINAL") or "qterminal"/local terminal = os.getenv("TERMINAL") or "qterminal"/' "${hypr_config_dir}/autostart.lua"
+        # Ensure both terminals are available for fallback
+        if ! command -v foot &>/dev/null; then
+            log_warn "foot not available, installation may have failed"
+        fi
+        if ! command -v kitty &>/dev/null; then
+            log_warn "kitty not available, installation may have failed"
         fi
         
         log_success "Hyprland Lua configuration installed"
