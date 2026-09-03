@@ -87,6 +87,7 @@ kali-omarchy/
 
 - [Architecture](docs/architecture.md)
 - [Installation](docs/installation.md)
+- [Lua Configuration](docs/lua-configuration.md)
 - [Keybindings](docs/keybindings.md)
 - [Theming](docs/theming.md)
 - [Troubleshooting](docs/troubleshooting.md)

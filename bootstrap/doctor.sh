@@ -167,9 +167,12 @@ test_configuration() {
     echo "=== Configuration ==="
     
     # Hyprland config test
-    if [ -d "${HOME}/.config/hypr" ]; then
-        echo "  Hyprland config PASS (exists)"
+    if [ -f "${HOME}/.config/hypr/hyprland.lua" ]; then
+        echo "  Hyprland config PASS (Lua format exists)"
         TEST_RESULTS[HyprlandConfig]=PASS
+    elif [ -f "${HOME}/.config/hypr/hyprland.conf" ]; then
+        echo "  Hyprland config WARN (old .conf format, consider migrating to Lua)"
+        TEST_RESULTS[HyprlandConfig]=WARN
     else
         echo "  Hyprland config INFO (not found)"
         TEST_RESULTS[HyprlandConfig]=INFO

@@ -45,6 +45,15 @@ if [ -f "${REPO_ROOT}/scripts/deploy-config.sh" ]; then
     "${REPO_ROOT}/scripts/deploy-config.sh"
 fi
 
+# Check if we're using Lua configuration
+if [ -f "${HOME}/.config/hypr/hyprland.lua" ]; then
+    echo "Using Lua configuration format"
+elif [ -f "${HOME}/.config/hypr/hyprland.conf" ]; then
+    echo "Using traditional .conf configuration format"
+else
+    echo "WARNING: No Hyprland configuration found!"
+fi
+
 echo ""
 echo "=========================================="
 echo "  Starting Hyprland Test"

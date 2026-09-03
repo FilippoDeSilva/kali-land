@@ -32,11 +32,19 @@ else
     SUPPORTS_COLOR=false
 fi
 
+# Fallback: if tput failed but we have a terminal, assume color support
+if [ "${SUPPORTS_COLOR}" = "false" ] && ([ -t 1 ] || [ -t 2 ]); then
+    SUPPORTS_COLOR=true
+fi
+
 # Additional check: if we're running with sudo, assume no color support to be safe
 if [ -n "${SUDO_USER:-}" ] || [ -n "${SUDO_UID:-}" ]; then
     # Try to use colors anyway, but handle potential issues
     if ! command -v tput &>/dev/null; then
-        SUPPORTS_COLOR=false
+        # If tput is not available but we have a terminal, still try colors
+        if ! ([ -t 1 ] || [ -t 2 ]); then
+            SUPPORTS_COLOR=false
+        fi
     fi
 fi
 

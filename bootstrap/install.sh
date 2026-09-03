@@ -516,8 +516,35 @@ ApplicationWindow {
 }
 EOF
     
+    log_info "Creating modular Lua configuration for Hyprland"
+    
+    # Remove old .conf files and create Lua equivalents
+    rm -f "${REPO_ROOT}/config/hypr/"*.conf
+    
+    # The Lua files are already created above
+    log_success "Lua configuration structure created"
+    
+    # Update Hyprland to use Lua config
+    log_info "Configuring Hyprland to use Lua configuration"
+    # Hyprland automatically looks for hyprland.lua if it exists
+    
     log_success "Phase 5 complete"
-}
+    
+    # Install Hyprland Lua configuration
+    log_info "Installing Hyprland Lua configuration"
+    ensure_directories
+    
+    local hypr_config_dir="${HOME}/.config/hypr"
+    mkdir -p "${hypr_config_dir}"
+    
+    # Copy Lua configuration files
+    if [ -d "${REPO_ROOT}/config/hypr" ]; then
+        log_info "Copying Lua configuration files to ${hypr_config_dir}"
+        cp -r "${REPO_ROOT}/config/hypr/"*.lua "${hypr_config_dir}/"
+        log_success "Hyprland Lua configuration installed"
+    else
+        log_warn "Hyprland configuration directory not found"
+    fi
 
 # phase_6_quickshell_bar() - Build Quickshell bar
 phase_6_quickshell_bar() {

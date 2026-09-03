@@ -39,29 +39,16 @@ sudo apt update
 sudo apt install -y wayland-protocols wayland-utils libwayland-dev xwayland
 ```
 
-### Phase 3: Hyprland Installation (Manual)
+### Phase 3: Hyprland Installation (Requires Sudo)
 
-Hyprland is not available in Kali repositories. You have several options:
+Hyprland is available in Kali repositories. The script will attempt to install it automatically. If this fails, run manually:
 
-#### Option 1: Build from Source (Recommended)
+```bash
+sudo apt update
+sudo apt install -y hyprland hyprland-guiutils
+```
 
-1. Install build dependencies:
-   ```bash
-   sudo apt install -y cmake g++ libpango-1.0-0 libpangocairo-1.0-0 libxkbcommon0 libxkbcommon-x11-0 libxcb-icccm4 libxcb-keysyms1 libxcb-render-util0 libxcb-xinerama0 libxcb-xkb1 libxcb-cursor0 libxcb-res0
-   ```
-
-2. Clone and build Hyprland:
-   ```bash
-   git clone https://github.com/hyprwm/Hyprland.git /tmp/Hyprland
-   cd /tmp/Hyprland
-   ./install.sh
-   ```
-
-#### Option 2: Use Community Packages
-
-Check if there are Kali community packages available. Search for:
-- `hyprland` in community repositories
-- Third-party Kali repositories (use with caution)
+**Note**: `hyprland-guiutils` is a recommended runtime dependency for some Hyprland dialogs.
 
 ### Phase 4: Desktop Services (Requires Sudo)
 
@@ -106,6 +93,48 @@ Check the Quickshell releases for pre-built binaries that might work on Kali.
 ### Phase 6-10: Configuration and Theming (Automated)
 
 These phases are handled by the install script and create the configuration structure.
+
+**Important**: This project uses Hyprland's Lua configuration format (not the traditional `.conf` format). The installer will:
+
+1. Remove old `.conf` files from `~/.config/hypr/`
+2. Deploy modular Lua configuration files (`.lua`)
+3. Set up the main entry point at `~/.config/hypr/hyprland.lua`
+
+The Lua configuration is modular and organized as:
+- `hyprland.lua` - Main entry point that requires all modules
+- `config.lua` - Core Hyprland settings (gaps, borders, decorations, animations)
+- `environment.lua` - Environment variables
+- `monitors.lua` - Display/monitor configuration
+- `keybinds.lua` - Keyboard shortcuts
+- `rules.lua` - Window rules
+- `autostart.lua` - Startup applications
+- `vmware.lua` - VMware-specific optimizations
+
+### Validating Lua Configuration
+
+Before starting Hyprland, you can validate the Lua configuration structure:
+
+```bash
+bash scripts/validate-lua-config.sh
+```
+
+This script checks:
+- All required Lua modules are present
+- No conflicting `.conf` files remain
+- Module structure is correct
+- Entry point requires all modules
+
+To test the configuration in a live session:
+
+```bash
+bash scripts/test-hyprland.sh
+```
+
+This will:
+- Backup your current configuration
+- Deploy the test configuration
+- Start Hyprland safely
+- Allow you to return to your current session if something goes wrong
 
 ### Phase 11: VMware Optimization (Optional)
 

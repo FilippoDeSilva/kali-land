@@ -88,7 +88,69 @@ sudo ./bootstrap/install.sh
 
 ### Hyprland Issues
 
-#### Hyprland Won't Start
+#### Hyprland Won't Start with Lua Configuration
+
+**Problem**: Hyprland fails to start after deploying Lua configuration
+
+**Solution**:
+1. Check the Hyprland log:
+   ```bash
+   cat ~/.local/share/hyprland/hyprland.log
+   ```
+
+2. Validate the Lua configuration structure:
+   ```bash
+   bash scripts/validate-lua-config.sh
+   ```
+
+3. Check for syntax errors:
+   - Ensure all `.lua` files are syntactically correct
+   - Verify all `require()` statements match actual module files
+   - Check that API calls match the installed Hyprland version
+
+4. Test with minimal configuration:
+   ```bash
+   cp ~/.config/hypr/minimal.lua ~/.config/hypr/hyprland.lua
+   # Try starting Hyprland with minimal config
+   ```
+
+5. Restore from backup:
+   ```bash
+   # Find your backup directory
+   ls ~/.local/state/kali-omarchy/backups/
+   # Restore the previous configuration
+   cp -r ~/.local/state/kali-omarchy/backups/<timestamp>/hypr ~/.config/hypr
+   ```
+
+#### Mixed .conf and .lua Files
+
+**Problem**: You have both `.conf` and `.lua` files in `~/.config/hypr/`
+
+**Solution**:
+- Hyprland 0.56.2+ prefers `.lua` configuration
+- Remove old `.conf` files to avoid conflicts:
+  ```bash
+  rm ~/.config/hypr/*.conf
+  ```
+
+#### Module Not Found Errors
+
+**Problem**: You see errors like "module not found"
+
+**Solution**:
+1. Check that the module file exists:
+   ```bash
+   ls ~/.config/hypr/
+   ```
+
+2. Verify the `require()` statement in `hyprland.lua` matches the filename:
+   ```bash
+   grep require ~/.config/hypr/hyprland.lua
+   ```
+
+3. Ensure the module is in the correct directory (`~/.config/hypr/`)
+
+#### Hyprland Won't Start (General)
 
 **Problem**: Hyprland crashes or won't start
 
@@ -105,7 +167,7 @@ sudo ./bootstrap/install.sh
 
 3. Test with minimal config:
    ```bash
-   mv ~/.config/hypr/hyprland.conf ~/.config/hypr/hyprland.conf.bak
+   cp ~/.config/hypr/minimal.lua ~/.config/hypr/hyprland.lua
    Hyprland
    ```
 
