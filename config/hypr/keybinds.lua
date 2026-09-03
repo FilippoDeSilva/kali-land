@@ -3,7 +3,9 @@
 
 -- Modifier variable
 local mainMod = "SUPER"
-local terminal = "kitty"
+-- Use the TERMINAL environment variable (set in environment.lua)
+-- For VMs: foot (native Wayland), for bare metal: kitty/alacritty (GPU accelerated)
+local terminal = os.getenv("TERMINAL") or "foot"
 local fileManager = "thunar"
 
 -- Window management

@@ -2,11 +2,12 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-ApplicationWindow {
+Rectangle {
     id: root
     visible: true
     width: 1920
     height: 1080
+    color: "transparent" // Let Hyprland background show through
     
     // Top Bar
     Rectangle {
@@ -16,6 +17,7 @@ ApplicationWindow {
         anchors.right: parent.right
         height: 30
         color: "#1e1e2e"
+        z: 100 // Ensure it's on top
         
         RowLayout {
             anchors.fill: parent
@@ -48,5 +50,6 @@ ApplicationWindow {
         text: "Kali Omarchy Desktop"
         color: "#cdd6f4"
         font.pixelSize: 24
+        z: 50
     }
 }

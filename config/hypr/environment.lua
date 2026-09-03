@@ -12,6 +12,7 @@ hl.env("WLR_NO_HARDWARE_CURSORS", "1")
 hl.env("VDPAU_DRIVER", "va_gl")
 
 -- Default applications
-hl.env("TERMINAL", "kitty")
+-- Use foot for VMs (native Wayland), kitty for bare metal (GPU accelerated)
+hl.env("TERMINAL", "foot")
 hl.env("BROWSER", "firefox-esr")
 hl.env("EDITOR", "geany")

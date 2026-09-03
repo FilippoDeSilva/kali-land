@@ -489,17 +489,22 @@ phase_5_quickshell_skeleton() {
     
     log_info "Creating Quickshell configuration structure"
     
-    # Create basic shell.qml with top bar
-    cat > "${REPO_ROOT}/config/quickshell/shell.qml" <<'EOF'
+    # Use repository Quickshell configuration instead of auto-generating
+    if [ -d "${REPO_ROOT}/config/quickshell" ]; then
+        log_info "Using repository Quickshell configuration"
+    else
+        # Create basic shell.qml only if repository doesn't have one
+        cat > "${REPO_ROOT}/config/quickshell/shell.qml" <<'EOF'
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-ApplicationWindow {
+Rectangle {
     id: root
     visible: true
     width: 1920
     height: 1080
+    color: "transparent" // Let Hyprland background show through
     
     // Top Bar
     Rectangle {
@@ -509,6 +514,7 @@ ApplicationWindow {
         anchors.right: parent.right
         height: 30
         color: "#1e1e2e"
+        z: 100 // Ensure it's on top
         
         RowLayout {
             anchors.fill: parent
@@ -541,9 +547,11 @@ ApplicationWindow {
         text: "Kali Omarchy Desktop"
         color: "#cdd6f4"
         font.pixelSize: 24
+        z: 50
     }
 }
 EOF
+    fi
     
     log_info "Creating modular Lua configuration for Hyprland"
     
@@ -570,6 +578,16 @@ EOF
     if [ -d "${REPO_ROOT}/config/hypr" ]; then
         log_info "Copying Lua configuration files to ${hypr_config_dir}"
         cp -r "${REPO_ROOT}/config/hypr/"*.lua "${hypr_config_dir}/"
+        
+        # Detect if running in VM and set appropriate terminal
+        if systemd-detect-virt --vm &>/dev/null; then
+            log_info "VM detected - setting terminal to foot (native Wayland)"
+            sed -i 's/hl.env("TERMINAL", "kitty")/hl.env("TERMINAL", "foot")/' "${hypr_config_dir}/environment.lua"
+        else
+            log_info "Bare metal detected - setting terminal to kitty (GPU accelerated)"
+            sed -i 's/hl.env("TERMINAL", "foot")/hl.env("TERMINAL", "kitty")/' "${hypr_config_dir}/environment.lua"
+        fi
+        
         log_success "Hyprland Lua configuration installed"
     else
         log_warn "Hyprland configuration directory not found"
