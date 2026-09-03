@@ -17,3 +17,4 @@ cliphist
 swayidle
 swaylock
 wlogout
+hyprland-guiutils
