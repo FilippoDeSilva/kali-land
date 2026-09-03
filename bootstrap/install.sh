@@ -584,8 +584,8 @@ EOF
             log_info "VM detected - setting terminal to foot (native Wayland)"
             sed -i 's/hl.env("TERMINAL", "kitty")/hl.env("TERMINAL", "foot")/' "${hypr_config_dir}/environment.lua"
         else
-            log_info "Bare metal detected - setting terminal to kitty (GPU accelerated)"
-            sed -i 's/hl.env("TERMINAL", "foot")/hl.env("TERMINAL", "kitty")/' "${hypr_config_dir}/environment.lua"
+            log_info "Bare metal detected - keeping terminal as kitty (GPU accelerated)"
+            # kitty is already the default, no change needed
         fi
         
         log_success "Hyprland Lua configuration installed"
