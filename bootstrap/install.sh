@@ -538,6 +538,9 @@ EOF
     else
         log_warn "Hyprland configuration directory not found"
     fi
+    
+    log_success "Phase 5 complete"
+}
 
 # phase_6_quickshell_bar() - Build Quickshell bar
 phase_6_quickshell_bar() {
