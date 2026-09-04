@@ -29,6 +29,8 @@ libdwarf-dev
 libunwind-dev
 wayland-protocols
 libwayland-dev
+libegl-dev
+libgl-dev
 
 # Optional: Rust and cargo for building matugen (Material You theming)
 # cargo

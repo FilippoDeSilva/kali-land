@@ -70,7 +70,9 @@ jobs:
           libdwarf-dev \
           libunwind-dev \
           wayland-protocols \
-          libwayland-dev
+          libwayland-dev \
+          libegl-dev \
+          libgl-dev
 
     - name: Build and install cpptrace
       run: |
