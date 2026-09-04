@@ -66,7 +66,18 @@ jobs:
           pkg-config \
           spirv-tools \
           libvulkan-dev \
-          libjemalloc-dev
+          libjemalloc-dev \
+          libdwarf-dev \
+          libunwind-dev
+
+    - name: Build and install cpptrace
+      run: |
+        git clone https://github.com/jeremy-rifkin/cpptrace.git /tmp/cpptrace
+        cd /tmp/cpptrace
+        mkdir -p build && cd build
+        cmake -GNinja -DCMAKE_BUILD_TYPE=Release ..
+        ninja
+        cmake --install .
 
     - name: Clone Quickshell repository
       run: |

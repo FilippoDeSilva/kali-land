@@ -25,6 +25,8 @@ ninja-build
 spirv-tools
 libvulkan-dev
 libjemalloc-dev
+libdwarf-dev
+libunwind-dev
 
 # Optional: Rust and cargo for building matugen (Material You theming)
 # cargo
