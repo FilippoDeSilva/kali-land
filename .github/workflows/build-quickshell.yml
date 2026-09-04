@@ -97,6 +97,12 @@ jobs:
     - name: Create Quickshell package
       run: |
         cd quickshell/build
+        QUICKSHELL_BIN=$(find . -name quickshell -type f -executable | head -n 1)
+        if [ -z "$QUICKSHELL_BIN" ]; then
+          echo "Error: quickshell binary not found"
+          exit 1
+        fi
+        cp "$QUICKSHELL_BIN" ./quickshell
         tar -czf quickshell-linux-x86_64.tar.gz quickshell
 
     - name: Upload Quickshell artifact
