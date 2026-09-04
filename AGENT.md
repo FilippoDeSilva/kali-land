@@ -216,7 +216,7 @@ project automation**.
 Recommended location:
 
 ``` text
-~/Projects/kali-omarchy/
+~/Projects/kali-land/
 ```
 
 If the user's preferred development directory differs, detect it first
@@ -225,7 +225,7 @@ and use the existing convention.
 Recommended repository structure:
 
 ``` text
-kali-omarchy/
+kali-land/
 ├── AGENT.md
 ├── README.md
 ├── LICENSE
@@ -353,7 +353,7 @@ If symlinks are used, the installer must:
 Example backup location:
 
 ``` text
-~/.local/state/kali-omarchy/backups/<timestamp>/
+~/.local/state/kali-land/backups/<timestamp>/
 ```
 
 ------------------------------------------------------------------------
@@ -488,142 +488,122 @@ Avoid a 1000-line monolithic configuration.
 
 Quickshell is the **desktop shell**, not the compositor.
 
-Architect it like an application.
+kali-land uses the end4-pC Quickshell configuration as the foundation, which provides:
 
-Recommended conceptual structure:
+- Material 3 design system
+- Comprehensive desktop shell features
+- Hyprland integration
+- Modular architecture
 
+The end4-pC configuration is cloned from:
 ``` text
-quickshell/
-├── shell.qml
-├── modules/
-│   ├── bar/
-│   ├── launcher/
-│   ├── notifications/
-│   ├── control-center/
-│   ├── power/
-│   ├── workspaces/
-│   ├── clock/
-│   ├── system/
-│   └── media/
-│
-├── components/
-│   ├── IconButton.qml
-│   ├── Panel.qml
-│   ├── Popup.qml
-│   ├── Separator.qml
-│   ├── Label.qml
-│   └── ...
-│
-├── services/
-│   ├── HyprlandService.qml
-│   ├── AudioService.qml
-│   ├── NetworkService.qml
-│   ├── BatteryService.qml
-│   └── ...
-│
-├── models/
-├── utils/
-└── theme/
+https://github.com/pctrade/end4-pC
 ```
 
-Do not put all logic in UI components.
+## end4-pC Architecture
 
-Separate:
+The configuration is organized as:
 
 ``` text
-presentation
-    ↓
-components
-    ↓
-services/models
-    ↓
-system APIs / CLI tools
+end4-pC/
+├── shell.qml                    # Main entry point
+├── panelFamilies/               # Panel configurations
+├── modules/                     # UI modules
+│   ├── common/                  # Shared utilities and models
+│   ├── ii/                      # Illogical Impulse (main desktop)
+│   │   ├── verticalBar/         # Vertical bar components
+│   │   ├── sidebarLeft/        # Left sidebar (launcher, AI, etc.)
+│   │   └── sidebarRight/       # Right sidebar (controls, notifications)
+│   └── other panels...
+├── services/                    # Backend services
+│   ├── HyprlandBackend.qml
+│   ├── Audio.qml
+│   ├── Network.qml
+│   └── ...
+├── assets/                      # Icons, fonts, images
+├── defaults/                    # Default configurations
+├── scripts/                     # Helper scripts
+└── translations/                # i18n support
 ```
+
+## Customization Strategy
+
+When customizing end4-pC:
+
+1. **Modify modules in place** - Edit QML files in `end4-pC/`
+2. **Preserve architecture** - Keep the modular structure
+3. **Test changes incrementally** - Quickshell supports hot reload
+4. **Backup before major changes** - Use version control
+
+## Installation
+
+The installer copies end4-pC from the repository to:
+``` text
+~/.config/quickshell/
+```
+
+This ensures the configuration is source-controlled and reproducible.
 
 ------------------------------------------------------------------------
 
 # 10. Quickshell UI Architecture
 
-The shell should eventually contain:
+The end4-pC configuration provides a comprehensive UI:
 
-## Top Bar
+## Vertical Bar
 
-Sections:
+The main vertical bar contains:
+- Workspace indicators
+- System information
+- Quick toggles
+- Application launcher trigger
 
-``` text
-[launcher] [workspaces]                 [window title]
+## Sidebars
 
-                         [network] [audio] [battery] [clock]
-```
+### Left Sidebar
+- Application launcher with fuzzy search
+- AI chat integration (optional)
+- Translator
+- Wallpaper selector
 
-Potential behavior:
-
--   workspace indicators
--   active window title
--   system tray where appropriate
--   network status
--   volume
--   microphone
--   battery
--   clock
--   notification indicator
-
-------------------------------------------------------------------------
-
-## Launcher
-
-Primary UX:
-
-``` text
-Super + Space
-```
-
-The launcher should support:
-
--   application search
--   command execution
--   desktop entries
--   recent commands where safe
--   keyboard navigation
--   escape to close
--   fuzzy matching
-
-Do not make the launcher depend on hard-coded application paths.
-
-Use desktop entry discovery where possible.
-
-------------------------------------------------------------------------
+### Right Sidebar
+- Quick toggles (Wi-Fi, Bluetooth, volume, etc.)
+- Notification center
+- Calendar widget
+- Volume mixer
+- Power controls
+- Todo list
 
 ## Control Center
 
-Provide a unified popup for:
-
--   Wi-Fi/network state
--   Bluetooth
--   volume
--   microphone
--   brightness
--   battery
--   night light if supported
--   notification state
--   power actions
-
-The control center should degrade gracefully when hardware is
-unavailable.
-
-------------------------------------------------------------------------
+The control center provides:
+- Unified system controls
+- Audio device management
+- Network configuration
+- Bluetooth device management
+- Brightness controls
+- Night light settings
+- Power profile selection
 
 ## Power Menu
 
-Actions:
+Available actions:
+- Lock screen
+- Logout
+- Suspend
+- Reboot
+- Shutdown
 
--   lock
--   logout
--   suspend
--   reboot
--   shutdown
+All destructive actions require confirmation.
 
-Destructive actions must require confirmation.
+## Features
+
+- Material 3 design language
+- Smooth animations
+- Keyboard-first navigation
+- Configurable widgets
+- Multi-language support
+- Hyprland-specific integrations
 
 ------------------------------------------------------------------------
 
@@ -1041,7 +1021,7 @@ Validate:
 Example output:
 
 ``` text
-KALI OMARCHY DOCTOR
+KALI-LAND DOCTOR
 
 Platform
   OS              PASS
@@ -1080,7 +1060,7 @@ Failures should explain how to investigate them.
 Installation scripts should log to:
 
 ``` text
-~/.local/state/kali-omarchy/logs/
+~/.local/state/kali-land/logs/
 ```
 
 Example:
@@ -1108,7 +1088,7 @@ DEBUG
 Before modifying an existing config:
 
 ``` text
-~/.local/state/kali-omarchy/backups/
+~/.local/state/kali-land/backups/
 ```
 
 Backups must be timestamped.
