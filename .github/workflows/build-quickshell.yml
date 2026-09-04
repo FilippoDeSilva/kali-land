@@ -75,7 +75,7 @@ jobs:
         git clone https://github.com/jeremy-rifkin/cpptrace.git /tmp/cpptrace
         cd /tmp/cpptrace
         mkdir -p build && cd build
-        cmake -GNinja -DCMAKE_BUILD_TYPE=Release ..
+        cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DCPPTRACE_UNWIND_WITH_LIBUNWIND=ON -DCPPTRACE_GET_BACKTRACE_WITH_LIBUNWIND=ON ..
         ninja
         cmake --install .
 
