@@ -381,5 +381,5 @@ If you need to rollback to the original desktop:
 ## Getting Help
 
 - Run the doctor: `./bootstrap/doctor.sh`
-- Check logs: `~/.local/state/kali-omarchy/logs/`
+- Check logs: `~/.local/state/kali-land/logs/`
 - See troubleshooting guide: [docs/troubleshooting.md](troubleshooting.md)

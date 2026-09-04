@@ -12,8 +12,8 @@ source "${LIB_DIR}/logging.sh"
 # Directory constants
 REPO_ROOT="$(cd "${LIB_DIR}/../.." && pwd)"
 CONFIG_DIR="${HOME}/.config"
-BACKUP_DIR="${HOME}/.local/state/kali-omarchy/backups"
-STATE_DIR="${HOME}/.local/state/kali-omarchy"
+BACKUP_DIR="${HOME}/.local/state/kali-land/backups"
+STATE_DIR="${HOME}/.local/state/kali-land"
 
 # ensure_directories() - Create required directories
 ensure_directories() {

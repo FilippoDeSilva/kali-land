@@ -30,7 +30,7 @@ echo "Setting up test environment..."
 # Backup current Hyprland config if it exists
 if [ -d "${HOME}/.config/hypr" ]; then
     echo "Backing up current Hyprland configuration..."
-    BACKUP_DIR="${HOME}/.local/state/kali-omarchy/test-backup-$(date +%Y-%m-%d_%H-%M-%S)"
+    BACKUP_DIR="${HOME}/.local/state/kali-land/test-backup-$(date +%Y-%m-%d_%H-%M-%S)"
     mkdir -p "${BACKUP_DIR}"
     cp -r "${HOME}/.config/hypr" "${BACKUP_DIR}/"
     echo "Backup saved at: ${BACKUP_DIR}"

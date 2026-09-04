@@ -6,7 +6,7 @@
 readonly LOGGING_SH_SOURCED=1
 
 # Log directory
-LOG_DIR="${HOME}/.local/state/kali-omarchy/logs"
+LOG_DIR="${HOME}/.local/state/kali-land/logs"
 LOG_FILE="${LOG_DIR}/$(date +%Y-%m-%dT%H-%M-%S).log"
 
 # Ensure log directory exists

@@ -2,26 +2,39 @@ name: Build Installer
 
 on:
   push:
+    branches:
+      - main
+      - master
     tags:
       - 'v*'
+  pull_request:
+    branches:
+      - main
+      - master
+  release:
+    types: [published]
   workflow_dispatch:
 
 jobs:
   build-installer:
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-      
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.x'
-        
+
     - name: Create installer package
       run: |
-        # Create a compressed archive of the installer
         tar -czf kali-land-installer.tar.gz \
           bootstrap/ \
           config/ \
@@ -32,17 +45,17 @@ jobs:
           README.md \
           LICENSE \
           QUICKSTART.md
-          
+
     - name: Upload installer artifact
       uses: actions/upload-artifact@v4
       with:
         name: kali-land-installer
         path: kali-land-installer.tar.gz
         retention-days: 30
-        
+
     - name: Upload to release (if release)
       if: github.event_name == 'release'
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         files: kali-land-installer.tar.gz
       env:

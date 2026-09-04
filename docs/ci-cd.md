@@ -16,9 +16,9 @@ kali-land uses GitHub Actions for CI/CD to build and distribute Quickshell and t
 - Release creation
 
 **Process:**
-1. Uses GitHub Actions with Ubuntu container
+1. Uses GitHub Actions with official Kali Linux container (`kalilinux/kali-rolling:latest`)
 2. Installs all Quickshell build dependencies
-3. Clones the official Quickshell repository
+3. Clones the official Quickshell repository (with recursive submodules for `cpptrace`)
 4. Builds Quickshell with cmake and ninja
 5. Creates a tar.gz package with the Quickshell binary
 6. Uploads the artifact (retained for 30 days)

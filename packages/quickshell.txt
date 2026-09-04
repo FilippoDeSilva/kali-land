@@ -24,7 +24,6 @@ pkg-config
 ninja-build
 spirv-tools
 libvulkan-dev
-libcpptrace-dev
 libjemalloc-dev
 
 # Optional: Rust and cargo for building matugen (Material You theming)

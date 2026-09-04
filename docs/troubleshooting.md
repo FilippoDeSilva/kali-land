@@ -21,7 +21,7 @@ This will show:
 
 Installation logs:
 ```bash
-~/.local/state/kali-omarchy/logs/
+~/.local/state/kali-land/logs/
 ```
 
 Service logs:
@@ -117,9 +117,9 @@ sudo ./bootstrap/install.sh
 5. Restore from backup:
    ```bash
    # Find your backup directory
-   ls ~/.local/state/kali-omarchy/backups/
+   ls ~/.local/state/kali-land/backups/
    # Restore the previous configuration
-   cp -r ~/.local/state/kali-omarchy/backups/<timestamp>/hypr ~/.config/hypr
+   cp -r ~/.local/state/kali-land/backups/<timestamp>/hypr ~/.config/hypr
    ```
 
 #### Mixed .conf and .lua Files
@@ -364,13 +364,13 @@ If something breaks and you need to restore:
    ```bash
    ./bootstrap/uninstall.sh --help
    # or manually check
-   ls ~/.local/state/kali-omarchy/backups/
+   ls ~/.local/state/kali-land/backups/
    ```
 
 2. Restore specific config:
    ```bash
    # Manually restore from backup
-   cp -r ~/.local/state/kali-omarchy/backups/<timestamp>/hypr ~/.config/hypr
+   cp -r ~/.local/state/kali-land/backups/<timestamp>/hypr ~/.config/hypr
    ```
 
 ### Complete Uninstall

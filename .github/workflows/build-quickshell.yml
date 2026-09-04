@@ -2,24 +2,43 @@ name: Build Quickshell
 
 on:
   push:
+    branches:
+      - main
+      - master
     tags:
       - 'v*'
+  pull_request:
+    branches:
+      - main
+      - master
+  release:
+    types: [published]
   workflow_dispatch:
 
 jobs:
   build-quickshell:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/catthehacker/ubuntu:act-latest
-    
+      image: kalilinux/kali-rolling:latest
+
+    env:
+      DEBIAN_FRONTEND: noninteractive
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-      
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+
     - name: Install build dependencies
       run: |
         apt-get update
-        apt-get install -y \
+        apt-get install -y --no-install-recommends \
+          ca-certificates \
+          curl \
           git \
           cmake \
           ninja-build \
@@ -47,36 +66,34 @@ jobs:
           pkg-config \
           spirv-tools \
           libvulkan-dev \
-          libcpptrace-dev \
           libjemalloc-dev
-          
+
     - name: Clone Quickshell repository
       run: |
         git clone --recursive https://github.com/outfoxxed/quickshell.git
-        
+
     - name: Build Quickshell
       run: |
         cd quickshell
         mkdir -p build && cd build
         cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DDISTRIBUTOR="kali-land" ..
         ninja
-        
+
     - name: Create Quickshell package
       run: |
         cd quickshell/build
-        # Create a package with the Quickshell binary
         tar -czf quickshell-linux-x86_64.tar.gz quickshell
-        
+
     - name: Upload Quickshell artifact
       uses: actions/upload-artifact@v4
       with:
         name: quickshell-linux-x86_64
         path: quickshell/build/quickshell-linux-x86_64.tar.gz
         retention-days: 30
-        
+
     - name: Upload to release (if release)
       if: github.event_name == 'release'
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         files: quickshell/build/quickshell-linux-x86_64.tar.gz
       env:
