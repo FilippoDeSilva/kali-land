@@ -1,5 +1,9 @@
 # Quick Start
 
+## Warning
+
+This project is in active development. While designed for VMware during development, it can be used on bare metal. Use on daily drivers at your own risk until stable release.
+
 ## Installation
 
 ```bash
@@ -11,14 +15,14 @@ The installer will:
 - Install all required dependencies
 - Configure Hyprland and Quickshell
 - Set up the end4-pC Material 3 desktop shell
-- Optimize for VMware environment
+- Apply VMware optimizations if detected
 
 ## Requirements
 
 - Kali Linux (Rolling)
-- VMware virtual machine
 - Sudo access
 - Internet connection
+- 4GB RAM minimum (8GB recommended)
 
 ## After Installation
 

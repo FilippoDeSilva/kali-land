@@ -2,6 +2,12 @@
 
 This document covers VMware-specific optimizations and considerations for the kali-land Desktop.
 
+## Purpose
+
+VMware is used during development. The desktop environment is designed to work on bare metal hardware as well. VMware-specific optimizations are only applied when running in a VMware virtual machine.
+
+**Important**: This project is in active development. While designed for VMware during development, it can be used on bare metal. Use on daily drivers at your own risk until stable release.
+
 ## VMware Detection
 
 The system automatically detects VMware using:
@@ -10,6 +16,8 @@ systemd-detect-virt
 ```
 
 Expected output: `vmware`
+
+VMware-specific configurations are only applied when VMware is detected. On bare metal, these optimizations are skipped.
 
 ## VMware Tools
 

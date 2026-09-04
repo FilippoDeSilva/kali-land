@@ -69,8 +69,7 @@ config/
 │   ├── keybinds.lua            # Keyboard shortcuts
 │   ├── rules.lua               # Window rules
 │   ├── autostart.lua            # Startup applications
-│   ├── vmware.lua              # VMware-specific configuration
-│   └── minimal.lua             # Minimal fallback configuration
+│   └── vmware.lua              # VMware-specific configuration (only loaded in VM)
 │
 ├── foot/                       # Foot terminal configuration
 ├── gtk/                        # GTK theme configuration
@@ -78,11 +77,12 @@ config/
 ├── hyprlock/                   # Hyprlock (screen lock) configuration
 ├── kitty/                      # Kitty terminal configuration
 ├── mako/                       # Mako notification daemon configuration
-├── quickshell/                 # Basic Quickshell configuration (backup)
 └── wlogout/                    # Wlogout (logout menu) configuration
 ```
 
 **Purpose:** Source of truth for all user configuration. The installation system copies these files to `~/.config/` during installation.
+
+**Note**: Quickshell configuration is provided by end4-pC in the `end4-pC/` directory, not in `config/quickshell/`.
 
 ### Hyprland Configuration Structure
 
@@ -173,8 +173,9 @@ The installation system:
 2. Copies files to appropriate locations in `~/.config/`
 3. Clones end4-pC to `~/.config/quickshell/`
 4. Sets up necessary environment variables
-5. Preserves existing files by backing them up
-6. Reports all changes made
+5. Applies VMware optimizations only if VMware is detected
+6. Preserves existing files by backing them up
+7. Reports all changes made
 
 ## Adding New Components
 

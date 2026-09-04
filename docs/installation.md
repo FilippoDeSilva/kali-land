@@ -15,6 +15,8 @@ sudo ./bootstrap/install.sh
 # Restart into Hyprland
 ```
 
+**Note**: This project is in active development. While designed for VMware during development, it can be used on bare metal. Use on daily drivers at your own risk until stable release.
+
 ## What Gets Installed
 
 The installer sets up:

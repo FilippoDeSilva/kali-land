@@ -511,41 +511,54 @@ phase_6_quickshell_build_from_source() {
         fi
     fi
     
-    # Apply VMware compatibility fixes for Quickshell
-    log_info "Applying VMware compatibility fixes for Quickshell"
-    
-    # Update Hyprland environment.lua with Quickshell-specific environment variables
-    local hypr_env_file="${HOME}/.config/hypr/environment.lua"
-    if [ -f "${hypr_env_file}" ]; then
-        log_info "Updating Hyprland environment for Quickshell VMware compatibility"
+    # Apply VMware compatibility fixes for Quickshell (only if running in VMware)
+    if is_vmware; then
+        log_info "Applying VMware compatibility fixes for Quickshell"
         
-        # Check if QT_QUICK_BACKEND is already set
-        if ! grep -q "QT_QUICK_BACKEND" "${hypr_env_file}"; then
-            # Add Quickshell environment variables
-            sed -i '/hl.env("QT_QPA_PLATFORM", "wayland")/a\    -- Qt Quick backend - use software rendering for VMware compatibility\n    hl.env("QT_QUICK_BACKEND", "software")' "${hypr_env_file}"
-            log_success "Added QT_QUICK_BACKEND=software for VMware compatibility"
+        # Update Hyprland environment.lua with Quickshell-specific environment variables
+        local hypr_env_file="${HOME}/.config/hypr/environment.lua"
+        if [ -f "${hypr_env_file}" ]; then
+            log_info "Updating Hyprland environment for Quickshell VMware compatibility"
+            
+            # Check if QT_QUICK_BACKEND is already set
+            if ! grep -q "QT_QUICK_BACKEND" "${hypr_env_file}"; then
+                # Add Quickshell environment variables
+                sed -i '/hl.env("QT_QPA_PLATFORM", "wayland")/a\    -- Qt Quick backend - use software rendering for VMware compatibility\n    hl.env("QT_QUICK_BACKEND", "software")' "${hypr_env_file}"
+                log_success "Added QT_QUICK_BACKEND=software for VMware compatibility"
+            else
+                log_info "QT_QUICK_BACKEND already configured"
+            fi
+            
+            # Ensure other Qt environment variables are present
+            if ! grep -q "QT_WAYLAND_DISABLE_WINDOWDECORATION" "${hypr_env_file}"; then
+                sed -i '/QT_QUICK_BACKEND/a\    -- Qt Wayland integration\n    hl.env("QT_WAYLAND_DISABLE_WINDOWDECORATION", "1")' "${hypr_env_file}"
+            fi
+            
+            if ! grep -q "QT_AUTO_SCREEN_SCALE_FACTOR" "${hypr_env_file}"; then
+                sed -i '/QT_WAYLAND_DISABLE_WINDOWDECORATION/a\    -- Scale factor for high-DPI displays\n    hl.env("QT_AUTO_SCREEN_SCALE_FACTOR", "1")' "${hypr_env_file}"
+            fi
+            
+            # Add end4-pC specific environment variable
+            if ! grep -q "QS_CONFIG" "${hypr_env_file}"; then
+                sed -i '/QT_AUTO_SCREEN_SCALE_FACTOR/a\    -- end4-pC Quickshell configuration\n    hl.env("QS_CONFIG", "end4-pC")' "${hypr_env_file}"
+                log_success "Added QS_CONFIG environment variable for end4-pC"
+            fi
+            
+            log_success "Quickshell environment variables configured"
         else
-            log_info "QT_QUICK_BACKEND already configured"
+            log_warn "Hyprland environment.lua not found, skipping Quickshell environment setup"
         fi
-        
-        # Ensure other Qt environment variables are present
-        if ! grep -q "QT_WAYLAND_DISABLE_WINDOWDECORATION" "${hypr_env_file}"; then
-            sed -i '/QT_QUICK_BACKEND/a\    -- Qt Wayland integration\n    hl.env("QT_WAYLAND_DISABLE_WINDOWDECORATION", "1")' "${hypr_env_file}"
-        fi
-        
-        if ! grep -q "QT_AUTO_SCREEN_SCALE_FACTOR" "${hypr_env_file}"; then
-            sed -i '/QT_WAYLAND_DISABLE_WINDOWDECORATION/a\    -- Scale factor for high-DPI displays\n    hl.env("QT_AUTO_SCREEN_SCALE_FACTOR", "1")' "${hypr_env_file}"
-        fi
-        
-        # Add end4-pC specific environment variable
-        if ! grep -q "QS_CONFIG" "${hypr_env_file}"; then
-            sed -i '/QT_AUTO_SCREEN_SCALE_FACTOR/a\    -- end4-pC Quickshell configuration\n    hl.env("QS_CONFIG", "end4-pC")' "${hypr_env_file}"
-            log_success "Added QS_CONFIG environment variable for end4-pC"
-        fi
-        
-        log_success "Quickshell environment variables configured"
     else
-        log_warn "Hyprland environment.lua not found, skipping Quickshell environment setup"
+        log_info "Not running in VMware, skipping VMware-specific Quickshell optimizations"
+        
+        # Still add end4-pC environment variable for non-VMware systems
+        local hypr_env_file="${HOME}/.config/hypr/environment.lua"
+        if [ -f "${hypr_env_file}" ]; then
+            if ! grep -q "QS_CONFIG" "${hypr_env_file}"; then
+                sed -i '/hl.env("QT_QPA_PLATFORM", "wayland")/a\    -- end4-pC Quickshell configuration\n    hl.env("QS_CONFIG", "end4-pC")' "${hypr_env_file}"
+                log_success "Added QS_CONFIG environment variable for end4-pC"
+            fi
+        fi
     fi
     
     # end4-pC uses its own configuration management, no need for kali-land-specific overrides

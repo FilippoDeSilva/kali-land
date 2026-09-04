@@ -41,10 +41,13 @@ This project targets:
 
 -   OS: **Kali Linux**
 -   Base family: Debian
--   Current environment: **VMware virtual machine**
+-   Development environment: **VMware virtual machine**
+-   Production target: **VMware or bare metal**
 -   Display stack target: **Wayland**
 -   Compositor: **Hyprland**
 -   Desktop shell: **Quickshell**
+
+VMware is used during development. The desktop environment is designed to work on bare metal hardware as well. VMware-specific optimizations are only applied when running in a VMware virtual machine.
 
 Never assume Arch Linux commands, package managers, filesystem layouts,
 or AUR availability.

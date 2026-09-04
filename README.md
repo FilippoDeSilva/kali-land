@@ -4,7 +4,9 @@ A modular, reproducible desktop environment for Kali Linux built on Hyprland and
 
 ## Overview
 
-kali-land provides a modern Wayland desktop environment that preserves Kali's security tooling while offering a polished user experience. It targets VMware virtual machines with a clear migration path to bare metal.
+kali-land provides a modern Wayland desktop environment that preserves Kali's security tooling while offering a polished user experience.
+
+**Note**: This project is currently in active development. While designed for VMware during development, it can be used on bare metal hardware. Use on daily drivers at your own risk until stable release.
 
 ## Components
 
@@ -15,9 +17,9 @@ kali-land provides a modern Wayland desktop environment that preserves Kali's se
 ## Requirements
 
 - Kali Linux (Rolling)
-- VMware virtual machine
 - Sudo access
 - Internet connection
+- 4GB RAM minimum (8GB recommended)
 
 ## Installation
 
@@ -53,6 +55,17 @@ Applications
 - Keyboard-first workflow
 - Preserves all Kali security tools
 
+## Credits
+
+This project builds upon excellent open-source work:
+
+- **Hyprland**: Dynamic tiling Wayland compositor by [vaxerski](https://github.com/vaxerski/Hyprland)
+- **Quickshell**: Extensible desktop shell framework by [outfoxxed](https://github.com/outfoxxed/quickshell)
+- **end4-pC**: Material 3 Quickshell configuration by [pctrade](https://github.com/pctrade/end4-pC)
+- **Kali Linux**: Penetration testing distribution by [Offensive Security](https://www.kali.org/)
+- **Wayland**: Display server protocol
+- **Qt**: Cross-platform application framework
+
 ## Documentation
 
 - [Installation](docs/installation.md)
@@ -60,6 +73,7 @@ Applications
 - [Repository Structure](docs/repository-structure.md)
 - [CI/CD](docs/ci-cd.md)
 - [Troubleshooting](docs/troubleshooting.md)
+- [VMware Guide](docs/vmware.md)
 
 ## Development
 
