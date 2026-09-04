@@ -1,6 +1,6 @@
 # VMware-Specific Configuration
 
-This document covers VMware-specific optimizations and considerations for the Kali Omarchy Desktop.
+This document covers VMware-specific optimizations and considerations for the kali-land Desktop.
 
 ## VMware Detection
 

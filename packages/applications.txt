@@ -5,3 +5,4 @@ qterminal
 thunar
 firefox-esr
 geany
+rofi

@@ -1,18 +1,15 @@
-# AGENT.md --- Kali Omarchy-Inspired Desktop
+# AGENT.md --- kali-land - Modern Desktop Environment
 
 ## 0. Mission
 
 Build a **professional, modular, reproducible, maintainable
-Omarchy-inspired desktop environment for Kali Linux running inside
+desktop environment for Kali Linux running inside
 VMware**.
-
-The target is **not** to install Omarchy itself and not to blindly copy
-an Arch/Omarchy configuration.
 
 The target is:
 
 > **Kali Linux + Hyprland + Quickshell + a deliberately engineered
-> desktop stack that provides an Omarchy-like workflow and aesthetic
+> desktop stack that provides a modern workflow and aesthetic
 > while preserving Kali's security tooling and Debian/Kali package
 > ecosystem.**
 
@@ -65,7 +62,7 @@ Examples:
 -   local system-wide additions: `/usr/local`
 -   user-local binaries: `$HOME/.local/bin`
 
-Do not introduce Arch-specific tooling merely because Omarchy uses it.
+Do not introduce Arch-specific tooling.
 
 ------------------------------------------------------------------------
 
@@ -121,7 +118,7 @@ Every system-level modification must be:
 2.  Establish a reliable Wayland session.
 3.  Install and validate Quickshell.
 4.  Build a modular Quickshell desktop shell.
-5.  Reproduce the important Omarchy UX concepts:
+5.  Reproduce important UX concepts:
     -   keyboard-first workflow
     -   application launcher
     -   workspace navigation
@@ -265,21 +262,8 @@ kali-omarchy/
 │   │
 │   ├── quickshell/
 │   │   ├── shell.qml
-│   │   ├── modules/
-│   │   │   ├── bar/
-│   │   │   ├── launcher/
-│   │   │   ├── notifications/
-│   │   │   ├── control-center/
-│   │   │   ├── power/
-│   │   │   ├── workspaces/
-│   │   │   ├── clock/
-│   │   │   ├── system/
-│   │   │   └── media/
-│   │   ├── components/
-│   │   ├── services/
-│   │   ├── models/
-│   │   ├── utils/
-│   │   └── theme/
+│   │   ├── qmldir
+│   │   └── Colors.qml
 │   │
 │   ├── kitty/
 │   ├── foot/
@@ -314,6 +298,7 @@ kali-omarchy/
 │   ├── architecture.md
 │   ├── installation.md
 │   ├── keybindings.md
+│   ├── quickshell-architecture.md
 │   ├── theming.md
 │   ├── troubleshooting.md
 │   ├── vmware.md
@@ -790,10 +775,10 @@ This makes future themes possible without rewriting the shell.
 
 ------------------------------------------------------------------------
 
-# 15. Omarchy-Inspired UX Principles
+# 15. Modern UX Principles
 
 The project should capture the *principles*, not necessarily duplicate
-Omarchy's implementation.
+modern desktop implementation.
 
 Target:
 
@@ -860,7 +845,7 @@ docs/keybindings.md
 
 # 17. Application Philosophy
 
-Do not install applications merely because Omarchy ships them.
+Do not install applications merely because they are popular.
 
 Choose tools based on:
 
@@ -1990,7 +1975,7 @@ The end result should feel like:
                 │           │           │
                 └───────────┼───────────┘
                             │
-                    Omarchy-inspired UX
+                    Modern UX
 ```
 
 The goal is **not a Kali theme**.

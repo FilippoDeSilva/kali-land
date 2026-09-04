@@ -9,7 +9,7 @@ echo "=========================================="
 echo ""
 
 CONFIG_DIR="${HOME}/.config/hypr"
-REPO_CONFIG_DIR="/home/kali/Desktop/Karch/config/hypr"
+REPO_CONFIG_DIR="/home/kali/Desktop/kali-land/config/hypr"
 
 # Check if config directory exists
 if [ ! -d "${CONFIG_DIR}" ]; then
@@ -109,7 +109,7 @@ if [ ${#missing_modules[@]} -eq 0 ]; then
     echo "Full validation requires running Hyprland and checking for runtime errors."
     echo ""
     echo "To test the configuration in a live session:"
-    echo "  1. Run: bash /home/kali/Desktop/Karch/scripts/test-hyprland.sh"
+    echo "  1. Run: bash /home/kali/Desktop/kali-land/scripts/test-hyprland.sh"
     echo "  2. If Hyprland starts successfully, the configuration is valid"
     echo "  3. Check the Hyprland log for any Lua errors:"
     echo "     journalctl --user -u hyprland"

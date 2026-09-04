@@ -1,0 +1,83 @@
+name: Build Quickshell
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-quickshell:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/catthehacker/ubuntu:act-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Install build dependencies
+      run: |
+        apt-get update
+        apt-get install -y \
+          git \
+          cmake \
+          ninja-build \
+          build-essential \
+          qt6-base-dev \
+          qt6-base-private-dev \
+          qt6-declarative-dev \
+          qt6-declarative-private-dev \
+          qt6-wayland-dev \
+          qt6-wayland-private-dev \
+          qt6-shadertools-dev \
+          qt6-tools-dev \
+          qt6-scxml-dev \
+          extra-cmake-modules \
+          libqt6waylandclient6 \
+          libcli11-dev \
+          libdrm-dev \
+          libgbm-dev \
+          libxcb1-dev \
+          libpipewire-0.3-dev \
+          libpam0g-dev \
+          libpolkit-gobject-1-dev \
+          libpolkit-agent-1-dev \
+          libglib2.0-dev \
+          pkg-config \
+          spirv-tools \
+          libvulkan-dev \
+          libcpptrace-dev \
+          libjemalloc-dev
+          
+    - name: Clone Quickshell repository
+      run: |
+        git clone --recursive https://github.com/outfoxxed/quickshell.git
+        
+    - name: Build Quickshell
+      run: |
+        cd quickshell
+        mkdir -p build && cd build
+        cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DDISTRIBUTOR="kali-land" ..
+        ninja
+        
+    - name: Create Quickshell package
+      run: |
+        cd quickshell/build
+        # Create a package with the Quickshell binary
+        tar -czf quickshell-linux-x86_64.tar.gz quickshell
+        
+    - name: Upload Quickshell artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: quickshell-linux-x86_64
+        path: quickshell/build/quickshell-linux-x86_64.tar.gz
+        retention-days: 30
+        
+    - name: Upload to release (if release)
+      if: github.event_name == 'release'
+      uses: softprops/action-gh-release@v1
+      with:
+        files: quickshell/build/quickshell-linux-x86_64.tar.gz
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

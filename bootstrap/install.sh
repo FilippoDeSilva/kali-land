@@ -1,5 +1,5 @@
 #!/bin/bash
-# install.sh - Main installation script for Kali Omarchy Desktop
+# install.sh - Main installation script for kali-land
 
 set -Eeuo pipefail
 
@@ -63,7 +63,7 @@ done
 welcome() {
     clear
     echo "=========================================="
-    echo "  Kali Omarchy-Inspired Desktop Installer"
+    echo "  kali-land Desktop Installer"
     echo "=========================================="
     echo ""
     echo "This installer will set up a professional, modular"
@@ -157,72 +157,15 @@ phase_1_repository_foundation() {
     log_step "Phase 1: Repository Foundation"
     
     ensure_directories
-    
-    # Create package manifests
-    log_info "Creating package manifests"
-    
-    # Base packages
-    cat > "${REPO_ROOT}/packages/base.txt" <<'EOF'
-# Base system packages
-curl
-wget
-git
-vim
-nano
-htop
-tree
-ripgrep
-fd-find
-build-essential
-cmake
-g++
-EOF
-    
-    # Wayland packages
-    cat > "${REPO_ROOT}/packages/wayland.txt" <<'EOF'
-# Wayland core packages
-wayland-protocols
-wayland-utils
-libwayland-dev
-xwayland
-EOF
-    
-    # Desktop services packages
-    cat > "${REPO_ROOT}/packages/desktop-services.txt" <<'EOF'
-# Desktop services
-xdg-desktop-portal
-xdg-desktop-portal-gtk
-xdg-desktop-portal-wlr
-pipewire
-pipewire-audio-client-libraries
-pipewire-pulse
-wireplumber
-pavucontrol
-network-manager
-blueman
-bluez
-bluez-firmware
-dunst
-libnotify-bin
-cliphist
-swayidle
-swaylock
-wlogout
-hyprland-guiutils
-foot
-EOF
-    
-    # Applications packages
-    cat > "${REPO_ROOT}/packages/applications.txt" <<'EOF'
-# Terminal and applications
-kitty
-foot
-qterminal
-thunar
-firefox-esr
-geany
-EOF
-    
+
+    # Copy package manifests from repository
+    log_info "Copying package manifests from repository"
+    if [ -d "${REPO_ROOT}/packages" ]; then
+        log_success "Package manifests already exist in repository"
+    else
+        log_warn "No package manifests found in repository"
+    fi
+
     log_success "Phase 1 complete"
 }
 
@@ -361,9 +304,29 @@ phase_3_hyprland_installation() {
     log_success "Phase 3 complete"
 }
 
-# phase_4_desktop_services() - Install desktop services
-phase_4_desktop_services() {
-    log_step "Phase 4: Desktop Services"
+# phase_4_fonts() - Install required fonts
+phase_4_fonts() {
+    log_step "Phase 4: Fonts Installation"
+    
+    detect_package_manager
+    update_package_cache
+    
+    log_info "Installing required fonts for ekremx25 quickshell"
+    if [ -f "${REPO_ROOT}/packages/fonts.txt" ]; then
+        if ! install_packages "${REPO_ROOT}/packages/fonts.txt"; then
+            log_warn "Failed to install some fonts, continuing..."
+        fi
+    fi
+    
+    log_info "Note: JetBrains Mono Nerd Font may need manual installation"
+    log_info "Download from: https://github.com/ryanoasis/nerd-fonts/releases"
+    
+    log_success "Phase 4 complete"
+}
+
+# phase_5_desktop_services() - Install desktop services
+phase_5_desktop_services() {
+    log_step "Phase 5: Desktop Services"
     
     detect_package_manager
     update_package_cache
@@ -381,201 +344,235 @@ phase_4_desktop_services() {
     log_success "Phase 4 complete"
 }
 
-# phase_5_quickshell_skeleton() - Install Quickshell skeleton
-phase_5_quickshell_skeleton() {
-    log_step "Phase 5: Quickshell Skeleton"
+# phase_6_quickshell_skeleton() - Install Quickshell skeleton
+phase_6_quickshell_skeleton() {
+    log_step "Phase 5: Quickshell Installation"
     
     detect_package_manager
     update_package_cache
     
-    # Check if Quickshell is available in Kali repositories
-    if apt-cache policy quickshell &>/dev/null; then
-        log_info "Quickshell is available in Kali repositories"
-        log_info "Installing packaged Quickshell..."
-        
-        if ${PACKAGE_MANAGER} install -y quickshell; then
-            log_success "Quickshell installed successfully from package"
+    # Check if pre-built Quickshell is available from GitHub releases
+    log_info "Checking for pre-built Quickshell from GitHub releases..."
+    local repo_name=$(basename "$(git config --get remote.origin.url 2>/dev/null || echo 'yourusername/kali-land')" .git)
+    local quickshell_url="https://github.com/${repo_name}/releases/latest/download/quickshell-linux-x86_64.tar.gz"
+    
+    if curl -fsSL "$quickshell_url" -o /tmp/quickshell.tar.gz 2>/dev/null; then
+        log_info "Found pre-built Quickshell, installing..."
+        tar -xzf /tmp/quickshell.tar.gz -C /tmp/
+        if sudo cp /tmp/quickshell /usr/local/bin/quickshell; then
+            sudo chmod +x /usr/local/bin/quickshell
+            log_success "Pre-built Quickshell installed successfully"
+            rm -f /tmp/quickshell.tar.gz
         else
-            log_error "Failed to install Quickshell package"
-            log_info "You may need to install Quickshell manually"
-            log_info "See docs/installation.md for manual installation instructions"
-            return 1
+            log_warn "Failed to install pre-built Quickshell, falling back to build..."
+            rm -f /tmp/quickshell.tar.gz
+            phase_6_quickshell_build_from_source
         fi
     else
-        log_info "Quickshell is not available in Kali repositories"
-        log_info "Building Quickshell from source..."
-        
-        # Ensure package manager is detected
-        detect_package_manager
-        
-        # Install Qt6 dependencies
-        log_info "Installing Qt6 build dependencies..."
-        local qt_deps="qt6-base-dev qt6-declarative-dev qt6-wayland-dev cmake extra-cmake-modules qt6-tools-dev qt6-scxml-dev libqt6waylandclient6"
-        
-        # Try to install Qt6 dependencies, skip unavailable ones
-        local missing_qt_deps=()
-        for dep in ${qt_deps}; do
-            if apt-cache policy "${dep}" &>/dev/null; then
-                log_info "Installing ${dep}..."
-                ${PACKAGE_MANAGER} install -y "${dep}" || log_warn "Failed to install ${dep}, continuing..."
-            else
-                log_warn "Qt6 dependency not available: ${dep}, skipping..."
-                missing_qt_deps+=("${dep}")
-            fi
-        done
-        
-        if [ ${#missing_qt_deps[@]} -gt 0 ]; then
-            log_warn "Some Qt6 dependencies were missing, Quickshell build may fail"
-        fi
-        
-        # Clone and build Quickshell
-        local build_dir="/tmp/quickshell-build"
-        rm -rf "${build_dir}"
-        mkdir -p "${build_dir}"
-        
-        log_info "Cloning Quickshell repository..."
-        if command -v git &>/dev/null; then
-            if clone_with_credentials "https://github.com/quickshell-mirror/quickshell.git" "${build_dir}/quickshell"; then
-                log_success "Repository cloned"
-            else
-                log_error "Failed to clone Quickshell repository"
-                log_info "You may need to install Quickshell manually"
-                log_info "See docs/installation.md for manual installation instructions"
-                return 1
-            fi
-        else
-            log_error "git is not installed, cannot clone repository"
-            log_info "You may need to install Quickshell manually"
-            log_info "See docs/installation.md for manual installation instructions"
-            return 1
-        fi
-        
-        log_info "Building Quickshell..."
-        cd "${build_dir}/quickshell"
-        
-        # Check for build script and use appropriate method
-        if [ -f "./install.sh" ]; then
-            log_info "Using official install script..."
-            if ./install.sh; then
-                log_success "Quickshell installed successfully"
-            else
-                log_error "Failed to build/install Quickshell using install script"
-                log_info "You may need to install Quickshell manually"
-                log_info "See docs/installation.md for manual installation instructions"
-                return 1
-            fi
-        elif [ -f "./Makefile" ]; then
-            log_info "Using Makefile..."
-            if make && sudo make install; then
-                log_success "Quickshell installed successfully"
-            else
-                log_error "Failed to build/install Quickshell using Makefile"
-                log_info "You may need to install Quickshell manually"
-                log_info "See docs/installation.md for manual installation instructions"
-                return 1
-            fi
-        else
-            log_info "No install script found, trying manual cmake build..."
-            mkdir -p build && cd build
-            if cmake .. && make && sudo make install; then
-                log_success "Quickshell installed successfully"
-            else
-                log_error "Failed to build/install Quickshell using cmake"
-                log_info "You may need to install Quickshell manually"
-                log_info "See docs/installation.md for manual installation instructions"
-                return 1
-            fi
-        fi
-        
-        # Cleanup
-        cd "${REPO_ROOT}"
-        if [ -d "${build_dir}" ]; then
-            rm -rf "${build_dir}" || log_warn "Failed to cleanup build directory: ${build_dir}"
-        fi
+        log_info "No pre-built Quickshell found, building from source..."
+        phase_6_quickshell_build_from_source
     fi
-    
-    log_info "Creating Quickshell configuration structure"
-    
-    # Use repository Quickshell configuration instead of auto-generating
-    if [ -d "${REPO_ROOT}/config/quickshell" ]; then
-        log_info "Using repository Quickshell configuration"
-    else
-        # Create basic shell.qml only if repository doesn't have one
-        cat > "${REPO_ROOT}/config/quickshell/shell.qml" <<'EOF'
-import QtQuick
-import QtQuick.Controls
-import QtQuick.Layouts
-
-Rectangle {
-    id: root
-    visible: true
-    width: 1920
-    height: 1080
-    color: "transparent" // Let Hyprland background show through
-    
-    // Top Bar
-    Rectangle {
-        id: topBar
-        anchors.top: parent.top
-        anchors.left: parent.left
-        anchors.right: parent.right
-        height: 30
-        color: "#1e1e2e"
-        z: 100 // Ensure it's on top
-        
-        RowLayout {
-            anchors.fill: parent
-            anchors.margins: 5
-            spacing: 10
-            
-            // Left side - Workspace info
-            Text {
-                text: "WS 1"
-                color: "#cdd6f4"
-                font.pixelSize: 14
-                Layout.alignment: Qt.AlignLeft
-            }
-            
-            Item { Layout.fillWidth: true } // Spacer
-            
-            // Right side - Time
-            Text {
-                text: Qt.formatDateTime(new Date(), "HH:mm")
-                color: "#cdd6f4"
-                font.pixelSize: 14
-                Layout.alignment: Qt.AlignRight
-            }
-        }
-    }
-    
-    // Center text for now
-    Text {
-        anchors.centerIn: parent
-        text: "Kali Omarchy Desktop"
-        color: "#cdd6f4"
-        font.pixelSize: 24
-        z: 50
-    }
 }
-EOF
+
+# phase_6_quickshell_build_from_source() - Build Quickshell from source
+phase_6_quickshell_build_from_source() {
+    # Note: Kali's Quickshell package (0.3.0) is too old for modern configurations
+    # We must build from source to get the latest version
+    log_info "Kali's Quickshell package (0.3.0) is incompatible with modern configurations"
+    log_info "Building Quickshell from source for latest version..."
+    
+    # Install Quickshell build dependencies from package manifest
+    log_info "Installing Quickshell build dependencies"
+    if [ -f "${REPO_ROOT}/packages/quickshell.txt" ]; then
+        if ! install_packages "${REPO_ROOT}/packages/quickshell.txt"; then
+            log_warn "Failed to install some Quickshell dependencies, continuing..."
+        fi
     fi
     
-    log_info "Creating modular Lua configuration for Hyprland"
+    # Install Qt5Compat for end4-pC compatibility
+    log_info "Installing Qt5Compat for end4-pC graphical effects"
+    if ${PACKAGE_MANAGER} install -y qml6-module-qt5compat-graphicaleffects libqt6core5compat6; then
+        log_success "Qt5Compat installed successfully"
+    else
+        log_warn "Failed to install Qt5Compat, end4-pC may not work properly"
+        log_info "You may need to install manually: sudo apt install qml6-module-qt5compat-graphicaleffects libqt6core5compat6"
+    fi
     
-    # Remove old .conf files and create Lua equivalents
-    rm -f "${REPO_ROOT}/config/hypr/"*.conf
+    # Install additional Qt6 modules for end4-pC
+    log_info "Installing additional Qt6 modules for end4-pC"
+    if ${PACKAGE_MANAGER} install -y libqt6positioning6 libqt6positioningquick6 qml6-module-qtpositioning libqt6svg6 libqt6network6 libqt6networkauth6 libqt6qmlnetwork6; then
+        log_success "Qt6 additional modules installed successfully"
+    else
+        log_warn "Failed to install some Qt6 modules, end4-pC may not work properly"
+        log_info "You may need to install manually: sudo apt install libqt6positioning6 libqt6positioningquick6 qml6-module-qtpositioning libqt6svg6 libqt6network6 libqt6networkauth6 libqt6qmlnetwork6"
+    fi
     
-    # The Lua files are already created above
-    log_success "Lua configuration structure created"
+    # Install KDE syntax highlighting for end4-pC code blocks
+    log_info "Installing KDE syntax highlighting for end4-pC"
+    if ${PACKAGE_MANAGER} install -y qml6-module-org-kde-syntaxhighlighting libkf6syntaxhighlighting6; then
+        log_success "KDE syntax highlighting installed successfully"
+    else
+        log_warn "Failed to install KDE syntax highlighting, AI chat may not work properly"
+        log_info "You may need to install manually: sudo apt install qml6-module-org-kde-syntaxhighlighting libkf6syntaxhighlighting6"
+    fi
     
-    # Update Hyprland to use Lua config
-    log_info "Configuring Hyprland to use Lua configuration"
-    # Hyprland automatically looks for hyprland.lua if it exists
+    # Install additional end4-pC runtime dependencies
+    log_info "Installing additional end4-pC runtime dependencies"
+    if ${PACKAGE_MANAGER} install -y powerprofilesctl brightnessctl playerctl libnotify-bin libnotify-dev; then
+        log_success "Additional end4-pC dependencies installed successfully"
+    else
+        log_warn "Failed to install some end4-pC dependencies, some features may not work"
+        log_info "You may need to install manually: sudo apt install powerprofilesctl brightnessctl playerctl libnotify-bin libnotify-dev"
+    fi
+    
+    # Clone and build Quickshell
+    local build_dir="/tmp/quickshell-build"
+    rm -rf "${build_dir}"
+    mkdir -p "${build_dir}"
+    
+    log_info "Cloning Quickshell repository..."
+    if command -v git &>/dev/null; then
+        if clone_with_credentials "https://github.com/outfoxxed/quickshell.git" "${build_dir}/quickshell"; then
+            log_success "Repository cloned"
+        else
+            log_error "Failed to clone Quickshell repository"
+            log_info "You may need to install Quickshell manually"
+            log_info "See docs/installation.md for manual installation instructions"
+            return 1
+        fi
+    else
+        log_error "git is not installed, cannot clone repository"
+        log_info "You may need to install Quickshell manually"
+        log_info "See docs/installation.md for manual installation instructions"
+        return 1
+    fi
+    
+    log_info "Building Quickshell with cmake and ninja..."
+    cd "${build_dir}/quickshell"
+    mkdir -p build && cd build
+    
+    log_info "Configuring with cmake..."
+    if cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DDISTRIBUTOR="kali-land" ..; then
+        log_success "CMake configuration successful"
+    else
+        log_error "CMake configuration failed"
+        log_info "You may need to install Quickshell manually"
+        log_info "See docs/installation.md for manual installation instructions"
+        return 1
+    fi
+    
+    log_info "Building with ninja..."
+    if ninja; then
+        log_success "Build successful"
+    else
+        log_error "Build failed"
+        log_info "You may need to install Quickshell manually"
+        log_info "See docs/installation.md for manual installation instructions"
+        return 1
+    fi
+    
+    log_info "Installing Quickshell..."
+    if sudo cmake --install .; then
+        log_success "Quickshell installed successfully"
+    else
+        log_error "Installation failed"
+        log_info "You may need to install Quickshell manually"
+        log_info "See docs/installation.md for manual installation instructions"
+        return 1
+    fi
+    
+    # Cleanup
+    cd "${REPO_ROOT}"
+    if [ -d "${build_dir}" ]; then
+        rm -rf "${build_dir}" || log_warn "Failed to cleanup build directory: ${build_dir}"
+    fi
+    
+    log_info "Installing end4-pC quickshell configuration"
+    
+    # Copy end4-pC quickshell from repository to user config
+    log_info "Copying end4-pC quickshell from repository to user config"
+    if [ -d "${HOME}/.config/quickshell" ]; then
+        log_info "Backing up existing quickshell config"
+        mv "${HOME}/.config/quickshell" "${HOME}/.config/quickshell.backup.$(date +%Y%m%d_%H%M%S)"
+    fi
+    
+    if [ -d "${REPO_ROOT}/end4-pC" ]; then
+        cp -r "${REPO_ROOT}/end4-pC" "${HOME}/.config/quickshell"
+        log_success "end4-pC quickshell installed to ~/.config/quickshell"
+    else
+        log_error "end4-pC directory not found in repository"
+        log_info "Falling back to cloning from GitHub"
+        if git clone https://github.com/pctrade/end4-pC "${HOME}/.config/quickshell"; then
+            log_success "end4-pC quickshell installed to ~/.config/quickshell"
+        else
+            log_error "Failed to clone end4-pC quickshell"
+            log_info "You may need to install it manually: git clone https://github.com/pctrade/end4-pC ~/.config/quickshell"
+            return 1
+        fi
+    fi
+    
+    # Apply VMware compatibility fixes for Quickshell
+    log_info "Applying VMware compatibility fixes for Quickshell"
+    
+    # Update Hyprland environment.lua with Quickshell-specific environment variables
+    local hypr_env_file="${HOME}/.config/hypr/environment.lua"
+    if [ -f "${hypr_env_file}" ]; then
+        log_info "Updating Hyprland environment for Quickshell VMware compatibility"
+        
+        # Check if QT_QUICK_BACKEND is already set
+        if ! grep -q "QT_QUICK_BACKEND" "${hypr_env_file}"; then
+            # Add Quickshell environment variables
+            sed -i '/hl.env("QT_QPA_PLATFORM", "wayland")/a\    -- Qt Quick backend - use software rendering for VMware compatibility\n    hl.env("QT_QUICK_BACKEND", "software")' "${hypr_env_file}"
+            log_success "Added QT_QUICK_BACKEND=software for VMware compatibility"
+        else
+            log_info "QT_QUICK_BACKEND already configured"
+        fi
+        
+        # Ensure other Qt environment variables are present
+        if ! grep -q "QT_WAYLAND_DISABLE_WINDOWDECORATION" "${hypr_env_file}"; then
+            sed -i '/QT_QUICK_BACKEND/a\    -- Qt Wayland integration\n    hl.env("QT_WAYLAND_DISABLE_WINDOWDECORATION", "1")' "${hypr_env_file}"
+        fi
+        
+        if ! grep -q "QT_AUTO_SCREEN_SCALE_FACTOR" "${hypr_env_file}"; then
+            sed -i '/QT_WAYLAND_DISABLE_WINDOWDECORATION/a\    -- Scale factor for high-DPI displays\n    hl.env("QT_AUTO_SCREEN_SCALE_FACTOR", "1")' "${hypr_env_file}"
+        fi
+        
+        # Add end4-pC specific environment variable
+        if ! grep -q "QS_CONFIG" "${hypr_env_file}"; then
+            sed -i '/QT_AUTO_SCREEN_SCALE_FACTOR/a\    -- end4-pC Quickshell configuration\n    hl.env("QS_CONFIG", "end4-pC")' "${hypr_env_file}"
+            log_success "Added QS_CONFIG environment variable for end4-pC"
+        fi
+        
+        log_success "Quickshell environment variables configured"
+    else
+        log_warn "Hyprland environment.lua not found, skipping Quickshell environment setup"
+    fi
+    
+    # end4-pC uses its own configuration management, no need for kali-land-specific overrides
+    log_info "end4-pC uses independent configuration management"
+    
+    # Update Hyprland autostart to use standard quickshell (end4-pC manages its own config)
+    local hypr_autostart="${HOME}/.config/hypr/autostart.lua"
+    if [ -f "${hypr_autostart}" ]; then
+        log_info "Updating Hyprland autostart for end4-pC Quickshell configuration"
+        
+        # Replace any --path arguments with standard quickshell command
+        sed -i 's|quickshell --path.*|quickshell|g' "${hypr_autostart}"
+        
+        log_success "Hyprland autostart updated for end4-pC Quickshell configuration"
+    else
+        log_warn "Hyprland autostart.lua not found, skipping autostart update"
+    fi
+    
+    log_success "Quickshell configuration completed"
     
     log_success "Phase 5 complete"
+}
+
+# phase_6_desktop_services() - Install desktop services
+phase_6_desktop_services() {
+    log_step "Phase 6: Desktop Services"
     
-    # Install Hyprland Lua configuration
-    log_info "Installing Hyprland Lua configuration"
     ensure_directories
     
     local hypr_config_dir="${HOME}/.config/hypr"
@@ -655,37 +652,8 @@ phase_9_power_lock_session() {
 phase_10_visual_theming() {
     log_step "Phase 10: Visual Theming"
     
-    log_info "Creating theme system"
-    
-    # Create color theme
-    cat > "${REPO_ROOT}/themes/default/colors.qml" <<'EOF'
-pragma Singleton
-import QtQuick
-
-QtObject {
-    // Background colors
-    readonly property color background: "#1e1e2e"
-    readonly property color surface: "#313244"
-    readonly property color surfaceElevated: "#45475a"
-    
-    // Foreground colors
-    readonly property color foreground: "#cdd6f4"
-    readonly property color muted: "#a6adc8"
-    
-    // Accent colors
-    readonly property color accent: "#89b4fa"
-    readonly property color accentHover: "#b4befe"
-    
-    // Status colors
-    readonly property color success: "#a6e3a1"
-    readonly property color warning: "#f9e2af"
-    readonly property color danger: "#f38ba8"
-    
-    // Border colors
-    readonly property color border: "#45475a"
-    readonly property color borderFocus: "#89b4fa"
-}
-EOF
+    log_info "Visual theming is handled in Quickshell configuration"
+    log_info "See config/quickshell/shell.qml for styling"
     
     log_success "Phase 10 complete"
 }
@@ -700,25 +668,27 @@ phase_11_vmware_optimization() {
         return
     fi
     
-    log_info "VMware detected, creating optimization scripts"
+    log_info "VMware detected, installing VMware tools"
     
-    # Create VMware optimization script
-    cat > "${REPO_ROOT}/scripts/vmware/optimize.sh" <<'EOF'
-#!/bin/bash
-# VMware optimization script
-
-echo "Applying VMware optimizations..."
-
-# Enable dynamic resolution (if supported)
-# This may require additional tools
-
-# Configure for better performance
-# Add VMware-specific tweaks here
-
-echo "VMware optimizations applied"
-EOF
+    detect_package_manager
+    update_package_cache
     
-    chmod +x "${REPO_ROOT}/scripts/vmware/optimize.sh"
+    # Install VMware tools for proper display resolution and guest integration
+    log_info "Installing open-vm-tools-desktop for proper VMware integration"
+    if ${PACKAGE_MANAGER} install -y open-vm-tools-desktop; then
+        log_success "VMware tools installed successfully"
+    else
+        log_warn "Failed to install VMware tools, continuing..."
+        log_info "You may need to install manually: sudo apt install open-vm-tools-desktop"
+    fi
+    
+    # VMware optimization scripts should be in the repository
+    if [ -f "${REPO_ROOT}/scripts/vmware/optimize.sh" ]; then
+        chmod +x "${REPO_ROOT}/scripts/vmware/optimize.sh" 2>/dev/null || true
+        log_success "VMware optimization script found in repository"
+    else
+        log_warn "No VMware optimization script found in repository"
+    fi
     
     log_success "Phase 11 complete"
 }
@@ -737,54 +707,13 @@ phase_12_reliability_testing() {
 phase_13_documentation() {
     log_step "Phase 13: Documentation"
     
-    log_info "Creating documentation structure"
+    log_info "Documentation should be in the repository docs/ directory"
     
-    # Create architecture documentation
-    cat > "${REPO_ROOT}/docs/architecture.md" <<'EOF'
-# Architecture
-
-This document describes the architecture of the Kali Omarchy-Inspired Desktop.
-
-## Stack
-
-- **OS**: Kali Linux (Debian-based)
-- **Display**: Wayland
-- **Compositor**: Hyprland
-- **Desktop Shell**: Quickshell
-
-## Components
-
-### Compositor Layer (Hyprland)
-- Window management
-- Workspaces
-- Input handling
-- Monitor configuration
-- Animations
-
-### Desktop Shell Layer (Quickshell)
-- Top bar
-- Application launcher
-- Control center
-- Power menu
-- Notifications
-
-### Services Layer
-- Audio (PipeWire/PulseAudio)
-- Network (NetworkManager)
-- Bluetooth (BlueZ)
-- Notifications (mako)
-- Clipboard (cliphist)
-- Idle management (swayidle)
-- Lock screen (swaylock)
-
-## Configuration Management
-
-Repository-first approach:
-- Repository contains source configuration
-- Installation symlinks/copies to ~/.config
-- Backups created before modifications
-- Rollback supported
-EOF
+    if [ -d "${REPO_ROOT}/docs" ]; then
+        log_success "Documentation found in repository"
+    else
+        log_warn "No documentation found in repository"
+    fi
     
     log_success "Phase 13 complete"
 }
@@ -849,32 +778,15 @@ main() {
         fi
     fi
     
-    phase_4_desktop_services || log_warn "Desktop services installation failed, continuing..."
-    
-    # Critical component installation
-    if ! phase_5_quickshell_skeleton; then
-        log_error "Critical phase failed: Quickshell installation"
-        log_error "Cannot continue without Quickshell"
-        if ${INTERACTIVE}; then
-            if ! confirm "Continue anyway (desktop will be incomplete)?" "n"; then
-                log_info "Installation cancelled due to critical failure"
-                exit 1
-            fi
-        else
-            log_error "Installation halted due to critical failure"
-            exit 1
-        fi
-    fi
+    phase_4_fonts || log_warn "Fonts installation failed, continuing..."
+    phase_5_desktop_services || log_warn "Desktop services installation failed, continuing..."
+    phase_6_quickshell_skeleton || log_warn "Quickshell installation failed, continuing..."
+    phase_7_matugen || log_warn "Matugen installation failed, continuing..."
     
     # Optional phases - can fail gracefully
-    phase_6_quickshell_bar || log_warn "Quickshell bar phase failed, continuing..."
-    phase_7_launcher || log_warn "Launcher phase failed, continuing..."
-    phase_8_control_center || log_warn "Control center phase failed, continuing..."
-    phase_9_power_lock_session || log_warn "Power/lock/session phase failed, continuing..."
-    phase_10_visual_theming || log_warn "Visual theming phase failed, continuing..."
-    phase_11_vmware_optimization || log_warn "VMware optimization phase failed, continuing..."
-    phase_12_reliability_testing || log_warn "Reliability testing phase failed, continuing..."
-    phase_13_documentation || log_warn "Documentation phase failed, continuing..."
+    # Note: ekremx25 quickshell provides most functionality (bar, launcher, control center, etc.)
+    log_info "ekremx25 quickshell provides bar, launcher, control center, and other features"
+    log_info "Skipping custom implementation phases"
     
     if ${phase_failed}; then
         log_warn "Some phases failed during installation"

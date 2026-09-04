@@ -1,0 +1,9 @@
+# Fonts required by ekremx25/quickshell
+fonts-inter
+fonts-jetbrains-mono
+fonts-font-awesome
+fonts-nerd-symbols
+
+# Note: JetBrains Mono Nerd Font may need manual installation from:
+# https://github.com/ryanoasis/nerd-fonts/releases
+# The README specifies: "Nerd Font glyphs stay pinned to JetBrainsMono Nerd Font"

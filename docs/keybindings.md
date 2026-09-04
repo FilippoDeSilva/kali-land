@@ -1,6 +1,6 @@
 # Keybindings
 
-This document describes the keybinding scheme for the Kali Omarchy Desktop.
+This document describes the keybinding scheme for the kali-land Desktop.
 
 ## Philosophy
 

@@ -11,3 +11,14 @@ fd-find
 build-essential
 cmake
 g++
+fonts-material-design-icons-iconfont
+fonts-materialdesignicons-webfont
+fonts-nerd-symbols
+python3
+python3-pip
+fontconfig
+inotify-tools
+jq
+socat
+cargo
+rustc

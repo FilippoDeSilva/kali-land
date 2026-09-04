@@ -1,6 +1,6 @@
 # Theming System
 
-This document describes the theming system for the Kali Omarchy Desktop.
+This document describes the theming system for the kali-land Desktop.
 
 ## Philosophy
 

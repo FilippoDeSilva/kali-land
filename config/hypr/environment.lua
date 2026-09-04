@@ -11,6 +11,11 @@ hl.env("WLR_NO_HARDWARE_CURSORS", "1")
 -- Video acceleration for VMware
 hl.env("VDPAU_DRIVER", "va_gl")
 
+-- Qt6 environment for Quickshell (override qt5ct which causes crashes)
+hl.env("QT_QPA_PLATFORMTHEME", "qt6ct")
+hl.env("QT_AUTO_SCREEN_SCALE_FACTOR", "1")
+hl.env("QT_ACCESSIBILITY", "1")
+
 -- Default applications
 -- Use foot for VMs (native Wayland), kitty for bare metal (GPU accelerated)
 -- The install script will auto-detect VM vs bare metal and set the appropriate terminal

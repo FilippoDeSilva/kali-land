@@ -1,55 +1,45 @@
 import QtQuick
-import QtQuick.Controls
-import QtQuick.Layouts
+import Quickshell
+import Quickshell.Wayland
 
-Rectangle {
-    id: root
-    visible: true
-    width: 1920
-    height: 1080
-    color: "transparent" // Let Hyprland background show through
-    
-    // Top Bar
-    Rectangle {
-        id: topBar
-        anchors.top: parent.top
-        anchors.left: parent.left
-        anchors.right: parent.right
-        height: 30
-        color: "#1e1e2e"
-        z: 100 // Ensure it's on top
+ShellRoot {
+    // Simple bar using Quickshell framework
+    PanelWindow {
+        id: bar
+        anchors {
+            top: true
+            left: true
+            right: true
+        }
+        implicitHeight: 40
         
-        RowLayout {
+        Rectangle {
             anchors.fill: parent
-            anchors.margins: 5
-            spacing: 10
+            color: "#1e1e2e"
             
-            // Left side - Workspace info
-            Text {
-                text: "WS 1"
-                color: "#cdd6f4"
-                font.pixelSize: 14
-                Layout.alignment: Qt.AlignLeft
-            }
-            
-            Item { Layout.fillWidth: true } // Spacer
-            
-            // Right side - Time
-            Text {
-                text: Qt.formatDateTime(new Date(), "HH:mm")
-                color: "#cdd6f4"
-                font.pixelSize: 14
-                Layout.alignment: Qt.AlignRight
+            Row {
+                anchors.fill: parent
+                anchors.margins: 10
+                spacing: 20
+                
+                // Workspace indicator
+                Text {
+                    text: "WS 1"
+                    color: "#cdd6f4"
+                    font.pixelSize: 14
+                    verticalAlignment: Text.AlignVCenter
+                }
+                
+                Item { width: 1 } // Spacer
+                
+                // Clock
+                Text {
+                    text: Qt.formatDateTime(new Date(), "HH:mm")
+                    color: "#cdd6f4"
+                    font.pixelSize: 14
+                    verticalAlignment: Text.AlignVCenter
+                }
             }
         }
-    }
-    
-    // Center text for now
-    Text {
-        anchors.centerIn: parent
-        text: "Kali Omarchy Desktop"
-        color: "#cdd6f4"
-        font.pixelSize: 24
-        z: 50
     }
 }

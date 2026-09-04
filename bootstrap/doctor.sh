@@ -1,5 +1,5 @@
 #!/bin/bash
-# doctor.sh - Diagnostic tool for Kali Omarchy Desktop
+# doctor.sh - Diagnostic tool for kali-land
 
 set -Eeuo pipefail
 
@@ -255,7 +255,7 @@ print_summary() {
 main() {
     clear
     echo "=========================================="
-    echo "  Kali Omarchy Desktop Doctor"
+    echo "  kali-land Desktop Doctor"
     echo "=========================================="
     echo ""
     

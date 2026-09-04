@@ -1,6 +1,9 @@
 -- Main Hyprland Lua configuration
--- Kali Omarchy-Inspired Desktop
+-- kali-land - Modern Desktop Environment
 -- This is the main entry point that requires all other modules
+
+-- Force monitor resolution (backup method)
+monitor = "Virtual-1,1920x1080@60,auto,1"
 
 -- Core configuration modules
 require("config")

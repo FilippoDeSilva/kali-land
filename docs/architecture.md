@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the architecture of the Kali Omarchy-Inspired Desktop.
+This document describes the architecture of the kali-land Desktop.
 
 ## Stack
 
@@ -29,7 +29,7 @@ This document describes the architecture of the Kali Omarchy-Inspired Desktop.
 - Audio (PipeWire/PulseAudio)
 - Network (NetworkManager)
 - Bluetooth (BlueZ)
-- Notifications (mako)
+- Notifications (dunst)
 - Clipboard (cliphist)
 - Idle management (swayidle)
 - Lock screen (swaylock)

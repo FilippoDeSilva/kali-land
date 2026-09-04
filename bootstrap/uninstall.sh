@@ -1,5 +1,5 @@
 #!/bin/bash
-# uninstall.sh - Uninstallation script for Kali Omarchy Desktop
+# uninstall.sh - Uninstallation script for kali-land
 
 set -Eeuo pipefail
 
@@ -57,10 +57,10 @@ done
 welcome() {
     clear
     echo "=========================================="
-    echo "  Kali Omarchy Desktop Uninstaller"
+    echo "  kali-land Desktop Uninstaller"
     echo "=========================================="
     echo ""
-    echo "This script will help you remove the Kali Omarchy"
+    echo "This script will help you remove the kali-land"
     echo "Desktop environment from your system."
     echo ""
     echo "Default behavior:"

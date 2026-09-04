@@ -6,10 +6,10 @@ set -Eeuo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-echo "Deploying Kali Omarchy configurations..."
+echo "Deploying kali-land configurations..."
 
 # Backup existing configurations
-BACKUP_DIR="${HOME}/.local/state/kali-omarchy/backups/$(date +%Y-%m-%d_%H-%M-%S)"
+BACKUP_DIR="${HOME}/.local/state/kali-land/backups/$(date +%Y-%m-%d_%H-%M-%S)"
 mkdir -p "${BACKUP_DIR}"
 
 echo "Creating backups at: ${BACKUP_DIR}"

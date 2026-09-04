@@ -63,7 +63,7 @@ EOF'
 
 3. **Logout and select "Hyprland" from the session menu**
 
-4. **Enjoy your new Omarchy-inspired Kali desktop!** 🎨
+4. **Enjoy your new kali-land desktop!** 🎨
 
 ## What Gets Installed
 
@@ -123,4 +123,4 @@ This will restore your original XFCE desktop.
 
 ## Enjoy Your New Desktop!
 
-You now have a professional, modular, and beautiful Omarchy-inspired desktop environment on Kali Linux. The installation handles everything automatically - you just sit back and wait for the magic to happen! ✨
+You now have a professional, modular, and beautiful desktop environment on Kali Linux. The installation handles everything automatically - you just sit back and wait for the magic to happen! ✨

@@ -1,6 +1,6 @@
 # Troubleshooting Guide
 
-This guide helps diagnose and fix common issues with the Kali Omarchy Desktop.
+This guide helps diagnose and fix common issues with the kali-land Desktop.
 
 ## Diagnostic Tools
 

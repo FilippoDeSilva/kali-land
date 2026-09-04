@@ -13,7 +13,7 @@ hl.bind(mainMod .. " + return", hl.dsp.exec_cmd(terminal))
 hl.bind(mainMod .. " + q", hl.dsp.window.close())
 hl.bind(mainMod .. " + e", hl.dsp.exec_cmd(fileManager))
 hl.bind(mainMod .. " + f", hl.dsp.window.float({ action = "toggle" }))
-hl.bind(mainMod .. " + space", hl.dsp.window.float({ action = "toggle" }))
+hl.bind(mainMod .. " + space", hl.dsp.exec_cmd("bash /home/kali/Desktop/kali-land/scripts/launcher.sh"))
 hl.bind(mainMod .. " + d", hl.dsp.window.fullscreen())
 hl.bind(mainMod .. " + SHIFT + d", hl.dsp.window.fullscreen({ action = "toggle" }))
 hl.bind(mainMod .. " + p", hl.dsp.window.pseudo())
@@ -84,6 +84,9 @@ hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl set 5%-"), { loc
 hl.bind(mainMod .. " + PRINT", hl.dsp.exec_cmd("grimblast copy area"))
 hl.bind(mainMod .. " + SHIFT + PRINT", hl.dsp.exec_cmd("grimblast copy screen"))
 hl.bind(mainMod .. " + CTRL + PRINT", hl.dsp.exec_cmd("grimblast copy window"))
+
+-- Power menu
+hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd("bash /home/kali/Desktop/kali-land/scripts/power-menu.sh"))
 
 -- Launcher (will be Quickshell)
 hl.bind(mainMod .. " + r", hl.dsp.exec_cmd("quickshell"))

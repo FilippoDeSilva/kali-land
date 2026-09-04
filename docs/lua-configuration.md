@@ -36,7 +36,7 @@ The main entry point that requires all other modules:
 
 ```lua
 -- Main Hyprland Lua configuration
--- Kali Omarchy-Inspired Desktop
+-- kali-land - Modern Desktop Environment
 -- This is the main entry point that requires all other modules
 
 -- Core configuration modules

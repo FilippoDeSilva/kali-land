@@ -1,6 +1,136 @@
 # Installation Guide
 
-This guide explains how to install the Kali Omarchy-Inspired Desktop environment.
+This guide explains how to install the kali-land Desktop environment.
+
+## Quick Start
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/kali-land.git
+cd kali-land
+
+# Run the installer
+sudo ./bootstrap/install.sh
+
+# Restart into Hyprland
+```
+
+## What Gets Installed
+
+The installer sets up:
+
+- **Hyprland**: Modern Wayland compositor
+- **Quickshell**: Professional desktop shell (end4-pC with Material 3 design)
+- **Desktop Services**: Audio, network, notifications, clipboard
+- **Applications**: Terminal, file manager, launcher
+- **Configuration**: Complete modular configuration system
+
+## Installation Process
+
+The installer is divided into phases:
+
+1. **Platform Detection**: Validates system requirements
+2. **Repository Foundation**: Sets up project structure
+3. **Wayland Foundation**: Installs Wayland dependencies
+4. **Hyprland Installation**: Installs and configures Hyprland
+5. **Fonts Installation**: Installs required fonts
+6. **Desktop Services**: Installs audio, network, and desktop services
+7. **Quickshell Installation**: Installs Quickshell with end4-pC configuration
+8. **VMware Optimization**: Optimizes for VMware environment (if detected)
+
+## Quickshell Installation
+
+The installer uses a smart Quickshell installation strategy:
+
+1. **Pre-built Binary Check**: First checks for pre-built Quickshell from GitHub releases
+2. **Fast Installation**: If pre-built binary is available, downloads and installs it
+3. **Fallback**: If no pre-built version, builds from source
+4. **end4-pC Configuration**: Clones end4-pC configuration for Material 3 design
+5. **Dependencies**: Installs all required Qt6 modules and dependencies
+
+This provides:
+- **Fast installation** when pre-built binaries are available
+- **Reliable fallback** to source building when needed
+- **Professional UI** with end4-pC Material 3 design
+
+## Requirements
+
+- **OS**: Kali Linux (Rolling)
+- **Display**: Wayland session
+- **Memory**: Minimum 4GB RAM (8GB recommended)
+- **Storage**: 2GB free space for installation
+- **Network**: Internet connection for package downloads
+
+## Troubleshooting
+
+### Quickshell Issues
+
+If Quickshell fails to start:
+
+1. **Check environment variables:**
+   ```bash
+   echo $QT_QPA_PLATFORM  # Should be "wayland"
+   echo $QT_QUICK_BACKEND  # Should be "software" for VMware
+   ```
+
+2. **Check Wayland display:**
+   ```bash
+   echo $WAYLAND_DISPLAY  # Should be "wayland-1"
+   ```
+
+3. **Check logs:**
+   ```bash
+   cat /run/user/1000/quickshell/by-id/*/log.qslog
+   ```
+
+### Resolution Issues
+
+If resolution is incorrect (4K instead of 1920x1080):
+
+1. **Install VMware tools:**
+   ```bash
+   sudo apt install open-vm-tools-desktop
+   ```
+
+2. **Restart Hyprland**
+
+3. **Check monitor configuration:**
+   ```bash
+   hyprctl monitors
+   ```
+
+### Missing Dependencies
+
+If you encounter missing package errors:
+
+1. **Run the diagnostic script:**
+   ```bash
+   ./bootstrap/doctor.sh
+   ```
+
+2. **Install missing packages manually if needed**
+
+## Post-Installation
+
+After installation:
+
+1. **Restart into Hyprland**
+2. **Wait for Quickshell to autostart** (3-second delay)
+3. **Configure your preferences** using the end4-pC settings panel
+4. **Set up wallpapers** and themes as desired
+
+## Uninstallation
+
+To remove kali-land:
+
+```bash
+sudo ./bootstrap/uninstall.sh
+```
+
+This will:
+- Remove configuration symlinks
+- Leave backup files for recovery
+- Remove installed packages if requested
 
 ## Prerequisites
 
@@ -90,7 +220,31 @@ Quickshell is not available in Kali repositories. Installation options:
 
 Check the Quickshell releases for pre-built binaries that might work on Kali.
 
-### Phase 6-10: Configuration and Theming (Automated)
+### Phase 6: Quickshell Configuration (Automated)
+
+The installer creates a modular Quickshell configuration with the following structure:
+
+```
+config/quickshell/
+├── shell.qml                 # Main entry point
+├── qmldir                    # QML module registration
+├── Colors.qml                # Global color theme (singleton)
+└── components/
+    └── bar/
+        ├── TopBarConfig.qml  # Bar configuration object
+        ├── WorkspaceIndicator.qml  # Workspace display component
+        └── Clock.qml         # Time display component
+```
+
+**Key Design Principles:**
+- **Modular**: Each UI component is a separate, reusable QML file
+- **Configurable**: Central configuration objects control behavior
+- **Maintainable**: Clear separation between presentation and logic
+- **Scalable**: Easy to add new components without modifying existing ones
+
+For detailed architecture documentation, see [Quickshell Architecture](quickshell-architecture.md).
+
+### Phase 7-10: Configuration and Theming (Automated)
 
 These phases are handled by the install script and create the configuration structure.
 
