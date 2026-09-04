@@ -68,7 +68,9 @@ jobs:
           libvulkan-dev \
           libjemalloc-dev \
           libdwarf-dev \
-          libunwind-dev
+          libunwind-dev \
+          wayland-protocols \
+          libwayland-dev
 
     - name: Build and install cpptrace
       run: |

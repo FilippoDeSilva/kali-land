@@ -27,6 +27,8 @@ libvulkan-dev
 libjemalloc-dev
 libdwarf-dev
 libunwind-dev
+wayland-protocols
+libwayland-dev
 
 # Optional: Rust and cargo for building matugen (Material You theming)
 # cargo
