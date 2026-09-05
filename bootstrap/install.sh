@@ -351,9 +351,52 @@ phase_4_fonts() {
     log_success "Phase 4 complete"
 }
 
-# phase_5_desktop_services() - Install desktop services
+# deploy_hyprland_config() - Deploy Hyprland Lua configuration files
+deploy_hyprland_config() {
+    log_step "Deploying Hyprland Lua Configuration"
+    ensure_directories
+
+    local target_user_home="${HOME}"
+    if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
+        target_user_home="$(eval echo "~${SUDO_USER}")"
+    fi
+    local hypr_config_dir="${target_user_home}/.config/hypr"
+    mkdir -p "${hypr_config_dir}"
+
+    if [ -d "${REPO_ROOT}/config/hypr" ]; then
+        log_info "Deploying Lua configuration files to ${hypr_config_dir}"
+
+        # If legacy hyprland.conf exists, back it up and move to hyprland.conf.bak
+        if [ -f "${hypr_config_dir}/hyprland.conf" ]; then
+            log_warn "Legacy hyprland.conf detected. Backing up and disabling legacy config file..."
+            backup_config_with_manifest "${hypr_config_dir}/hyprland.conf" "Legacy Hyprland Config" 2>/dev/null || true
+            mv "${hypr_config_dir}/hyprland.conf" "${hypr_config_dir}/hyprland.conf.bak"
+        fi
+
+        cp -r "${REPO_ROOT}/config/hypr/"*.lua "${hypr_config_dir}/"
+
+        if systemd-detect-virt --vm &>/dev/null; then
+            log_info "VM detected - setting terminal to foot (native Wayland)"
+            sed -i 's/hl.env("TERMINAL", "kitty")/hl.env("TERMINAL", "foot")/' "${hypr_config_dir}/environment.lua"
+        else
+            log_info "Bare metal detected - keeping terminal as kitty (GPU accelerated)"
+        fi
+
+        if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
+            local user_group
+            user_group="$(id -gn "${SUDO_USER}" 2>/dev/null || echo "${SUDO_USER}")"
+            chown -R "${SUDO_USER}:${user_group}" "${hypr_config_dir}" 2>/dev/null || true
+        fi
+
+        log_success "Hyprland Lua configuration installed"
+    else
+        log_warn "Hyprland configuration directory not found in repository"
+    fi
+}
+
+# phase_5_desktop_services() - Install desktop services & Hyprland Lua Configuration
 phase_5_desktop_services() {
-    log_step "Phase 5: Desktop Services"
+    log_step "Phase 5: Desktop Services & Hyprland Configuration"
     
     detect_package_manager
     update_package_cache
@@ -368,7 +411,9 @@ phase_5_desktop_services() {
         log_warn "Failed to install some terminal applications, continuing..."
     fi
     
-    log_success "Phase 4 complete"
+    deploy_hyprland_config
+
+    log_success "Phase 5 complete"
 }
 
 # verify_sha256() - Verify SHA-256 checksum of downloaded binary archive
@@ -658,61 +703,7 @@ phase_7_matugen() {
     fi
 }
 
-# phase_6_desktop_services() - Install desktop services & Hyprland Lua Configuration
-phase_6_desktop_services() {
-    log_step "Phase 6: Desktop Services & Hyprland Configuration"
-    
-    ensure_directories
-    
-    local target_user_home="${HOME}"
-    if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
-        target_user_home="$(eval echo "~${SUDO_USER}")"
-    fi
-    local hypr_config_dir="${target_user_home}/.config/hypr"
-    mkdir -p "${hypr_config_dir}"
-    
-    # Backup and copy Lua configuration files
-    if [ -d "${REPO_ROOT}/config/hypr" ]; then
-        log_info "Deploying Lua configuration files to ${hypr_config_dir}"
 
-        # If legacy hyprland.conf exists, back it up and rename to hyprland.conf.bak
-        if [ -f "${hypr_config_dir}/hyprland.conf" ]; then
-            log_warn "Legacy hyprland.conf detected. Backing up and disabling legacy config file..."
-            backup_config_with_manifest "${hypr_config_dir}/hyprland.conf" "Legacy Hyprland Config" 2>/dev/null || true
-            mv "${hypr_config_dir}/hyprland.conf" "${hypr_config_dir}/hyprland.conf.bak"
-        fi
-
-        cp -r "${REPO_ROOT}/config/hypr/"*.lua "${hypr_config_dir}/"
-        
-        # Detect if running in VM and set appropriate terminal
-        if systemd-detect-virt --vm &>/dev/null; then
-            log_info "VM detected - setting terminal to foot (native Wayland)"
-            sed -i 's/hl.env("TERMINAL", "kitty")/hl.env("TERMINAL", "foot")/' "${hypr_config_dir}/environment.lua"
-        else
-            log_info "Bare metal detected - keeping terminal as kitty (GPU accelerated)"
-        fi
-        
-        # Ensure both terminals are available for fallback
-        if ! command -v foot &>/dev/null; then
-            log_warn "foot not available, installation may have failed"
-        fi
-        if ! command -v kitty &>/dev/null; then
-            log_warn "kitty not available, installation may have failed"
-        fi
-        
-        if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
-            local user_group
-            user_group="$(id -gn "${SUDO_USER}" 2>/dev/null || echo "${SUDO_USER}")"
-            chown -R "${SUDO_USER}:${user_group}" "${hypr_config_dir}" 2>/dev/null || true
-        fi
-
-        log_success "Hyprland Lua configuration installed"
-    else
-        log_warn "Hyprland configuration directory not found"
-    fi
-    
-    log_success "Phase 6 complete"
-}
 
 # phase_6_quickshell_bar() - Build Quickshell bar
 phase_6_quickshell_bar() {
