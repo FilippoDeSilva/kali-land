@@ -1,18 +1,58 @@
 # kali-land
 
-A modular, reproducible desktop environment for Kali Linux built on Hyprland and Quickshell.
+> **Who says Kali doesn't deserve Aesthetics?**
+
+A professional, modular, reproducible desktop platform for Kali Linux built on Wayland, Hyprland, and Quickshell.
+
+## Core Principle
+
+> **kali-land owns the environment; the user owns the experience.**
+
+`kali-land` is not a Kali Linux fork, theme pack, or locked-in shell clone. It is a robust desktop/runtime layer around Kali Linux that provides a solid Wayland + Hyprland runtime foundation, desktop services, capability detection, and safety/rollback tooling, with first-class support for Quickshell-based desktop shells under a **Bring Your Own Shell (BYOS)** model.
 
 ## Overview
 
-kali-land provides a modern Wayland desktop environment that preserves Kali's security tooling while offering a polished user experience.
+`kali-land` provides a modern Wayland desktop environment that preserves Kali's security tooling while offering a polished user experience.
 
-**Note**: This project is currently in active development. While designed for VMware during development, it can be used on bare metal hardware. Use on daily drivers at your own risk until stable release.
+**Note**: This project is currently in active development. While designed for VMware during development, it is engineered for bare-metal laptops and desktops as well. VMware-specific optimizations are applied dynamically when running inside a VM.
 
-## Components
+## Core Architecture
 
-- **Hyprland**: Wayland compositor for window management
-- **Quickshell**: Desktop shell using the end4-pC Material 3 configuration
-- **Kali Linux**: Debian-based security distribution
+```text
+                         KALI LINUX
+                 security + Debian ecosystem
+                            │
+                         WAYLAND
+                            │
+                        HYPRLAND
+                  compositor + window IPC
+                            │
+                  ┌─────────┴─────────┐
+                  │                   │
+             Desktop Services     Shell Runtime
+                  │                   │
+          PipeWire / Network      Quickshell
+          Portals / Polkit            │
+          Notifications / IPC         │
+                  │            ┌──────┼──────┐
+                  │            │      │      │
+                  │         end4-pC  User   Future
+                  │            (ref) Shells Shells
+                  │
+                  └───────────┬───────┘
+                              │
+                         Applications
+```
+
+### Platform Layer (kali-land-owned)
+- **Kali Linux**: Debian-based security distribution & package manager (`apt`).
+- **Wayland & Hyprland**: Wayland session protocol, tiling compositor, workspaces, and window IPC.
+- **Desktop Services**: PipeWire, NetworkManager, XDG desktop portals, Polkit, cliphist, notifications.
+- **Platform Infrastructure**: Capability detection, profile management (VMware / Bare metal), idempotent installer, diagnostics (`doctor`), and backups (`~/.local/state/kali-land/`).
+
+### Experience Layer (User-owned)
+- **Quickshell Integrations**: First-class support for Quickshell desktop shells (`end4-pC` is the primary reference integration proof-of-concept).
+- **User Customizations**: Custom shell configurations, visual themes, keyboard workflows, and application choices.
 
 ## Requirements
 
@@ -24,36 +64,31 @@ kali-land provides a modern Wayland desktop environment that preserves Kali's se
 ## Installation
 
 ```bash
-git clone https://github.com/yourusername/kali-land.git
+git clone https://github.com/FilippoDeSilva/kali-land.git
 cd kali-land
 sudo ./bootstrap/install.sh
 ```
 
 See [Installation Guide](docs/installation.md) for detailed instructions.
 
-## Architecture
-
-```
-Kali Linux
-    ↓
-Wayland
-    ↓
-Hyprland (compositor)
-    ↓
-Desktop Services (audio, network, notifications)
-    ↓
-Quickshell (desktop shell)
-    ↓
-Applications
-```
-
 ## Key Features
 
-- Modular, source-controlled configuration
-- Automated installation with rollback support
-- VMware-optimized with bare-metal compatibility
-- Keyboard-first workflow
-- Preserves all Kali security tools
+- **Bring Your Own Shell (BYOS)**: Support for modular Quickshell configurations with `end4-pC` as reference.
+- **Platform/Experience Separation**: Platform runtime is isolated from user interface themes.
+- **Automated Installation & Rollback**: Safe, idempotent setup with timestamped backups (`~/.local/state/kali-land/backups/`).
+- **VMware & Bare-metal Profiles**: Automatic environment detection and dynamic virtualization optimization.
+- **Preserves Security Tooling**: Complete compatibility with Kali security tools.
+
+## Documentation
+
+- [Architecture](docs/architecture.md)
+- [Quickshell Architecture](docs/quickshell-architecture.md)
+- [Installation Guide](docs/installation.md)
+- [Repository Structure](docs/repository-structure.md)
+- [CI/CD Pipeline](docs/ci-cd.md)
+- [Troubleshooting](docs/troubleshooting.md)
+- [VMware Guide](docs/vmware.md)
+- [Architectural Guidelines (AGENT.md)](AGENT.md)
 
 ## Credits
 
@@ -65,19 +100,6 @@ This project builds upon excellent open-source work:
 - **Kali Linux**: Penetration testing distribution by [Offensive Security](https://www.kali.org/)
 - **Wayland**: Display server protocol
 - **Qt**: Cross-platform application framework
-
-## Documentation
-
-- [Installation](docs/installation.md)
-- [Architecture](docs/architecture.md)
-- [Repository Structure](docs/repository-structure.md)
-- [CI/CD](docs/ci-cd.md)
-- [Troubleshooting](docs/troubleshooting.md)
-- [VMware Guide](docs/vmware.md)
-
-## Development
-
-See [AGENT.md](AGENT.md) for architectural guidelines and implementation rules.
 
 ## License
 

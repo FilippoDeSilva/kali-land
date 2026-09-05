@@ -1,63 +1,49 @@
-# Quickshell Architecture
+# Quickshell Architecture in kali-land
 
 ## Overview
 
-Quickshell serves as the desktop shell in the kali-land environment. It provides the user-facing UI components while Hyprland handles window management.
+Quickshell serves as the graphical desktop shell runtime layer in `kali-land`. It provides user-facing UI components (bars, panels, launchers, control centers, widgets) while Hyprland handles window management.
 
-## Current Implementation
+> **"kali-land owns the environment; the user owns the experience."**
 
-The current Quickshell configuration uses a simple, monolithic `shell.qml` file that includes the top bar with workspace indicator and clock. This approach was chosen because:
-
-1. **Quickshell qmldir limitations**: Quickshell has limited support for complex qmldir-based module loading
-2. **Simplicity**: A single file is easier to debug and maintain for the initial implementation
-3. **Reliability**: Eliminates module loading issues that can occur with complex qmldir setups
-
-### Current Structure
-
-```
-config/quickshell/
-├── shell.qml                 # Main entry point with inline components
-├── qmldir                    # QML module registration (currently minimal)
-└── Colors.qml                # Global color theme (singleton)
+`kali-land` strictly distinguishes between:
+```text
+Quickshell Runtime (Platform)  ≠  Quickshell Shell Configuration (Experience)
 ```
 
-### shell.qml
+## Bring Your Own Shell (BYOS)
 
-The main entry point that contains:
+`kali-land` adopts a **Bring Your Own Shell (BYOS)** model. The platform provides a stable runtime, capability detection, service integration, and safety/rollback mechanisms, while allowing users to select or bring their preferred Quickshell shell.
 
-- **Top Bar**: Displays workspace indicator and clock
-- **Center Text**: Placeholder "kali-land Desktop" text
-- **Color Theme**: Uses inline colors (can be migrated to Colors.qml later)
+Users may run:
+1. **`end4-pC` (Primary Reference Integration)**: Material 3 Quickshell desktop shell.
+2. **Custom / User Shells**: Personal or third-party Quickshell configurations.
+3. **Future Shells**: Additional community or official integrations.
 
-**Key Properties:**
-- `implicitWidth`, `implicitHeight`: Modern QML sizing
-- `visible`: Controls window visibility
-- `color`: Background color (transparent to let Hyprland show through)
+## Reference Shell Integration (`end4-pC`)
 
-## Design Philosophy
+The project uses `end4-pC` as its primary reference integration proof-of-concept.
 
-While the current implementation is monolithic, the design principles remain:
+### end4-pC Structure
 
-- **Configurable**: Easy to modify behavior by editing properties
-- **Maintainable**: Clear structure with commented sections
-- **Scalable**: Can be refactored into modular components when Quickshell matures
-- **Themeable**: Colors can be centralized when needed
-
-## Future Modular Architecture
-
-When Quickshell's qmldir support improves, the configuration can be refactored into:
-
+```text
+end4-pC/
+├── shell.qml                    # Main entry point
+├── panelFamilies/               # Panel configurations
+├── modules/                     # UI modules (vertical bar, launcher, sidebars)
+├── services/                    # Backend Qt/QML service bridges
+├── assets/                      # Icons, fonts, visual assets
+├── defaults/                    # Default configurations
+├── scripts/                     # Helper scripts
+└── translations/                # i18n support
 ```
-config/quickshell/
-├── shell.qml                 # Main entry point
-├── qmldir                    # QML module registration
-├── Colors.qml                # Global color theme (singleton)
-└── components/
-    └── bar/
-        ├── TopBarConfig.qml  # Bar configuration object
-        ├── WorkspaceIndicator.qml  # Workspace display component
-        └── Clock.qml         # Time display component
-```
+
+### Integration Guidelines
+
+When integrating or adapting a reference shell in `kali-land`:
+- **Respect Upstream Provenance**: Maintain upstream attribution and architecture.
+- **Isolate Platform Adaptations**: Keep `kali-land`-specific bridges modular.
+- **Capability Degradation**: Missing optional capabilities (e.g. Bluetooth, battery on desktops) must degrade gracefully without crashing the shell.
 
 ### Planned Component Structure
 

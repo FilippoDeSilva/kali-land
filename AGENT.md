@@ -1,233 +1,1342 @@
-# AGENT.md --- kali-land - Modern Desktop Environment
+# AGENT.md — kali-land
+
+> **Who says Kali doesn't deserve Aesthetics?**
 
 ## 0. Mission
 
-Build a **professional, modular, reproducible, maintainable
-desktop environment for Kali Linux running inside
-VMware**.
+Build **kali-land**, a professional, modular, reproducible, maintainable desktop
+platform for Kali Linux.
 
-The target is:
+kali-land is **not a Kali Linux fork, replacement distribution, theme pack, or
+end4-pC clone**. It is a desktop/runtime layer around Kali Linux, with a strong
+Wayland + Hyprland foundation and first-class support for Quickshell-based
+desktop shells.
 
-> **Kali Linux + Hyprland + Quickshell + a deliberately engineered
-> desktop stack that provides a modern workflow and aesthetic
-> while preserving Kali's security tooling and Debian/Kali package
-> ecosystem.**
+Core principle:
 
-The project must be designed like a real Linux configuration project
-maintained by an experienced Linux user:
+> **kali-land owns the environment; the user owns the experience.**
 
--   modular
--   reproducible
--   source-controlled
--   idempotent
--   debuggable
--   reversible
--   documented
--   platform-aware
--   safe to iterate on
--   easy to migrate to bare metal later
--   easy to extend without turning into one giant shell script
+The project should provide sensible defaults without forcing every user to
+adopt one particular Quickshell configuration.
 
-Do not optimize for "make it look cool as quickly as possible." Optimize
-for **architecture first, polish second**.
+The current development environment is a Kali Linux VM running under VMware.
+The project must remain capable of evolving toward bare-metal laptops and
+desktops.
 
-------------------------------------------------------------------------
+---
 
-# 1. Non-Negotiable Rules
+# 1. Project Identity
 
-## 1.1 Platform
+## 1.1 Name
 
-This project targets:
+Project name:
 
--   OS: **Kali Linux**
--   Base family: Debian
--   Development environment: **VMware virtual machine**
--   Production target: **VMware or bare metal**
--   Display stack target: **Wayland**
--   Compositor: **Hyprland**
--   Desktop shell: **Quickshell**
+```text
+kali-land
+```
 
-VMware is used during development. The desktop environment is designed to work on bare metal hardware as well. VMware-specific optimizations are only applied when running in a VMware virtual machine.
+Repository:
 
-Never assume Arch Linux commands, package managers, filesystem layouts,
-or AUR availability.
+```text
+FilippoDeSilva/kali-land
+```
 
-Use Kali/Debian conventions unless a component explicitly requires
-otherwise.
+Use `kali-land` consistently in paths, state directories, documentation,
+commands, and generated output.
+
+## 1.2 Positioning
+
+Think of the stack as:
+
+```text
+Kali Linux
+    +
+desktop/runtime infrastructure
+    +
+Wayland
+    +
+Hyprland
+    +
+desktop services
+    +
+Quickshell compatibility
+    +
+user-selected shell
+```
+
+kali-land may be opinionated about defaults, but those defaults must not become
+architectural requirements.
+
+---
+
+# 2. Core Architecture
+
+The most important distinction is between the **platform** and the **shell**.
+
+```text
+                         KALI-LAND
+                            │
+        ┌───────────────────┼───────────────────┐
+        │                   │                   │
+     Runtime             Services            Shell Layer
+        │                   │                   │
+   Wayland              PipeWire             Quickshell
+   Hyprland             NetworkManager           │
+   XWayland             Portals                   ├── end4-pC
+   IPC                  Notifications              ├── user shell
+                        Polkit                    └── future shells
+                        Clipboard
+```
+
+### kali-land owns
+
+- Kali/Debian-aware installation
+- package and dependency handling
+- Wayland runtime
+- Hyprland integration
+- desktop service integration
+- capability detection
+- environment detection
+- hardware/VM profiles
+- configuration safety
+- backups and rollback
+- diagnostics
+- shell discovery/integration
+- sensible defaults
+- documentation
+- testing and reproducibility
+
+### kali-land does not inherently own
+
+- a specific Quickshell UI
+- a specific bar or launcher
+- a specific Material 3 implementation
+- a specific visual theme
+- a user's entire `~/.config/quickshell`
+- a user's shell/prompt
+- a user's preferred terminal
+- every application installed on Kali
+
+A reference shell may exist, but it remains a shell integration.
+
+---
+
+# 3. Non-Negotiable Rules
+
+## 3.1 Kali-first
+
+Target:
+
+```text
+OS: Kali Linux
+Base: Debian
+Package manager: apt
+Package database: dpkg
+Init/service manager: systemd
+```
+
+Never assume:
+
+- `pacman`
+- AUR
+- Arch package names
+- Arch repositories
+- Arch-specific filesystem conventions
+
+Translate upstream Arch instructions into a Kali/Debian-compatible approach.
+
+Never add Ubuntu repositories to Kali.
+
+Do not replace Kali's package ecosystem.
+
+## 3.2 Existing desktop is a recovery path
+
+During development, the existing Kali desktop must remain usable.
+
+Do not silently:
+
+- remove XFCE/GNOME/KDE
+- replace the display manager
+- destroy an existing session
+- overwrite unrelated configuration
+- modify `/usr/share`
+- replace Kali package sources
+- disable security controls
+
+A new environment must initially coexist with the existing desktop.
+
+## 3.3 No destructive automation
+
+Never use:
+
+```bash
+curl ... | bash
+```
+
+Never execute arbitrary internet-hosted scripts without inspecting them.
+
+Never blindly install a third-party dotfiles repository.
+
+Before modifying existing configuration:
+
+```text
+detect → backup → change → validate
+```
+
+For destructive changes, explain:
+
+```text
+why
+what changes
+risk
+rollback
+```
+
+before proceeding.
+
+## 3.4 Idempotency
+
+Installation/configuration must be safe to repeat.
+
+Scripts should:
+
+- detect existing state
+- skip satisfied operations
+- avoid duplicates
+- preserve user data
+- report changes
+- fail clearly
+
+---
+
+# 4. Current Proof of Concept
+
+The project has successfully run **end4-pC inside the Kali VMware environment**.
+
+Treat this as an important integration proof:
+
+```text
+Kali + Wayland + Hyprland + Quickshell + end4-pC
+                         ↓
+                      proven
+```
+
+Do **not** interpret this as:
+
+```text
+kali-land = end4-pC
+```
+
+or:
+
+```text
+end4-pC = mandatory
+```
+
+end4-pC is the first concrete Quickshell integration/reference target.
+
+Build abstractions from real requirements discovered through this integration.
+Do not design a giant framework before a second integration requires one.
+
+---
+
+# 5. Bring Your Own Shell
+
+kali-land should support a **Bring Your Own Shell (BYOS)** model.
+
+Users may bring:
+
+- a custom Quickshell configuration
+- a third-party Quickshell configuration
+- a kali-land reference shell
+- a fork of an existing shell
+- future supported shells
+
+Do not promise that literally every Quickshell configuration works automatically.
+
+Instead provide:
+
+> a standardized runtime, documented capabilities, dependency detection, and
+> integration contracts for compatible shells.
+
+---
+
+# 6. Shell Integrations
+
+Treat shells as integrations/adapters.
+
+Conceptual structure:
+
+```text
+integrations/
+├── end4-pC/
+├── generic/
+└── future/
+```
+
+The exact repository structure may evolve.
+
+A shell integration may declare:
+
+```yaml
+name: example-shell
+type: quickshell
+
+requires:
+  - wayland
+  - hyprland
+  - quickshell
+
+optional:
+  - pipewire
+  - networkmanager
+  - bluetooth
+
+launch:
+  command: ...
+```
+
+Keep the contract small. Do not build a complicated plugin system until real
+integrations require it.
+
+---
+
+# 7. Capability Model
+
+Reason about **capabilities**, not just packages.
 
 Examples:
 
--   package manager: `apt`
--   package database: `dpkg`
--   services: `systemd`
--   user configuration: `$HOME/.config`
--   system configuration: `/etc`
--   local system-wide additions: `/usr/local`
--   user-local binaries: `$HOME/.local/bin`
+```text
+wayland
+hyprland
+xwayland
+hyprland-ipc
+quickshell
+pipewire
+wireplumber
+networkmanager
+notifications
+portals
+polkit
+clipboard
+screenshot
+lock
+idle
+bluetooth
+battery
+brightness
+```
 
-Do not introduce Arch-specific tooling.
+A shell can require or optionally consume capabilities.
 
-------------------------------------------------------------------------
+Example:
 
-## 1.2 Do Not Destroy the Existing Desktop
+```text
+Required:
+  ✓ Wayland
+  ✓ Hyprland
+  ✓ Quickshell
 
-The existing Kali desktop must remain usable as a recovery path until
-the new environment is proven stable.
+Optional:
+  ✓ PipeWire
+  ✓ NetworkManager
+  ✗ Bluetooth
+```
 
-Do NOT:
+Missing optional capabilities must not unnecessarily break the desktop.
 
--   remove XFCE/GNOME/KDE immediately
--   replace the display manager unnecessarily
--   overwrite unrelated system configuration
--   modify `/usr/share` application files
--   replace Kali's package sources
--   install random third-party repositories without justification
--   run arbitrary installation scripts from the internet
--   use `curl ... | bash`
--   blindly install somebody else's entire dotfiles repository
+This model should eventually power:
 
-The new environment must initially coexist with the existing desktop.
+```bash
+kali-land doctor
+kali-land shell list
+kali-land shell detect
+kali-land shell doctor
+```
 
-------------------------------------------------------------------------
+---
 
-## 1.3 Configuration Ownership
+# 8. Platform Layers
+
+Keep responsibilities explicit.
+
+## Kali
+
+Owns the OS, security tooling, Debian/Kali packages, systemd, and system
+security. kali-land works with this layer.
+
+## Wayland
+
+Provides the graphical session protocol.
+
+## Hyprland
+
+Owns:
+
+- windows
+- workspaces
+- layouts
+- monitors
+- input
+- keybindings
+- window rules
+- compositor behavior
+- animations
+- startup
+
+Hyprland is not the complete desktop environment.
+
+## Desktop services
+
+Examples:
+
+- XDG desktop portals
+- PipeWire/WirePlumber
+- NetworkManager
+- notifications
+- polkit
+- clipboard
+- screenshots
+- lock/idle services
+- wallpaper tooling
+
+Use existing Linux services instead of reinventing them in QML.
+
+## Shell
+
+Quickshell provides the graphical shell layer.
+
+A shell may provide:
+
+- bars
+- panels
+- launchers
+- widgets
+- notifications UI
+- controls
+- power UI
+- system information
+
+## Applications
+
+Examples:
+
+- terminal
+- browser
+- editor
+- file manager
+- security tools
+- development tools
+- optional utilities
+
+Do not make arbitrary applications core dependencies.
+
+---
+
+# 9. Repository Philosophy
+
+The repository is the source of truth for **kali-land-owned code/configuration**.
+
+It is not automatically the source of truth for every user's personal setup.
+
+```text
+kali-land-owned config
+    ↓
+repository is source of truth
+
+user-owned shell/config
+    ↓
+user remains source of truth
+```
+
+Never take ownership of a user's configuration merely because kali-land can
+modify it.
+
+---
+
+# 10. Configuration Ownership
 
 Prefer:
 
-``` text
-user configuration
-    ↓
-~/.config/...
+```text
+$HOME/.config/
+$HOME/.local/bin/
+$HOME/.local/state/kali-land/
 ```
 
 over modifying vendor/system files.
 
-System files should only be modified when genuinely necessary.
+Every system-level change must be:
 
-Every system-level modification must be:
+1. documented
+2. isolated
+3. reversible
+4. reproducible
+5. attributable to a project component
 
-1.  documented
-2.  isolated
-3.  reversible
-4.  represented by an installation/configuration script where practical
+Do not modify `/usr/share` unless genuinely required and explicitly documented.
 
-------------------------------------------------------------------------
+---
 
-# 2. Project Goals
+# 11. Configuration Installation
 
-## Primary Goals
+For kali-land-owned configuration:
 
-1.  Install and validate Hyprland on Kali.
-2.  Establish a reliable Wayland session.
-3.  Install and validate Quickshell.
-4.  Build a modular Quickshell desktop shell.
-5.  Reproduce important UX concepts:
-    -   keyboard-first workflow
-    -   application launcher
-    -   workspace navigation
-    -   top bar
-    -   notifications
-    -   system controls
-    -   power menu
-    -   wallpaper management
-    -   consistent theme
-    -   polished animations
-6.  Preserve Kali's security tooling.
-7.  Maintain a clean separation between:
-    -   compositor
-    -   shell
-    -   services
-    -   applications
-    -   themes
-    -   keybindings
-    -   installation logic
-8.  Make the entire setup reproducible.
-9.  Make rollback possible.
-10. Make future migration to physical hardware straightforward.
-
-## Secondary Goals
-
-Eventually support:
-
--   multiple monitors
--   laptop power management
--   suspend/resume
--   brightness
--   audio
--   Bluetooth
--   screenshots
--   screen recording
--   clipboard history
--   lock screen
--   idle management
--   wallpaper transitions
--   media controls
--   notifications
--   network controls
--   VM-specific optimizations
--   NVIDIA/AMD/Intel hardware-specific configuration
--   optional modules
-
-------------------------------------------------------------------------
-
-# 3. Architecture
-
-The conceptual architecture is:
-
-``` text
-┌──────────────────────────────────────────────────────────┐
-│                     Kali Linux                            │
-│                                                          │
-│  Debian/Kali packages + security tooling + systemd       │
-│                                                          │
-├──────────────────────────────────────────────────────────┤
-│                     Wayland                              │
-├──────────────────────────────────────────────────────────┤
-│                     Hyprland                             │
-│                                                          │
-│  compositor / windows / workspaces / keybinds            │
-├──────────────────────────────────────────────────────────┤
-│                    Desktop Services                       │
-│                                                          │
-│  portals / notifications / audio / network / clipboard   │
-│  idle / lock / wallpaper / screenshots / authentication  │
-├──────────────────────────────────────────────────────────┤
-│                     Quickshell                            │
-│                                                          │
-│  bar / launcher / control center / widgets / menus       │
-├──────────────────────────────────────────────────────────┤
-│                   Applications                            │
-│                                                          │
-│  terminal / browser / editor / file manager / tools      │
-└──────────────────────────────────────────────────────────┘
+```text
+repository
+    ↓
+runtime configuration
+    ↓
+~/.config/...
 ```
 
-Hyprland owns window-management behavior.
+For user-provided shells, do not automatically replace their configuration.
 
-Quickshell owns desktop UI.
+If symlinks or managed copies are used:
 
-External utilities should own specialized system functions rather than
-forcing Quickshell to reinvent them.
+- detect existing files
+- back them up
+- never silently overwrite
+- report changes
+- make rollback possible
 
-------------------------------------------------------------------------
+Prefer namespaced shell locations when possible:
 
-# 4. Repository Philosophy
-
-The repository is the **source of truth for user-owned configuration and
-project automation**.
-
-Recommended location:
-
-``` text
-~/Projects/kali-land/
+```text
+~/.config/quickshell/<shell>/
 ```
 
-If the user's preferred development directory differs, detect it first
-and use the existing convention.
+rather than assuming kali-land owns all of:
 
-Recommended repository structure:
+```text
+~/.config/quickshell/
+```
 
-``` text
+---
+
+# 12. Backup and Rollback
+
+Use:
+
+```text
+~/.local/state/kali-land/
+```
+
+Recommended:
+
+```text
+~/.local/state/kali-land/
+├── backups/
+├── logs/
+├── state/
+└── reports/
+```
+
+Example:
+
+```text
+backups/
+└── 2026-09-05T10-30-00/
+    ├── manifest.txt
+    ├── hypr/
+    ├── quickshell/
+    └── other/
+```
+
+Rollback must restore configuration without requiring internet access.
+
+VMware snapshots complement, but do not replace, project backups.
+
+---
+
+# 13. Bootstrap System
+
+Keep bootstrap logic modular.
+
+Conceptually:
+
+```text
+bootstrap/
+├── install.sh
+├── uninstall.sh
+├── doctor.sh
+└── lib/
+    ├── logging.sh
+    ├── platform.sh
+    ├── packages.sh
+    ├── filesystem.sh
+    ├── capabilities.sh
+    ├── backups.sh
+    └── prompts.sh
+```
+
+Do not turn `install.sh` into a giant monolith.
+
+Use:
+
+```bash
+set -Eeuo pipefail
+```
+
+where appropriate.
+
+Support where practical:
+
+- dry-run
+- non-interactive mode
+- explicit confirmation
+- logging
+- clear errors
+- idempotency
+
+---
+
+# 14. Discovery Before Mutation
+
+Before changing the machine, inspect it.
+
+Useful commands:
+
+```bash
+cat /etc/os-release
+uname -a
+uname -m
+systemd-detect-virt
+echo "$XDG_SESSION_TYPE"
+echo "$XDG_CURRENT_DESKTOP"
+echo "$XDG_SESSION_DESKTOP"
+loginctl
+systemctl --user is-system-running
+dpkg --print-architecture
+lspci | grep -Ei 'vga|3d|display'
+free -h
+df -h /
+```
+
+Check components:
+
+```bash
+command -v hyprland || true
+command -v quickshell || true
+command -v kitty || true
+command -v foot || true
+```
+
+Check packages:
+
+```bash
+apt-cache policy <package>
+apt-cache show <package>
+```
+
+Never assume versions or package availability.
+
+---
+
+# 15. Package Management
+
+Organize dependencies by purpose:
+
+```text
+packages/
+├── base.txt
+├── wayland.txt
+├── hyprland.txt
+├── quickshell.txt
+├── desktop-services.txt
+└── optional.txt
+```
+
+Every dependency should be classified:
+
+```text
+required
+recommended
+optional
+VM-only
+hardware-specific
+development-only
+shell-specific
+```
+
+Do not make optional features hard dependencies.
+
+If a package is unavailable:
+
+1. stop
+2. inspect official upstream installation guidance
+3. verify Kali compatibility
+4. document the source
+5. evaluate security/maintenance implications
+6. prefer packaged software where appropriate
+7. avoid repository mixing
+
+Never add Ubuntu repositories to Kali.
+
+---
+
+# 16. Hyprland Strategy
+
+Hyprland is the compositor.
+
+Keep its configuration independent from shell implementation.
+
+Conceptual structure:
+
+```text
+config/hypr/
+├── hyprland.conf
+├── environment.conf
+├── monitors.conf
+├── keybinds.conf
+├── rules.conf
+├── appearance.conf
+└── autostart.conf
+```
+
+The main file should compose smaller files.
+
+Avoid giant monolithic configuration.
+
+Do not put Quickshell UI logic into Hyprland configuration.
+
+---
+
+# 17. Quickshell Strategy
+
+Distinguish:
+
+```text
+Quickshell runtime
+        ≠
+specific Quickshell configuration
+```
+
+The project may provide a reference shell, but the platform should remain
+usable with other compatible shells.
+
+When working on a third-party/reference shell:
+
+- respect its existing architecture
+- avoid unnecessary rewrites
+- isolate kali-land integration changes
+- document local modifications
+- preserve upstream provenance
+- avoid silently replacing upstream files
+
+---
+
+# 18. end4-pC Integration
+
+end4-pC is currently the primary reference integration.
+
+It proves that a sophisticated Quickshell desktop shell can operate within the
+Kali-land runtime.
+
+Do not make kali-land architecture depend on end4-pC-specific internals.
+
+Do not hard-code assumptions about:
+
+- panel layout
+- Material 3
+- launcher implementation
+- sidebar implementation
+- service implementation
+- directory layout
+
+unless scoped specifically to the end4-pC integration.
+
+When modifying end4-pC:
+
+- keep upstream attribution clear
+- isolate local changes
+- document why a change is needed
+- preserve the ability to update/replace the integration
+
+---
+
+# 19. Desktop Services
+
+Use existing Linux mechanisms for:
+
+```text
+audio
+networking
+Bluetooth
+notifications
+authentication
+portals
+clipboard
+locking
+idle
+screenshots
+wallpapers
+```
+
+Quickshell should consume and present capabilities, not become a replacement
+for the underlying service ecosystem.
+
+---
+
+# 20. Wayland Validation
+
+Validate:
+
+```bash
+echo "$XDG_SESSION_TYPE"
+```
+
+Expected target:
+
+```text
+wayland
+```
+
+Also inspect:
+
+```bash
+loginctl
+loginctl show-session "$XDG_SESSION_ID"
+```
+
+Validate:
+
+- Wayland
+- XWayland
+- portals
+- clipboard
+- screenshots
+- file pickers
+- browsers
+- terminals
+- common graphical applications
+
+---
+
+# 21. VMware
+
+VMware is the current development and validation environment.
+
+Detect with:
+
+```bash
+systemd-detect-virt
+```
+
+Evaluate:
+
+- VMware virtual GPU
+- 3D acceleration
+- resolution/scaling
+- clipboard integration
+- drag-and-drop
+- mouse integration
+- multi-monitor behavior
+- suspend/resume
+- shared folders if used
+- CPU/RAM overhead
+
+Do not add physical GPU configuration to a VM.
+
+Keep VMware-specific logic isolated:
+
+```text
+scripts/vmware/
+docs/vmware.md
+```
+
+The same project should eventually work without VMware-specific logic on bare
+metal.
+
+---
+
+# 22. Environment and Hardware Profiles
+
+Conceptually support:
+
+```text
+profiles/
+├── vmware/
+├── bare-metal/
+├── laptop/
+└── desktop/
+```
+
+Potential hardware capabilities:
+
+```text
+Intel
+AMD
+NVIDIA
+battery
+brightness
+multiple monitors
+```
+
+Do not duplicate entire configurations.
+
+Prefer:
+
+```text
+shared defaults
+    +
+environment/hardware overrides
+```
+
+Hardware-specific configuration must not leak into generic configuration.
+
+---
+
+# 23. Terminal and CLI
+
+kali-land may provide terminal/CLI defaults, but they are **defaults**.
+
+Do not silently change:
+
+- default shell
+- `.bashrc`
+- `.zshrc`
+- terminal emulator
+- editor
+- prompt
+- aliases
+
+If aliases or CLI enhancements are offered:
+
+```text
+detect → offer → backup → apply
+```
+
+The CLI must remain compatible with Kali security workflows.
+
+---
+
+# 24. Applications
+
+Do not install applications simply because another desktop project uses them.
+
+Evaluate:
+
+1. Kali compatibility
+2. Wayland compatibility
+3. security
+4. maintenance quality
+5. resource usage
+6. keyboard workflow
+7. interoperability
+8. licensing
+9. reversibility
+10. actual project value
+
+Optional applications remain optional.
+
+---
+
+# 25. Keybindings
+
+Use a predictable vocabulary.
+
+Default modifier may be:
+
+```text
+Super
+```
+
+Possible concepts:
+
+```text
+Super + Enter           terminal
+Super + Space           launcher
+Super + Q               close window
+Super + 1..9            workspace
+Super + Shift + 1..9    move window
+Super + H/J/K/L         directional focus
+Super + Shift + H/J/K/L move window
+Super + F               fullscreen
+Super + V               floating
+Super + L               lock
+```
+
+These are defaults, not immutable requirements.
+
+Document final bindings.
+
+---
+
+# 26. Theming
+
+For kali-land-owned UI, centralize:
+
+```text
+colors
+typography
+spacing
+radius
+effects
+animations
+```
+
+Do not scatter colors and dimensions throughout QML.
+
+Do not impose kali-land's theme on a user-provided shell.
+
+---
+
+# 27. QML / Quickshell Engineering
+
+Treat QML as production code.
+
+Prefer:
+
+- small components
+- reusable components
+- clear naming
+- separation of data and presentation
+- event-driven updates
+- minimal process spawning
+- capability-aware services
+- graceful error handling
+
+Avoid:
+
+- giant root components
+- duplicated UI
+- hard-coded screen dimensions
+- hard-coded application paths
+- hard-coded colors
+- unnecessary polling
+- constant shell command spawning
+- hidden global state
+- assumptions that hardware exists
+
+Reusable components should normally use:
+
+```text
+PascalCase.qml
+```
+
+Services should have meaningful names such as:
+
+```text
+AudioService
+NetworkService
+BatteryService
+HyprlandService
+```
+
+When modifying third-party shells, follow their existing conventions unless
+there is a compelling reason not to.
+
+---
+
+# 28. Security Requirements
+
+This is Kali.
+
+Security matters more than aesthetics.
+
+Never:
+
+- disable security controls merely to make a UI work
+- blindly run commands as root
+- store credentials in the repository
+- commit tokens
+- commit SSH private keys
+- commit browser profiles
+- commit machine-specific secrets
+- casually disable AppArmor/security mechanisms
+- casually modify firewall/network security policy
+- add untrusted repositories
+
+If root is required, isolate the privileged operation.
+
+---
+
+# 29. Git Hygiene
+
+Use a strong `.gitignore`.
+
+Potential exclusions:
+
+```text
+.env
+*.pem
+*.key
+id_*
+credentials*
+secrets*
+machine-specific state
+runtime state
+cache
+logs
+```
+
+Before commits:
+
+```bash
+git status
+git diff
+git diff --cached
+```
+
+Never commit passwords, tokens, API keys, SSH private keys, VM credentials, or
+personal browser state.
+
+---
+
+# 30. Testing Strategy
+
+Test each layer independently.
+
+## Platform
+
+```text
+Kali detection
+architecture
+virtualization
+package availability
+```
+
+## Session
+
+```text
+Wayland
+XWayland
+login
+logout
+```
+
+## Hyprland
+
+```text
+startup
+workspaces
+keybindings
+window rules
+monitor configuration
+reload
+application launching
+```
+
+## Services
+
+```text
+audio
+network
+notifications
+portals
+clipboard
+lock
+idle
+screenshots
+```
+
+## Shell
+
+```text
+Quickshell startup
+shell reload
+shell failure behavior
+capability detection
+```
+
+## Integration
+
+For each shell:
+
+```text
+dependencies
+runtime requirements
+startup
+basic interaction
+reload
+shutdown
+diagnostics
+```
+
+---
+
+# 31. VMware Testing
+
+Use snapshots for major milestones.
+
+Suggested points:
+
+```text
+01-kali-clean
+02-platform-detected
+03-packages-installed
+04-hyprland-working
+05-services-working
+06-quickshell-working
+07-end4-pC-working
+08-kali-land-stable
+```
+
+Snapshots complement reproducible installation; they do not replace it.
+
+---
+
+# 32. Performance
+
+Measure before optimizing.
+
+Useful tools:
+
+```bash
+free -h
+top
+htop
+```
+
+Avoid:
+
+- aggressive polling
+- unnecessary timers
+- excessive process spawning
+- huge assets
+- excessive animations
+- redundant daemons
+
+Prefer event-driven updates where supported.
+
+Do not sacrifice reliability for visual effects.
+
+---
+
+# 33. Failure Isolation
+
+A failure in an optional component must not unnecessarily destroy unrelated
+layers.
+
+Examples:
+
+```text
+Bluetooth unavailable
+    ↓
+Bluetooth capability disabled
+    ↓
+desktop continues
+```
+
+```text
+optional widget fails
+    ↓
+widget unavailable
+    ↓
+shell continues
+```
+
+Diagnostics should identify the failing boundary.
+
+---
+
+# 34. Logging
+
+Use:
+
+```text
+~/.local/state/kali-land/logs/
+```
+
+Example:
+
+```text
+install-2026-09-05T10-30-00.log
+doctor-2026-09-05T11-00-00.log
+```
+
+Levels:
+
+```text
+INFO
+WARN
+ERROR
+DEBUG
+```
+
+Normal output should be useful and readable. Debug mode may expose verbose
+details.
+
+---
+
+# 35. Development Workflow
+
+For every task:
+
+```text
+1. Inspect current repository state
+2. Inspect machine state when relevant
+3. Understand existing architecture
+4. Identify ownership boundary
+5. Make the smallest appropriate change
+6. Validate
+7. Inspect resulting state
+8. Fix regressions
+9. Update documentation
+10. Commit logically
+```
+
+Never assume a previous command succeeded.
+
+Never rebuild an existing component without first determining why the current
+implementation is insufficient.
+
+Prefer incremental improvements over rewrites.
+
+---
+
+# 36. Agent Decision Checklist
+
+Before changing anything:
+
+```text
+Is this Kali-compatible?
+
+Is this Wayland-compatible?
+
+Does this belong to kali-land or a shell integration?
+
+Does this belong to Hyprland, a service, or Quickshell?
+
+Am I accidentally making an optional dependency mandatory?
+
+Am I taking ownership of user configuration?
+
+Is this reversible?
+
+Is this reproducible?
+
+Is this VM-safe?
+
+Will this work on bare metal later?
+
+Can this fail without taking down the desktop?
+
+Am I hard-coding something that should be detected?
+
+Does this need a capability check?
+
+Does this need a backup?
+
+Does this need documentation?
+
+Am I solving a real requirement or prematurely abstracting?
+```
+
+The final question is critical.
+
+Do not build abstractions merely because they sound elegant. Build them when
+real requirements justify them.
+
+---
+
+# 37. Repository Structure
+
+A reasonable target architecture is:
+
+```text
 kali-land/
 ├── AGENT.md
 ├── README.md
@@ -239,11 +1348,6 @@ kali-land/
 │   ├── uninstall.sh
 │   ├── doctor.sh
 │   └── lib/
-│       ├── logging.sh
-│       ├── platform.sh
-│       ├── packages.sh
-│       ├── filesystem.sh
-│       └── prompts.sh
 │
 ├── packages/
 │   ├── base.txt
@@ -251,1463 +1355,113 @@ kali-land/
 │   ├── hyprland.txt
 │   ├── quickshell.txt
 │   ├── desktop-services.txt
-│   ├── applications.txt
 │   └── optional.txt
 │
 ├── config/
-│   ├── hypr/
-│   │   ├── hyprland.conf
-│   │   ├── keybinds.conf
-│   │   ├── monitors.conf
-│   │   ├── rules.conf
-│   │   ├── environment.conf
-│   │   └── autostart.conf
-│   │
-│   ├── quickshell/
-│   │   ├── shell.qml
-│   │   ├── qmldir
-│   │   └── Colors.qml
-│   │
-│   ├── kitty/
-│   ├── foot/
-│   ├── mako/
-│   ├── wlogout/
-│   ├── hyprlock/
-│   ├── hypridle/
-│   └── gtk/
+│   └── hypr/
+│
+├── integrations/
+│   ├── end4-pC/
+│   └── ...
+│
+├── profiles/
+│   ├── vmware/
+│   └── ...
 │
 ├── scripts/
-│   ├── launch/
+│   ├── system/
 │   ├── wallpaper/
 │   ├── screenshot/
-│   ├── system/
-│   ├── audio/
-│   ├── network/
 │   └── vmware/
 │
 ├── themes/
-│   ├── default/
-│   │   ├── colors.qml
-│   │   ├── spacing.qml
-│   │   ├── typography.qml
-│   │   └── effects.qml
-│   └── wallpapers/
-│
 ├── system/
-│   ├── etc/
-│   └── systemd/
 │
 ├── docs/
 │   ├── architecture.md
 │   ├── installation.md
-│   ├── keybindings.md
-│   ├── quickshell-architecture.md
-│   ├── theming.md
+│   ├── configuration.md
+│   ├── shells.md
+│   ├── capabilities.md
 │   ├── troubleshooting.md
 │   ├── vmware.md
 │   └── hardware.md
 │
 └── tests/
-    ├── shell/
+    ├── platform/
     ├── hyprland/
-    └── quickshell/
+    ├── services/
+    └── integrations/
 ```
 
-The exact structure may evolve, but preserve the architectural
-boundaries.
+This is a target architecture, not a demand to create every directory
+immediately.
 
-------------------------------------------------------------------------
+The actual repository structure takes precedence.
 
-# 5. Configuration Management Strategy
+Do not create empty architecture for its own sake.
 
-Use a **repo-first configuration model**.
+---
 
-Do not manually maintain unrelated copies of files.
+# 38. Documentation
 
-Recommended mapping:
+Documentation must clearly distinguish:
 
-``` text
-repo/config/hypr/hyprland.conf
-        ↓
-~/.config/hypr/hyprland.conf
-
-repo/config/quickshell/
-        ↓
-~/.config/quickshell/
+```text
+Kali provides
+kali-land provides
+Hyprland provides
+Quickshell provides
+shell integration provides
+end4-pC provides
+user provides
 ```
-
-The installation system should create directories and symlinks or
-managed copies consistently.
-
-Preferred behavior:
-
-``` text
-repository = source of truth
-$HOME/.config = runtime location
-```
-
-If symlinks are used, the installer must:
-
--   detect existing files
--   back them up
--   never silently overwrite user data
--   clearly report what it changed
-
-Example backup location:
-
-``` text
-~/.local/state/kali-land/backups/<timestamp>/
-```
-
-------------------------------------------------------------------------
-
-# 6. Bootstrap System
-
-`bootstrap/install.sh` must be safe to execute repeatedly.
-
-Requirements:
-
--   `set -Eeuo pipefail`
--   meaningful error messages
--   command existence checks
--   OS detection
--   package manager detection
--   privilege handling
--   dry-run support if practical
--   idempotent operations
--   logging
--   explicit confirmation for destructive operations
-
-The installer must first collect facts.
-
-Examples:
-
-``` bash
-cat /etc/os-release
-uname -a
-echo "$XDG_SESSION_TYPE"
-echo "$XDG_CURRENT_DESKTOP"
-echo "$XDG_SESSION_DESKTOP"
-systemctl --user is-system-running
-```
-
-Also detect:
-
--   VM vs physical hardware
--   GPU vendor
--   CPU architecture
--   available memory
--   Wayland support
--   existing desktop environment
--   display manager
--   package versions
--   existing Hyprland installation
--   existing Quickshell installation
-
-Never guess these values.
-
-------------------------------------------------------------------------
-
-# 7. Package Management
-
-Create package manifests by concern.
-
-Example:
-
-``` text
-packages/base.txt
-packages/wayland.txt
-packages/hyprland.txt
-packages/quickshell.txt
-packages/desktop-services.txt
-packages/applications.txt
-```
-
-The installer should install only the required group for the current
-phase.
-
-Do not install a huge package list at once.
-
-Before installation:
-
-``` bash
-apt update
-apt-cache policy <package>
-apt-cache show <package>
-```
-
-Verify package availability and version compatibility.
-
-If a package is unavailable in Kali's repositories:
-
-1.  stop
-2.  investigate the official upstream installation method
-3.  document the source
-4.  evaluate dependency impact
-5.  prefer a packaged release over a random binary
-6.  avoid mixing incompatible Debian repositories
-7.  never add Ubuntu repositories to Kali as a shortcut
-
-------------------------------------------------------------------------
-
-# 8. Hyprland Strategy
-
-Hyprland is the compositor.
-
-Do not treat Hyprland as the complete desktop environment.
-
-Its responsibility:
-
--   windows
--   workspaces
--   layouts
--   monitor configuration
--   input
--   animations
--   keybindings
--   window rules
--   startup commands
-
-Keep configuration modular.
-
-Recommended:
-
-``` text
-hyprland.conf
-├── environment.conf
-├── monitors.conf
-├── keybinds.conf
-├── rules.conf
-└── autostart.conf
-```
-
-The main file should mostly compose modules.
-
-Avoid a 1000-line monolithic configuration.
-
-------------------------------------------------------------------------
-
-# 9. Quickshell Strategy
-
-Quickshell is the **desktop shell**, not the compositor.
-
-kali-land uses the end4-pC Quickshell configuration as the foundation, which provides:
-
-- Material 3 design system
-- Comprehensive desktop shell features
-- Hyprland integration
-- Modular architecture
-
-The end4-pC configuration is cloned from:
-``` text
-https://github.com/pctrade/end4-pC
-```
-
-## end4-pC Architecture
-
-The configuration is organized as:
-
-``` text
-end4-pC/
-├── shell.qml                    # Main entry point
-├── panelFamilies/               # Panel configurations
-├── modules/                     # UI modules
-│   ├── common/                  # Shared utilities and models
-│   ├── ii/                      # Illogical Impulse (main desktop)
-│   │   ├── verticalBar/         # Vertical bar components
-│   │   ├── sidebarLeft/        # Left sidebar (launcher, AI, etc.)
-│   │   └── sidebarRight/       # Right sidebar (controls, notifications)
-│   └── other panels...
-├── services/                    # Backend services
-│   ├── HyprlandBackend.qml
-│   ├── Audio.qml
-│   ├── Network.qml
-│   └── ...
-├── assets/                      # Icons, fonts, images
-├── defaults/                    # Default configurations
-├── scripts/                     # Helper scripts
-└── translations/                # i18n support
-```
-
-## Customization Strategy
-
-When customizing end4-pC:
-
-1. **Modify modules in place** - Edit QML files in `end4-pC/`
-2. **Preserve architecture** - Keep the modular structure
-3. **Test changes incrementally** - Quickshell supports hot reload
-4. **Backup before major changes** - Use version control
-
-## Installation
-
-The installer copies end4-pC from the repository to:
-``` text
-~/.config/quickshell/
-```
-
-This ensures the configuration is source-controlled and reproducible.
-
-------------------------------------------------------------------------
-
-# 10. Quickshell UI Architecture
-
-The end4-pC configuration provides a comprehensive UI:
-
-## Vertical Bar
-
-The main vertical bar contains:
-- Workspace indicators
-- System information
-- Quick toggles
-- Application launcher trigger
-
-## Sidebars
-
-### Left Sidebar
-- Application launcher with fuzzy search
-- AI chat integration (optional)
-- Translator
-- Wallpaper selector
-
-### Right Sidebar
-- Quick toggles (Wi-Fi, Bluetooth, volume, etc.)
-- Notification center
-- Calendar widget
-- Volume mixer
-- Power controls
-- Todo list
-
-## Control Center
-
-The control center provides:
-- Unified system controls
-- Audio device management
-- Network configuration
-- Bluetooth device management
-- Brightness controls
-- Night light settings
-- Power profile selection
-
-## Power Menu
-
-Available actions:
-- Lock screen
-- Logout
-- Suspend
-- Reboot
-- Shutdown
-
-All destructive actions require confirmation.
-
-## Features
-
-- Material 3 design language
-- Smooth animations
-- Keyboard-first navigation
-- Configurable widgets
-- Multi-language support
-- Hyprland-specific integrations
-
-------------------------------------------------------------------------
-
-# 11. Desktop Services
-
-Do not reinvent every Linux service in QML.
-
-Use appropriate existing tools/services for:
-
--   notifications
--   audio
--   networking
--   Bluetooth
--   clipboard
--   authentication
--   portals
--   idle
--   locking
--   wallpapers
--   screenshots
-
-Quickshell should provide the UI and orchestration layer.
-
-------------------------------------------------------------------------
-
-# 12. Wayland Integration
-
-The project must validate:
-
-``` bash
-echo "$XDG_SESSION_TYPE"
-```
-
-Expected target:
-
-``` text
-wayland
-```
-
-Also inspect:
-
-``` bash
-loginctl
-loginctl show-session "$XDG_SESSION_ID"
-```
-
-Validate:
-
--   XWayland availability
--   XDG desktop portals
--   clipboard
--   screenshots
--   file picker behavior
--   browser compatibility
--   terminal compatibility
-
-Kali's existing desktop must remain available as fallback while this is
-being developed.
-
-------------------------------------------------------------------------
-
-# 13. VMware-Specific Requirements
-
-This is a VM-first project.
-
-Do not assume physical hardware behavior.
-
-First determine:
-
-``` bash
-systemd-detect-virt
-```
-
-and inspect VMware-related hardware.
-
-The environment must be evaluated for:
-
--   VMware SVGA graphics
--   3D acceleration
--   dynamic resolution
--   clipboard integration
--   drag-and-drop
--   mouse integration
--   multi-monitor behavior
--   suspend/resume behavior
--   shared folders if used
--   performance
-
-Do not install physical-GPU-specific configuration unless the VM
-actually exposes that hardware.
-
-VMware-specific configuration must live separately:
-
-``` text
-scripts/vmware/
-docs/vmware.md
-```
-
-Do not contaminate generic Hyprland configuration with VMware-only
-hacks.
-
-------------------------------------------------------------------------
-
-# 14. Theming System
-
-Treat the visual design as a system.
-
-Do not scatter colors throughout QML files.
-
-Centralize:
-
-``` text
-theme/
-├── colors
-├── typography
-├── spacing
-├── radius
-├── shadows/effects
-└── animations
-```
-
-Example conceptual tokens:
-
-``` text
-background
-surface
-surfaceElevated
-foreground
-muted
-accent
-warning
-danger
-success
-
-radiusSmall
-radiusMedium
-radiusLarge
-
-spacingXS
-spacingSM
-spacingMD
-spacingLG
-spacingXL
-```
-
-All UI components should consume theme tokens.
-
-This makes future themes possible without rewriting the shell.
-
-------------------------------------------------------------------------
-
-# 15. Modern UX Principles
-
-The project should capture the *principles*, not necessarily duplicate
-modern desktop implementation.
-
-Target:
-
--   keyboard-first operation
--   minimal mouse dependency
--   fast application launch
--   predictable workspaces
--   coherent visual language
--   sensible defaults
--   polished transitions
--   low visual noise
--   terminal-friendly workflow
--   discoverable shortcuts
--   consistent menus
--   strong information hierarchy
-
-Do not copy proprietary artwork or blindly duplicate third-party
-configuration.
-
-------------------------------------------------------------------------
-
-# 16. Keybinding Philosophy
-
-Use a small, predictable vocabulary.
-
-Primary modifier:
-
-``` text
-Super
-```
-
-Suggested concepts:
-
-``` text
-Super + Enter       terminal
-Super + Space       launcher
-Super + Q           close window
-Super + 1..9        workspace
-Super + Shift + 1..9 move window
-Super + H/J/K/L     focus direction
-Super + Shift + H/J/K/L move window
-Super + F           fullscreen
-Super + V           toggle floating
-Super + L           lock
-Super + Escape      control center / system UI
-```
-
-Exact bindings may change after testing.
-
-Avoid collisions with:
-
--   terminal applications
--   browser shortcuts
--   accessibility shortcuts
--   Kali tooling
-
-Every final binding must be documented in:
-
-``` text
-docs/keybindings.md
-```
-
-------------------------------------------------------------------------
-
-# 17. Application Philosophy
-
-Do not install applications merely because they are popular.
-
-Choose tools based on:
-
-1.  Kali compatibility
-2.  Wayland compatibility
-3.  maintenance quality
-4.  keyboard workflow
-5.  resource usage
-6.  interoperability
-7.  licensing
-8.  reversibility
-
-Candidate categories:
-
--   terminal
--   shell
--   editor
--   browser
--   file manager
--   notification daemon
--   launcher
--   screenshot utility
--   clipboard manager
--   lock screen
--   idle daemon
--   wallpaper tool
-
-Every application should have a reason to exist.
-
-------------------------------------------------------------------------
-
-# 18. Shell and CLI Layer
-
-The graphical environment should be backed by a strong terminal
-workflow.
-
-Possible tools should be evaluated individually rather than blindly
-installed.
-
-Categories:
-
-``` text
-shell
-prompt
-directory navigation
-search
-file discovery
-process inspection
-system inspection
-git
-terminal multiplexer
-```
-
-The CLI stack must remain compatible with Kali's security workflow.
-
-Do not change the user's default shell without explicit intent.
-
-------------------------------------------------------------------------
-
-# 19. Security Requirements
-
-This is Kali.
-
-Security matters more than aesthetics.
-
-Never:
-
--   disable security controls just to make a UI work
--   blindly run scripts as root
--   store credentials in the repository
--   commit tokens
--   commit SSH keys
--   commit browser profiles
--   commit machine-specific secrets
--   disable AppArmor/security mechanisms without documentation
--   add untrusted repositories casually
-
-Repository must include a strong `.gitignore`.
-
-Potential exclusions:
-
-``` text
-.env
-*.pem
-*.key
-id_*
-credentials*
-secrets*
-machine-specific files
-runtime state
-cache
-logs
-```
-
-Before every commit, inspect:
-
-``` bash
-git status
-git diff --cached
-```
-
-------------------------------------------------------------------------
-
-# 20. Git Strategy
-
-Use small, logical commits.
-
-Suggested phases:
-
-``` text
-chore: initialize project
-feat: add platform detection
-feat: add package manifests
-feat: install wayland stack
-feat: add hyprland base configuration
-feat: add quickshell skeleton
-feat: add desktop bar
-feat: add launcher
-feat: add notifications
-feat: add control center
-feat: add theme system
-feat: add vmware integration
-docs: add troubleshooting guide
-```
-
-Do not create one giant "setup everything" commit.
-
-------------------------------------------------------------------------
-
-# 21. Testing Strategy
-
-Every major layer needs a validation command or test.
-
-## Platform
-
-``` bash
-cat /etc/os-release
-systemd-detect-virt
-uname -m
-```
-
-## Session
-
-``` bash
-echo "$XDG_SESSION_TYPE"
-echo "$XDG_CURRENT_DESKTOP"
-```
-
-## Hyprland
-
-Validate:
-
--   compositor starts
--   terminal opens
--   workspaces work
--   keybindings work
--   configuration reload works
--   application rules work
--   animations work
-
-## Quickshell
-
-Validate:
-
--   shell starts
--   shell survives reload
--   bar renders
--   launcher opens
--   popups open
--   system data updates
--   shell errors are visible
--   one broken module does not destroy the entire desktop where
-    practical
-
-## Services
-
-Validate:
-
--   notifications
--   audio
--   network
--   clipboard
--   screenshots
--   locking
--   portals
-
-------------------------------------------------------------------------
-
-# 22. Doctor Command
-
-`bootstrap/doctor.sh` should eventually provide a diagnostic report.
-
-Example output:
-
-``` text
-KALI-LAND DOCTOR
-
-Platform
-  OS              PASS
-  Architecture    PASS
-  VMware          PASS
-
-Display
-  Wayland         PASS
-  Hyprland        PASS
-  XWayland        PASS
-
-Shell
-  Quickshell      PASS
-  Bar             PASS
-  Launcher        PASS
-
-Services
-  Audio           PASS
-  Network         PASS
-  Notifications   PASS
-  Clipboard       PASS
-  Portal          PASS
-
-Configuration
-  Hyprland config PASS
-  Quickshell      PASS
-  Theme           PASS
-```
-
-Failures should explain how to investigate them.
-
-------------------------------------------------------------------------
-
-# 23. Logging
-
-Installation scripts should log to:
-
-``` text
-~/.local/state/kali-land/logs/
-```
-
-Example:
-
-``` text
-install-2026-09-02T15-30-00.log
-doctor-2026-09-02T16-10-00.log
-```
-
-Do not dump enormous unreadable output by default.
-
-Use clear levels:
-
-``` text
-INFO
-WARN
-ERROR
-DEBUG
-```
-
-------------------------------------------------------------------------
-
-# 24. Backup and Rollback
-
-Before modifying an existing config:
-
-``` text
-~/.local/state/kali-land/backups/
-```
-
-Backups must be timestamped.
-
-Example:
-
-``` text
-backups/
-└── 2026-09-02T15-30-00/
-    ├── hypr/
-    ├── quickshell/
-    └── manifest.txt
-```
-
-Rollback should restore the previous configuration without requiring
-internet access.
-
-For major milestones, take a VMware snapshot.
-
-Recommended snapshot points:
-
-``` text
-01-kali-clean
-02-packages-installed
-03-hyprland-working
-04-quickshell-working
-05-desktop-complete
-```
-
-------------------------------------------------------------------------
-
-# 25. Development Workflow
-
-The agent must work incrementally.
-
-For every task:
-
-``` text
-1. Inspect current state
-2. Explain intended change internally
-3. Make smallest safe change
-4. Validate
-5. Inspect resulting state
-6. Fix regressions
-7. Update documentation
-8. Commit logically
-```
-
-Never assume the previous step worked.
-
-------------------------------------------------------------------------
-
-# 26. First-Run Discovery
-
-Before changing anything, gather:
-
-``` bash
-cat /etc/os-release
-uname -a
-uname -m
-
-systemd-detect-virt
-
-echo "$XDG_SESSION_TYPE"
-echo "$XDG_CURRENT_DESKTOP"
-echo "$XDG_SESSION_DESKTOP"
-
-loginctl
-systemctl --user is-system-running
-
-dpkg --print-architecture
-
-lspci | grep -Ei 'vga|3d|display'
-
-free -h
-df -h /
-```
-
-Also inspect:
-
-``` bash
-command -v hyprland || true
-command -v quickshell || true
-command -v waybar || true
-command -v dunst || true
-```
-
-And package availability:
-
-``` bash
-apt-cache policy hyprland
-apt-cache policy quickshell
-```
-
-Do not proceed based on assumed versions.
-
-------------------------------------------------------------------------
-
-# 27. Implementation Phases
-
-## Phase 0 --- Baseline
-
-Goal:
-
-Understand the clean Kali VM.
-
-Deliverables:
-
--   platform report
--   hardware/VM report
--   current desktop report
--   package state
--   backup strategy
--   repository initialized
-
-Do not install the complete environment yet.
-
-------------------------------------------------------------------------
-
-## Phase 1 --- Repository Foundation
-
-Create:
-
-``` text
-AGENT.md
-README.md
-.gitignore
-bootstrap/
-packages/
-config/
-docs/
-scripts/
-themes/
-tests/
-```
-
-Implement:
-
--   platform detection
--   logging
--   backup system
--   basic doctor command
-
-Acceptance criteria:
-
--   repository initializes cleanly
--   scripts run without modifying the desktop
--   platform is correctly detected
-
-------------------------------------------------------------------------
-
-## Phase 2 --- Wayland Foundation
-
-Determine the correct Kali-supported path for the current installation.
-
-Install only the required Wayland/Hyprland dependencies.
-
-Validate:
-
-``` bash
-echo "$XDG_SESSION_TYPE"
-```
-
-Acceptance:
-
--   Wayland session works
--   original desktop still works
--   no broken login path
--   fallback session remains accessible
-
-------------------------------------------------------------------------
-
-## Phase 3 --- Hyprland
-
-Implement the smallest usable compositor configuration.
-
-Start with:
-
--   terminal
--   workspaces
--   keybindings
--   basic monitor configuration
--   sane gaps
--   minimal animations
--   XWayland
--   startup behavior
-
-Do not implement the fancy shell yet.
-
-Acceptance:
-
-> Hyprland is usable as a minimal desktop with keyboard control.
-
-------------------------------------------------------------------------
-
-## Phase 4 --- Core Desktop Services
-
-Add and validate:
-
--   XDG desktop portal
--   notifications
--   audio
--   network
--   clipboard
--   lock
--   idle
--   screenshot
--   wallpaper
-
-Each service should be validated independently.
-
-------------------------------------------------------------------------
-
-## Phase 5 --- Quickshell Skeleton
-
-Install/validate Quickshell using the appropriate method for the exact
-Kali release.
-
-Create:
-
-``` text
-shell.qml
-modules/
-components/
-services/
-models/
-utils/
-theme/
-```
-
-Initially render only:
-
-``` text
-hello / debug shell
-```
-
-Then add one module at a time.
-
-Acceptance:
-
--   Quickshell launches reliably
--   errors are diagnosable
--   configuration is modular
-
-------------------------------------------------------------------------
-
-## Phase 6 --- Bar
-
-Implement:
-
-``` text
-launcher
-workspaces
-window title
-system indicators
-clock
-```
-
-First optimize functionality.
-
-Then optimize visuals.
-
-------------------------------------------------------------------------
-
-## Phase 7 --- Launcher
-
-Implement keyboard-first application launcher.
-
-Requirements:
-
--   Super + Space
--   fuzzy search
--   desktop entry support
--   keyboard navigation
--   fast startup
--   escape handling
-
-------------------------------------------------------------------------
-
-## Phase 8 --- Control Center
-
-Implement system popup.
-
-Build reusable UI primitives first.
-
-Example:
-
-``` text
-Panel
- ├── Network
- ├── Audio
- ├── Bluetooth
- ├── Brightness
- ├── Battery
- └── Notifications
-```
-
-------------------------------------------------------------------------
-
-## Phase 9 --- Power / Lock / Session UX
-
-Implement:
-
--   lock
--   logout
--   reboot
--   shutdown
--   suspend
-
-Use explicit confirmation for destructive actions.
-
-------------------------------------------------------------------------
-
-## Phase 10 --- Visual System
-
-Only after functionality is stable:
-
--   typography
--   spacing
--   colors
--   borders
--   radius
--   shadows
--   animations
--   wallpaper
--   cursor
--   icons
--   terminal theme
-
-Create centralized theme tokens.
-
-------------------------------------------------------------------------
-
-## Phase 11 --- VMware Optimization
-
-Tune:
-
--   resolution
--   scaling
--   input
--   3D acceleration
--   clipboard
--   multi-monitor
--   resource usage
-
-Keep all VMware-specific code isolated.
-
-------------------------------------------------------------------------
-
-## Phase 12 --- Reliability
-
-Run the full environment for several sessions.
-
-Test:
-
--   login
--   logout
--   reboot
--   suspend
--   shell restart
--   compositor reload
--   network loss/reconnect
--   audio device changes
--   application crashes
--   display resize
--   VMware suspend/resume
-
-------------------------------------------------------------------------
-
-## Phase 13 --- Documentation
 
 README should answer:
 
--   What is this?
--   Why Kali?
--   Why Hyprland?
--   Why Quickshell?
--   How do I install it?
--   How do I update it?
--   How do I roll back?
--   How do I troubleshoot it?
--   How do I customize it?
--   What is VM-specific?
--   What is hardware-specific?
+- What is kali-land?
+- Why Kali?
+- Why Wayland?
+- Why Hyprland?
+- Why Quickshell?
+- Is Quickshell mandatory?
+- What is end4-pC?
+- Can I use my own shell?
+- How do I install?
+- How do I update?
+- How do I roll back?
+- How do I diagnose problems?
+- What is VM-specific?
+- What is hardware-specific?
+- What is optional?
 
-------------------------------------------------------------------------
+Do not claim support that has not been tested.
 
-# 28. Dependency Rules
+---
 
-Every dependency should belong to a category:
+# 39. Architecture Decision Records
 
-``` text
-required
-recommended
-optional
-VM-only
-hardware-specific
-development-only
+Use:
+
+```text
+docs/adr/
 ```
 
-Do not make optional features hard dependencies.
-
-Example:
-
-If Bluetooth is unavailable:
-
-``` text
-Bluetooth module = disabled/unavailable
-Desktop = still works
-```
-
-Not:
-
-``` text
-Bluetooth missing
-    ↓
-Quickshell crashes
-    ↓
-desktop broken
-```
-
-------------------------------------------------------------------------
-
-# 29. Failure Isolation
-
-A broken optional component must not take down the entire desktop.
+for significant decisions.
 
 Examples:
 
-``` text
-weather API unavailable
-    ↓
-weather widget unavailable
-    ↓
-bar still works
+```text
+0001-wayland-runtime.md
+0002-hyprland.md
+0003-quickshell-integration-model.md
+0004-config-ownership.md
+0005-vmware-profile.md
 ```
 
-``` text
-Bluetooth unavailable
-    ↓
-Bluetooth controls disabled
-    ↓
-control center still works
-```
+Format:
 
-``` text
-Quickshell module error
-    ↓
-module fails
-    ↓
-shell remains diagnosable
-```
-
-Favor graceful degradation.
-
-------------------------------------------------------------------------
-
-# 30. Performance
-
-This is a VM.
-
-Do not build a beautiful desktop that consumes excessive CPU/RAM.
-
-Measure before optimizing.
-
-Monitor:
-
-``` bash
-free -h
-top
-htop
-```
-
-For graphical processes, inspect process CPU/RAM usage.
-
-Avoid:
-
--   aggressive polling
--   unnecessary timers
--   constant shell command spawning
--   huge image assets
--   excessive animations
--   redundant background daemons
-
-Prefer event-driven updates where the framework/service supports them.
-
-------------------------------------------------------------------------
-
-# 31. QML/Quickshell Engineering Rules
-
-Treat QML as production code.
-
-Rules:
-
--   reusable components
--   clear naming
--   small files
--   no giant root component
--   avoid duplicated UI
--   avoid hard-coded colors
--   avoid hard-coded screen dimensions
--   avoid hard-coded application paths
--   centralize theme values
--   separate data from presentation
--   avoid unnecessary shell process spawning
--   document non-obvious system integrations
-
-Use consistent naming:
-
-``` text
-PascalCase.qml
-```
-
-for reusable components.
-
-Use meaningful service names:
-
-``` text
-AudioService
-NetworkService
-BatteryService
-HyprlandService
-```
-
-------------------------------------------------------------------------
-
-# 32. Hyprland Engineering Rules
-
-Avoid putting everything in one config.
-
-Prefer:
-
-``` text
-hyprland.conf
-    ↓
-includes
-    ↓
-feature-specific files
-```
-
-Separate:
-
--   monitor configuration
--   keybindings
--   window rules
--   environment
--   startup
--   appearance
-
-Do not hard-code VM-specific monitor IDs into the generic configuration.
-
-------------------------------------------------------------------------
-
-# 33. Hardware Profiles
-
-Eventually support:
-
-``` text
-profiles/
-├── vmware.conf
-├── laptop.conf
-├── desktop-intel.conf
-├── desktop-amd.conf
-└── desktop-nvidia.conf
-```
-
-The exact implementation can differ.
-
-The architectural rule is:
-
-> Hardware-specific configuration must not leak into the generic desktop
-> configuration.
-
-------------------------------------------------------------------------
-
-# 34. Environment Profiles
-
-Support at least:
-
-``` text
-development
-vmware
-bare-metal
-```
-
-Potential future profiles:
-
-``` text
-laptop
-desktop
-minimal
-```
-
-Avoid duplicating entire configurations.
-
-Use shared defaults plus overrides.
-
-------------------------------------------------------------------------
-
-# 35. Documentation Standards
-
-Every non-obvious decision should be documented.
-
-Use Architecture Decision Records if decisions become significant:
-
-``` text
-docs/adr/
-├── 0001-wayland.md
-├── 0002-quickshell-architecture.md
-├── 0003-config-management.md
-└── 0004-vmware-profile.md
-```
-
-ADR format:
-
-``` text
+```text
 # Decision
 
 ## Context
@@ -1719,31 +1473,31 @@ ADR format:
 ## Consequences
 ```
 
-------------------------------------------------------------------------
+---
 
-# 36. What the Agent Must Never Do Without Approval
+# 40. What the Agent Must Never Do Without Approval
 
-Do not perform these silently:
+Do not silently:
 
--   remove the existing desktop environment
--   replace the display manager
--   modify package repositories
--   add third-party repositories
--   install unsigned binaries
--   overwrite existing dotfiles
--   delete user configuration
--   change default shell
--   modify firewall/network security policy
--   disable security mechanisms
--   change kernel parameters unnecessarily
--   reboot the machine without telling the user
--   shut down the machine without telling the user
--   destroy a VMware snapshot
--   delete backups
+- remove an existing desktop
+- replace the display manager
+- modify package repositories
+- add third-party repositories
+- install unsigned binaries
+- overwrite existing dotfiles
+- delete user configuration
+- change the default shell
+- modify firewall/network security policy
+- disable security mechanisms
+- change kernel parameters unnecessarily
+- reboot
+- shut down
+- destroy VMware snapshots
+- delete backups
 
-When such a change becomes necessary, explain:
+When necessary, explain:
 
-``` text
+```text
 why
 what changes
 risk
@@ -1752,217 +1506,207 @@ rollback
 
 before proceeding.
 
-------------------------------------------------------------------------
+---
 
-# 37. Definition of Done
+# 41. Definition of Done
 
-The project is not "done" because it looks like a screenshot.
+A feature is not complete because it looks good.
 
-Done means:
+## Platform
 
-### Platform
+- [ ] Kali remains healthy
+- [ ] existing desktop remains available
+- [ ] package changes are understood
+- [ ] VM/hardware is detected
+- [ ] changes are reproducible
 
--   [ ] Kali remains healthy
--   [ ] original desktop remains available
--   [ ] package state is documented
--   [ ] VM detection works
+## Wayland
 
-### Wayland
+- [ ] Wayland session works
+- [ ] XWayland works
+- [ ] portals work
+- [ ] graphical applications work
 
--   [ ] Wayland session works
--   [ ] XWayland works
--   [ ] portals work
+## Hyprland
 
-### Hyprland
+- [ ] starts reliably
+- [ ] workspaces work
+- [ ] keybindings work
+- [ ] monitors work
+- [ ] applications launch
+- [ ] configuration reload works
 
--   [ ] starts reliably
--   [ ] workspaces work
--   [ ] keybindings work
--   [ ] monitor configuration works
--   [ ] applications launch correctly
+## Services
 
-### Quickshell
+- [ ] audio works
+- [ ] network works
+- [ ] notifications work
+- [ ] clipboard works
+- [ ] portals work
+- [ ] lock/idle work where enabled
+- [ ] screenshots work where enabled
 
--   [ ] starts reliably
--   [ ] bar works
--   [ ] launcher works
--   [ ] workspaces integrate
--   [ ] system controls work
--   [ ] notifications work
--   [ ] power menu works
+## Shell
 
-### UX
+- [ ] Quickshell runtime works
+- [ ] selected shell launches
+- [ ] requirements are validated
+- [ ] failures are diagnosable
+- [ ] optional capabilities degrade gracefully
 
--   [ ] keyboard-first workflow
--   [ ] consistent theme
--   [ ] responsive UI
--   [ ] sensible animations
--   [ ] no major visual glitches
+## Integration
 
-### Reliability
+- [ ] requirements documented
+- [ ] upstream provenance documented
+- [ ] user configuration protected
+- [ ] integration can be updated/replaced independently
 
--   [ ] login tested
--   [ ] logout tested
--   [ ] reboot tested
--   [ ] resize tested
--   [ ] network reconnect tested
--   [ ] audio tested
--   [ ] shell restart tested
--   [ ] Hyprland reload tested
+## Reliability
 
-### Engineering
+- [ ] login tested
+- [ ] logout tested
+- [ ] reboot tested
+- [ ] shell restart tested
+- [ ] Hyprland reload tested
+- [ ] network reconnect tested
+- [ ] display resize tested
+- [ ] VM suspend/resume tested where applicable
 
--   [ ] configuration is source controlled
--   [ ] installer is idempotent
--   [ ] backups exist
--   [ ] rollback documented
--   [ ] doctor command works
--   [ ] README is complete
--   [ ] no secrets committed
--   [ ] VM-specific code is isolated
+## Engineering
 
-------------------------------------------------------------------------
+- [ ] source controlled
+- [ ] installer idempotent
+- [ ] backups exist
+- [ ] rollback documented
+- [ ] diagnostics work
+- [ ] no secrets committed
+- [ ] VM-specific code isolated
+- [ ] documentation updated
 
-# 38. Agent Operating Principle
+---
 
-The agent should think like a Linux systems engineer, not a theme
-installer.
+# 42. Agent Operating Principle
 
-Before every change ask:
+Think like a **Linux systems engineer**, not a theme installer.
 
-``` text
-Is this Kali-compatible?
-Is this Wayland-native?
-Is this reversible?
-Is this reproducible?
-Is this modular?
-Is this VM-safe?
-Does this belong in the compositor, shell, service layer, or application layer?
-Can this fail without taking down the desktop?
-Can another machine reproduce this setup?
+Prefer:
+
+```text
+composition over reinvention
+detection over assumptions
+capabilities over hard-coded dependencies
+integration over ownership
+reversibility over convenience
+simplicity over premature abstraction
+upstream software over unnecessary forks
+documented behavior over hidden magic
 ```
 
-Prefer boring, reliable engineering over clever hacks.
+The goal is not:
 
-Prefer upstream documentation over random tutorials.
+> Make Kali look like another distribution.
 
-Prefer distro packages when appropriate.
+The goal is:
 
-Prefer small changes over massive scripts.
+> **Give Kali a modern, beautiful, keyboard-first desktop experience while
+> respecting the Linux ecosystem underneath it.**
 
-Prefer explicit configuration over hidden magic.
+---
 
-Prefer diagnostics over guessing.
+# 43. Current Development Priority
 
-Prefer a clean architecture that can grow for years over a beautiful
-configuration that becomes impossible to maintain in three weeks.
+The project is **not a clean-slate project**.
 
-------------------------------------------------------------------------
+The current state already includes a successful end4-pC proof of concept in the
+Kali VMware environment.
 
-# 39. Immediate Task for the Agent
+Therefore, do not restart from an imaginary Phase 0.
 
-Do **not** start by installing everything.
+Prioritize:
 
-Start with:
-
-### Step 1
-
-Inspect the current Kali installation.
-
-Collect:
-
-``` bash
-cat /etc/os-release
-uname -a
-uname -m
-systemd-detect-virt
-
-echo "$XDG_SESSION_TYPE"
-echo "$XDG_CURRENT_DESKTOP"
-echo "$XDG_SESSION_DESKTOP"
-
-loginctl
-systemctl --user is-system-running
-
-dpkg --print-architecture
-
-lspci | grep -Ei 'vga|3d|display'
-
-free -h
-df -h /
-
-apt-cache policy hyprland
-apt-cache policy quickshell
-
-command -v hyprland || true
-command -v quickshell || true
+```text
+1. Stabilize the proven runtime
+2. Separate platform-owned config from shell-owned config
+3. Make end4-pC an explicit integration
+4. Protect existing user configuration
+5. Improve detection and diagnostics
+6. Introduce capability detection
+7. Add a lightweight shell contract when needed
+8. Improve backup/rollback
+9. Validate VMware behavior
+10. Validate bare-metal assumptions
 ```
 
-### Step 2
+---
 
-Determine the exact Kali release and whether the currently configured
-repositories provide compatible versions of the required components.
+# 44. Do Not Prematurely Build
 
-### Step 3
+Do not build without a concrete requirement:
 
-Inspect the current desktop/session/display manager.
+- a custom display manager
+- a custom Linux distribution
+- a custom compositor
+- a custom audio daemon
+- a custom network manager
+- a Quickshell replacement
+- a package manager
+- a plugin marketplace
+- an elaborate shell SDK
+- a universal compatibility layer for every shell
+- a giant installer abstraction
+- unnecessary daemon infrastructure
 
-### Step 4
+kali-land should compose existing Linux technologies well.
 
-Determine VMware graphics capabilities and whether 3D acceleration is
-available.
+---
 
-### Step 5
+# 45. Final Principle
 
-Create the repository skeleton.
+The intended architecture is:
 
-### Step 6
-
-Create the diagnostic/doctor foundation.
-
-### Step 7
-
-Report findings before making risky system changes.
-
-Only then begin the installation phases.
-
-------------------------------------------------------------------------
-
-# 40. Final Principle
-
-The end result should feel like:
-
-``` text
-             ┌─────────────────────────────┐
-             │         KALI LINUX          │
-             │                             │
-             │  security tools + Debian    │
-             │  package ecosystem          │
-             └──────────────┬──────────────┘
+```text
+                         KALI LINUX
+                 security + Debian ecosystem
                             │
-                         Wayland
+                         WAYLAND
                             │
-                       ┌────▼────┐
-                       │Hyprland │
-                       └────┬────┘
+                        HYPRLAND
+                  compositor + window IPC
                             │
-                    Desktop services
-                            │
-                       ┌────▼────┐
-                       │Quickshell│
-                       └────┬────┘
-                            │
-                ┌───────────┼───────────┐
-                │           │           │
-              Bar        Launcher    Controls
-                │           │           │
-                └───────────┼───────────┘
-                            │
-                    Modern UX
+                  ┌─────────┴─────────┐
+                  │                   │
+             Desktop Services     Shell Runtime
+                  │                   │
+          PipeWire / Network      Quickshell
+          Portals / Polkit            │
+          Notifications / IPC         │
+                  │            ┌──────┼──────┐
+                  │            │      │      │
+                  │         end4-pC  User   Future
+                  │                   Shells
+                  │
+                  └───────────┬───────┘
+                              │
+                         Applications
 ```
 
-The goal is **not a Kali theme**.
+The key boundary is:
 
-The goal is a **Kali-native, engineer-maintained desktop environment
-built from composable Linux components**, with enough structure that
-future-you can still understand and modify it months or years from now.
+```text
+                    KALI-LAND
+                        │
+          ┌─────────────┴─────────────┐
+          │                           │
+       PLATFORM                    EXPERIENCE
+          │                           │
+   runtime/services             user-selected shell
+   detection/profiles           configuration/theme
+   safety/rollback              workflow/UI
+   integrations
+```
+
+**kali-land owns the platform.  
+Users own their desktop experience.**
+
+Keep the architecture flexible enough that end4-pC can be the first successful
+shell integration without becoming the last one.

@@ -1,43 +1,64 @@
-# Architecture
+# Architecture of kali-land
 
-This document describes the architecture of the kali-land Desktop.
+## Overview
 
-## Stack
+`kali-land` provides a modular, reproducible desktop runtime platform for Kali Linux.
 
-- **OS**: Kali Linux (Debian-based)
-- **Display**: Wayland
-- **Compositor**: Hyprland
-- **Desktop Shell**: Quickshell
+> **"kali-land owns the environment; the user owns the experience."**
 
-## Components
+The architecture separates the underlying **Platform** (runtime, compositor, desktop services, capability detection, safety) from the **Experience** (user-selected Quickshell UI configuration, visual theme, and workflows).
 
-### Compositor Layer (Hyprland)
-- Window management
-- Workspaces
-- Input handling
-- Monitor configuration
-- Animations
+## Conceptual Model
 
-### Desktop Shell Layer (Quickshell)
-- Top bar
-- Application launcher
-- Control center
-- Power menu
-- Notifications
+```text
+                         KALI-LAND
+                            │
+        ┌───────────────────┼───────────────────┐
+        │                   │                   │
+     Runtime             Services            Shell Layer
+        │                   │                   │
+   Wayland              PipeWire             Quickshell
+   Hyprland             NetworkManager           │
+   XWayland             Portals                   ├── end4-pC (reference)
+   IPC                  Notifications              ├── Custom User Shells
+                        Polkit                    └── Future Shells
+                        Clipboard
+```
 
-### Services Layer
-- Audio (PipeWire/PulseAudio)
-- Network (NetworkManager)
-- Bluetooth (BlueZ)
-- Notifications (dunst)
-- Clipboard (cliphist)
-- Idle management (swayidle)
-- Lock screen (swaylock)
+## Architectural Boundaries
 
-## Configuration Management
+### 1. Platform Layer (kali-land-owned)
 
-Repository-first approach:
-- Repository contains source configuration
-- Installation symlinks/copies to ~/.config
-- Backups created before modifications
-- Rollback supported
+- **OS Base**: Kali Linux (Debian rolling, `apt`, `dpkg`, `systemd`).
+- **Display & Compositor**: Wayland session protocol, Hyprland tiling window manager, window rules, workspaces, and window IPC.
+- **Desktop Services**:
+  - Audio: PipeWire / WirePlumber
+  - Networking: NetworkManager (`nmcli`)
+  - Portals: XDG desktop portals (`xdg-desktop-portal-hyprland`)
+  - Polkit: PolicyKit authentication agent
+  - Clipboard: `cliphist` + `wl-clipboard`
+  - Notifications: `libnotify` / desktop notification daemons
+- **Platform Infrastructure**:
+  - Capability detection (`wayland`, `hyprland`, `quickshell`, `pipewire`, `networkmanager`, etc.)
+  - Hardware & VM Profiles (`systemd-detect-virt` profile management for VMware and bare-metal)
+  - Safety & State: Timestamped backups stored in `~/.local/state/kali-land/backups/`
+  - Diagnostics: `./bootstrap/doctor.sh` health inspection tool.
+
+### 2. Experience Layer (User-owned)
+
+- **Quickshell Integrations**: Supports a **Bring Your Own Shell (BYOS)** model. `end4-pC` is integrated as the primary reference proof-of-concept shell.
+- **User Customization**: Custom bars, launchers, themes, keyboard workflows, and application selections.
+
+## Configuration Ownership
+
+```text
+Platform Configuration:
+  repository source of truth → ~/.config/hypr/, ~/.config/foot/
+
+User Shell Configuration:
+  ~/.config/quickshell/<shell>/ (Namespaced)
+```
+
+- System files are only modified when strictly necessary.
+- Before modifying any user configuration, `kali-land` executes `detect → backup → change → validate`.
+- Backups are stored in `~/.local/state/kali-land/backups/<timestamp>/` and can be restored offline.
