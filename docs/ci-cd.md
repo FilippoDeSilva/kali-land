@@ -12,41 +12,25 @@ kali-land uses GitHub Actions for CI/CD to build and distribute Quickshell and t
 
 **Triggers:**
 - Push to `main` or `master` branches
+- Push to tags (`v*`)
 - Pull requests to `main` or `master` branches
-- Release creation
+- Manual trigger (`workflow_dispatch`)
 
 **Process:**
 1. Uses GitHub Actions with official Kali Linux container (`kalilinux/kali-rolling:latest`)
 2. Installs all Quickshell build dependencies
-3. Clones pinned versions of upstream dependencies: `cpptrace` (`v0.7.3`) and `quickshell` (`v0.4.0`)
+3. Clones pinned versions of upstream dependencies: `cpptrace` (`v1.0.4`) and `quickshell` (`master`)
 4. Builds Quickshell with CMake and Ninja (`-DDISTRIBUTOR="kali-land"`)
 5. Compiles Matugen (`0.16.0`) with Cargo
 6. Generates SHA-256 checksum files (`.sha256`) for both `quickshell` and `matugen` archives
 7. Uploads temporary CI artifacts for development pushes (retained 30 days)
-8. On git tag/release publication, attaches immutable release binaries and `.sha256` checksum files to the release assets
+8. On git tag publication (`v*`), attaches immutable release binaries and `.sha256` checksum files to the release assets
 
 **Outputs:**
 - `quickshell-linux-x86_64.tar.gz`
 - `quickshell-linux-x86_64.tar.gz.sha256`
 - `matugen-linux-x86_64.tar.gz`
 - `matugen-linux-x86_64.tar.gz.sha256`
-
-### 2. Installer Build Workflow
-
-**File:** `.github/workflows/installer.yml`
-
-**Triggers:**
-- Push to `main` or `master` branches
-- Pull requests to `main` or `master` branches
-- Release creation
-
-**Process:**
-1. Checks out the repository
-2. Creates a compressed archive of the installer files
-3. Uploads the artifact (retained for 30 days)
-4. On release creation, uploads the artifact to the release
-
-**Output:** `kali-land-installer.tar.gz`
 
 ## Installation & Verification Process
 
