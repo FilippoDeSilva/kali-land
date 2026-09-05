@@ -558,6 +558,31 @@ phase_6_quickshell_build_from_source() {
     log_success "Phase 5 complete"
 }
 
+# phase_7_matugen() - Install Matugen (Material You Color Generator)
+phase_7_matugen() {
+    log_step "Installing Matugen (Material You Color Generator)"
+    
+    if command -v matugen &>/dev/null; then
+        log_success "Matugen is already installed ($(matugen --version 2>/dev/null || echo 'installed'))"
+        return 0
+    fi
+    
+    if command -v cargo &>/dev/null; then
+        log_info "Installing Matugen via cargo..."
+        if cargo install matugen; then
+            log_success "Matugen installed successfully via cargo"
+            return 0
+        else
+            log_warn "Failed to install Matugen via cargo, continuing..."
+            return 1
+        fi
+    else
+        log_info "cargo is not installed; skipping optional Matugen color generator"
+        return 0
+    fi
+}
+
+
 # phase_6_desktop_services() - Install desktop services
 phase_6_desktop_services() {
     log_step "Phase 6: Desktop Services"
