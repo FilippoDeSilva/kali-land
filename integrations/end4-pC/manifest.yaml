@@ -37,6 +37,8 @@ requires:
     - libqt6svg6
     - power-profiles-daemon
     - brightnessctl
+    - ddcutil
+    - libsecret-tools
     - playerctl
     - libnotify-bin
 
