@@ -57,16 +57,26 @@ load_profile() {
 # apply_profile_environment() - Set runtime environment variables for active profile
 apply_profile_environment() {
     local profile_name=$1
+    local target_user_home="${HOME}"
+    if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
+        target_user_home="$(eval echo "~${SUDO_USER}")"
+    fi
 
     if [ "${profile_name}" = "vmware" ]; then
         log_info "Applying VMware software rendering & display compatibility"
         export QT_QUICK_BACKEND="software"
         export WLR_NO_HARDWARE_CURSORS="1"
-        export QS_CONFIG="end4-pC"
+
+        if [ -d "${target_user_home}" ]; then
+            for sh_file in "${target_user_home}/.bashrc" "${target_user_home}/.profile"; do
+                if [ -f "${sh_file}" ] && ! grep -q "QT_QUICK_BACKEND" "${sh_file}"; then
+                    echo 'export QT_QUICK_BACKEND="software"' >> "${sh_file}"
+                fi
+            done
+        fi
     else
         log_info "Applying bare-metal hardware graphics acceleration"
         export QT_QUICK_BACKEND=""
-        export QS_CONFIG="end4-pC"
     fi
 }
 
