@@ -51,13 +51,12 @@ packages/
 ├── base.txt                    # Base system packages
 ├── wayland.txt                 # Wayland foundation packages
 ├── hyprland.txt                # Hyprland compositor packages
-├── quickshell.txt              # Quickshell dependencies
 ├── desktop-services.txt        # Desktop services (audio, network, etc.)
 ├── applications.txt            # Desktop applications
 └── optional.txt                # Optional packages
 ```
 
-**Purpose:** Package lists organized by concern. Each file contains a list of packages to install for a specific phase or component.
+**Purpose:** Package lists organized by concern. Integration-specific dependencies (such as Qt6/QML modules) are dynamically declared and resolved directly from each integration's `manifest.yaml`.
 
 ## Configuration
 

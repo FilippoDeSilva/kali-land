@@ -72,7 +72,6 @@ Singleton {
         onLoadFailed: error => {
             if (error == FileViewError.FileNotFound) {
                 writeAdapter();
-                root.ready = true;
             }
         }
 

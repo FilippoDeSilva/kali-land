@@ -566,13 +566,10 @@ phase_6_quickshell_build_from_source() {
     log_info "Kali's Quickshell package (0.3.0) is incompatible with modern configurations"
     log_info "Building Quickshell from source for latest version..."
     
-    # Install Quickshell build dependencies from package manifest
-    log_info "Installing Quickshell build dependencies"
-    if [ -f "${REPO_ROOT}/packages/quickshell.txt" ]; then
-        if ! install_packages "${REPO_ROOT}/packages/quickshell.txt"; then
-            log_warn "Failed to install some Quickshell dependencies, continuing..."
-        fi
-    fi
+    # Install Quickshell build dependencies
+    log_info "Installing Quickshell Qt6 build dependencies..."
+    local quickshell_build_pkgs="qt6-base-dev qt6-declarative-dev qt6-wayland-dev qt6-shadertools-dev cmake extra-cmake-modules pkg-config ninja-build wayland-protocols libwayland-dev libegl-dev libgl-dev"
+    install_packages_from_list ${quickshell_build_pkgs} || log_warn "Failed to install build dependencies, continuing..."
 
     
     # Clone and build Quickshell

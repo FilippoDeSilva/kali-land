@@ -72,6 +72,50 @@ validate_integration_capabilities() {
     fi
 }
 
+# install_integration_dependencies() - Install packages declared in an integration's manifest.yaml
+install_integration_dependencies() {
+    local shell_name=$1
+    local shell_dir="${INTEGRATIONS_DIR}/${shell_name}"
+    local manifest="${shell_dir}/manifest.yaml"
+
+    if [ ! -f "${manifest}" ]; then
+        return 0
+    fi
+
+    log_step "Resolving package dependencies for integration [${shell_name}]"
+
+    local temp_pkg_list
+    temp_pkg_list=$(mktemp)
+
+    python3 -c '
+import sys
+in_pkgs = False
+with open(sys.argv[1]) as f:
+    for line in f:
+        raw = line.strip()
+        if "packages:" in raw:
+            in_pkgs = True
+            continue
+        if in_pkgs:
+            if raw.startswith("- "):
+                pkg = raw[2:].strip().split("#")[0].strip()
+                if pkg:
+                    print(pkg)
+            elif raw and not raw.startswith("#") and ":" in raw:
+                break
+' "${manifest}" > "${temp_pkg_list}"
+
+    if [ -s "${temp_pkg_list}" ]; then
+        log_info "Installing package dependencies declared in [${shell_name}/manifest.yaml]:"
+        cat "${temp_pkg_list}"
+        install_packages "${temp_pkg_list}" || log_warn "Failed to install some integration packages, continuing..."
+    else
+        log_info "No extra package dependencies declared in manifest for integration [${shell_name}]"
+    fi
+
+    rm -f "${temp_pkg_list}"
+}
+
 # install_integration() - Install a shell integration with prompt & backup protection
 install_integration() {
     local shell_name=${1:-"end4-pC"}
@@ -91,6 +135,9 @@ install_integration() {
 
     # Validate capabilities
     validate_integration_capabilities "${shell_name}" || log_warn "Deploying shell despite missing capabilities"
+
+    # Install integration-specific package dependencies declared in manifest.yaml
+    install_integration_dependencies "${shell_name}"
 
     # Use protected config installation flow (prompt -> backup -> deploy)
     protect_and_install_config "${source_dir}" "${target_dir}" "Shell Integration (${shell_name})"
