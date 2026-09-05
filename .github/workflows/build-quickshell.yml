@@ -110,19 +110,17 @@ jobs:
           exit 1
         fi
         cp "$QUICKSHELL_BIN" ./quickshell
-        tar -czf quickshell-linux-x86_64.tar.gz quickshell
+        tar -czf "$GITHUB_WORKSPACE/quickshell-linux-x86_64.tar.gz" quickshell
+        cd "$GITHUB_WORKSPACE"
         sha256sum quickshell-linux-x86_64.tar.gz > quickshell-linux-x86_64.tar.gz.sha256
-        cp quickshell-linux-x86_64.tar.gz ${{ github.workspace }}/quickshell-linux-x86_64.tar.gz
-        cp quickshell-linux-x86_64.tar.gz.sha256 ${{ github.workspace }}/quickshell-linux-x86_64.tar.gz.sha256
 
     - name: Build Matugen
       run: |
         cargo install matugen --version ${{ env.MATUGEN_VERSION }} --root /tmp/matugen-root || cargo install matugen --root /tmp/matugen-root
         cd /tmp/matugen-root/bin
-        tar -czf matugen-linux-x86_64.tar.gz matugen
+        tar -czf "$GITHUB_WORKSPACE/matugen-linux-x86_64.tar.gz" matugen
+        cd "$GITHUB_WORKSPACE"
         sha256sum matugen-linux-x86_64.tar.gz > matugen-linux-x86_64.tar.gz.sha256
-        cp matugen-linux-x86_64.tar.gz ${{ github.workspace }}/matugen-linux-x86_64.tar.gz
-        cp matugen-linux-x86_64.tar.gz.sha256 ${{ github.workspace }}/matugen-linux-x86_64.tar.gz.sha256
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
