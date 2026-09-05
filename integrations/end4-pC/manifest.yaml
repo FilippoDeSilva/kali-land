@@ -1,0 +1,33 @@
+name: end4-pC
+version: "1.0.0"
+type: quickshell
+description: "Material 3 Quickshell desktop shell reference integration for kali-land"
+provenance: "https://github.com/pctrade/end4-pC"
+
+entry: "shell.qml"
+
+requires:
+  capabilities:
+    - wayland
+    - hyprland
+    - quickshell
+
+optional:
+  capabilities:
+    - pipewire
+    - wireplumber
+    - networkmanager
+    - notifications
+    - portals
+    - polkit
+    - clipboard
+    - screenshot
+    - lock
+    - idle
+    - bluetooth
+    - battery
+    - brightness
+
+environment:
+  QT_QUICK_BACKEND: "software" # recommended for VMware compatibility
+  QS_CONFIG: "end4-pC"

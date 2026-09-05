@@ -40,6 +40,8 @@ jobs:
         tar -czf kali-land-installer.tar.gz \
           bootstrap/ \
           config/ \
+          integrations/ \
+          profiles/ \
           packages/ \
           scripts/ \
           docs/ \

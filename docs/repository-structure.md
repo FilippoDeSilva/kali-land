@@ -16,13 +16,15 @@ kali-land/
 │   └── workflows/
 │       ├── build-quickshell.yml  # Quickshell build workflow
 │       └── installer.yml         # Installer package workflow
-├── end4-pC/                    # Cloned end4-pC Quickshell configuration
-├── packages/                   # Package manifests
-├── scripts/                    # Utility scripts
-├── system/                     # System-level configurations
-├── tests/                      # Test files
-├── themes/                     # Theme configurations
-└── docs/                       # Documentation
+├── integrations/              # Decoupled shell integrations (BYOS model)
+│   └── end4-pC/              # Reference Quickshell shell integration
+├── profiles/                  # Hardware & virtual machine profiles (vmware, bare-metal)
+├── packages/                  # Package manifests
+├── scripts/                   # Utility scripts
+├── system/                    # System-level configurations
+├── tests/                     # Test files
+├── themes/                    # Theme configurations
+└── docs/                      # Documentation
 ```
 
 ## Bootstrap System

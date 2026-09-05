@@ -1,0 +1,10 @@
+name: bare-metal
+type: physical-hardware
+description: "Bare-metal hardware profile with native GPU acceleration"
+
+capabilities:
+  hardware_3d: true
+  software_rendering: false
+
+environment:
+  QT_QUICK_BACKEND: ""

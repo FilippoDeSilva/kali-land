@@ -1,0 +1,14 @@
+name: vmware
+type: virtual-machine
+description: "VMware virtual machine profile with software rendering and open-vm-tools compatibility"
+
+capabilities:
+  hardware_3d: false
+  software_rendering: true
+
+environment:
+  QT_QUICK_BACKEND: "software"
+  WLR_NO_HARDWARE_CURSORS: "1"
+
+packages:
+  - open-vm-tools-desktop

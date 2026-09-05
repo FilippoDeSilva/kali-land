@@ -496,9 +496,9 @@ phase_6_quickshell_build_from_source() {
         mv "${HOME}/.config/quickshell" "${HOME}/.config/quickshell.backup.$(date +%Y%m%d_%H%M%S)"
     fi
     
-    if [ -d "${REPO_ROOT}/end4-pC" ]; then
-        cp -r "${REPO_ROOT}/end4-pC" "${HOME}/.config/quickshell"
-        log_success "end4-pC quickshell installed to ~/.config/quickshell"
+    if [ -d "${REPO_ROOT}/integrations/end4-pC" ]; then
+        cp -r "${REPO_ROOT}/integrations/end4-pC" "${HOME}/.config/quickshell"
+        log_success "end4-pC reference shell installed to ~/.config/quickshell"
     else
         log_error "end4-pC directory not found in repository"
         log_info "Falling back to cloning from GitHub"
