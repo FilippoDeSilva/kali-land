@@ -12,9 +12,8 @@ hl.on("hyprland.start", function()
     -- Start network applet if available
     hl.exec_cmd("nm-applet")
     
-    -- Start Quickshell with simple test configuration
-    -- Using the simple config that we confirmed loads successfully
-    hl.exec_cmd("sleep 2 && quickshell --path ~/.config/quickshell/shell-simple.qml")
+    -- Start Quickshell
+    hl.exec_cmd("sleep 2 && quickshell")
     
     -- Set a simple background (we'll add proper wallpaper support later)
     -- For now, the dark background is fine

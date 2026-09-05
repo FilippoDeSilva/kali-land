@@ -546,7 +546,7 @@ configure_quickshell_hypr_env() {
     fi
 
     if [ -f "${hypr_autostart}" ]; then
-        sed -i 's|quickshell --path.*|quickshell|g' "${hypr_autostart}"
+        sed -i 's|quickshell --path [^"]*|quickshell|g' "${hypr_autostart}"
         log_success "Hyprland autostart updated for end4-pC Quickshell configuration"
     fi
 
