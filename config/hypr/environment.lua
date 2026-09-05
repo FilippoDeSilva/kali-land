@@ -5,16 +5,15 @@
 hl.env("XCURSOR_SIZE", "24")
 hl.env("HYPRCURSOR_SIZE", "24")
 
--- Enable hardware cursors for better performance in VMware
+-- VMware / Software rendering compatibility
+hl.env("QT_QUICK_BACKEND", "software")
+hl.env("LIBGL_ALWAYS_SOFTWARE", "1")
 hl.env("WLR_NO_HARDWARE_CURSORS", "1")
-
--- Video acceleration for VMware
-hl.env("VDPAU_DRIVER", "va_gl")
+hl.env("WLR_RENDERER_ALLOW_SOFTWARE", "1")
 
 -- Qt & Wayland environment for Quickshell
 hl.env("QT_QPA_PLATFORM", "wayland")
 hl.env("QT_QPA_PLATFORMTHEME", "qt6ct")
-hl.env("QT_QUICK_BACKEND", "software")
 hl.env("QT_WAYLAND_DISABLE_WINDOWDECORATION", "1")
 hl.env("QT_AUTO_SCREEN_SCALE_FACTOR", "1")
 hl.env("QT_ACCESSIBILITY", "1")

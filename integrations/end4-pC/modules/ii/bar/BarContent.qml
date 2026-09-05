@@ -151,10 +151,9 @@ Item {
                             Loader {
                                 Layout.fillHeight: true
                                 source: root.getWidgetUrl(modelData)
-                                 onLoaded: {
-                                    if (item && item.hasOwnProperty("mirrored")) {
-                                        try { item.mirrored = root.getMirroredForIndex(root.effectiveLeftLayout, index) } catch (e) {}
-                                    }
+                                onLoaded: {
+                                    if (item && item.hasOwnProperty("mirrored"))
+                                        item.mirrored = root.getMirroredForIndex(root.effectiveLeftLayout, index)
                                 }
                             }
                         }
@@ -184,9 +183,8 @@ Item {
                             Layout.fillHeight: true
                             source: root.getWidgetUrl(modelData)
                             onLoaded: {
-                                if (item && item.hasOwnProperty("mirrored")) {
-                                    try { item.mirrored = root.getMirroredForIndex(root.effectiveLeftLayout, index) } catch (e) {}
-                                }
+                                if (item && item.hasOwnProperty("mirrored"))
+                                    item.mirrored = root.getMirroredForIndex(root.effectiveLeftLayout, index)
                             }
                         }
                     }
@@ -340,9 +338,8 @@ Item {
                                 Layout.fillHeight: true
                                 source: root.getWidgetUrl(modelData)
                                 onLoaded: {
-                                    if (item && item.hasOwnProperty("mirrored")) {
-                                        try { item.mirrored = root.getMirroredForIndex(root.effectiveRightLayout, index) } catch (e) {}
-                                    }
+                                    if (item && item.hasOwnProperty("mirrored"))
+                                        item.mirrored = root.getMirroredForIndex(root.effectiveRightLayout, index)
                                 }
                             }
                         }
@@ -372,9 +369,8 @@ Item {
                             Layout.fillHeight: true
                             source: root.getWidgetUrl(modelData)
                             onLoaded: {
-                                if (item && item.hasOwnProperty("mirrored")) {
-                                    try { item.mirrored = root.getMirroredForIndex(root.effectiveRightLayout, index) } catch (e) {}
-                                }
+                                if (item && item.hasOwnProperty("mirrored"))
+                                    item.mirrored = root.getMirroredForIndex(root.effectiveRightLayout, index)
                             }
                         }
                     }
