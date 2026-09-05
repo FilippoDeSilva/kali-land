@@ -11,8 +11,7 @@ kali-land uses GitHub Actions for CI/CD to build and distribute Quickshell and t
 **File:** `.github/workflows/build-quickshell.yml`
 
 **Triggers:**
-- Push to `main` or `master` branches
-- Push to tags (`v*`)
+- Push to release tags (`v*`)
 - Pull requests to `main` or `master` branches
 - Manual trigger (`workflow_dispatch`)
 
