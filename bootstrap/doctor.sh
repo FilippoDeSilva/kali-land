@@ -11,6 +11,7 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 source "${SCRIPT_DIR}/lib/logging.sh"
 source "${SCRIPT_DIR}/lib/platform.sh"
 source "${SCRIPT_DIR}/lib/packages.sh"
+source "${SCRIPT_DIR}/lib/capabilities.sh"
 
 # Test results
 declare -A TEST_RESULTS
@@ -251,6 +252,22 @@ print_summary() {
     fi
 }
 
+# test_capabilities_section() - Run capability model check
+test_capabilities_section() {
+    detect_capabilities
+    echo "=== Capabilities ==="
+    for cap in wayland hyprland quickshell pipewire networkmanager notifications portals polkit clipboard; do
+        if has_capability "${cap}"; then
+            echo "  ${cap}           PASS"
+            TEST_RESULTS[Cap_${cap}]=PASS
+        else
+            echo "  ${cap}           INFO (optional/missing)"
+            TEST_RESULTS[Cap_${cap}]=INFO
+        fi
+    done
+    echo ""
+}
+
 # main() - Main diagnostic function
 main() {
     clear
@@ -260,6 +277,7 @@ main() {
     echo ""
     
     test_platform
+    test_capabilities_section
     test_display
     test_shell
     test_services
