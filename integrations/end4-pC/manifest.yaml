@@ -28,6 +28,9 @@ requires:
     - qml6-module-qt-labs-platform
     - qml6-module-qt-labs-folderlistmodel
     - qml6-module-qt-labs-settings
+    - qml6-module-qt-labs-synchronizer
+    - qml6-module-qt-labs-qmlmodels
+    - qml6-module-qt-labs-animation
     - libqt6core5compat6
     - libqt6svg6
     - power-profiles-daemon
