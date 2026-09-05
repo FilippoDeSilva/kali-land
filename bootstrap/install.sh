@@ -567,6 +567,40 @@ phase_7_matugen() {
         return 0
     fi
     
+    # Priority 1: Check GitHub Releases for pre-built Matugen binary
+    log_info "Checking for pre-built Matugen from GitHub releases..."
+    local repo_nwo
+    repo_nwo=$(get_github_repo_nwo)
+    
+    local download_success=false
+    local matugen_urls=(
+        "https://github.com/${repo_nwo}/releases/download/v1.0.0/matugen-linux-x86_64.tar.gz"
+        "https://github.com/${repo_nwo}/releases/latest/download/matugen-linux-x86_64.tar.gz"
+    )
+    
+    for url in "${matugen_urls[@]}"; do
+        log_info "Attempting download from ${url}..."
+        if curl -fsSL "${url}" -o /tmp/matugen.tar.gz 2>/dev/null; then
+            log_info "Found pre-built Matugen archive, unpacking..."
+            if tar -xzf /tmp/matugen.tar.gz -C /tmp/ && [ -f /tmp/matugen ]; then
+                if sudo cp /tmp/matugen /usr/local/bin/matugen && sudo chmod +x /usr/local/bin/matugen; then
+                    log_success "Pre-built Matugen installed successfully to /usr/local/bin/matugen"
+                    rm -f /tmp/matugen.tar.gz /tmp/matugen
+                    download_success=true
+                    break
+                fi
+            fi
+            rm -f /tmp/matugen.tar.gz /tmp/matugen
+        fi
+    done
+
+    if ${download_success}; then
+        log_success "Skipping local Matugen compilation (pre-built binary installed)"
+        return 0
+    fi
+
+    # Priority 2: Fall back to local cargo compilation
+    log_info "No remote pre-built Matugen binary found, falling back to local build..."
     if command -v cargo &>/dev/null; then
         log_info "Installing Matugen via cargo..."
         if cargo install matugen; then
@@ -581,6 +615,7 @@ phase_7_matugen() {
         return 0
     fi
 }
+
 
 
 # phase_6_desktop_services() - Install desktop services

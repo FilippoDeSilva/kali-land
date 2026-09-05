@@ -74,7 +74,9 @@ jobs:
           wayland-protocols \
           libwayland-dev \
           libegl-dev \
-          libgl-dev
+          libgl-dev \
+          cargo \
+          rustc
 
     - name: Build and install cpptrace
       run: |
@@ -107,11 +109,20 @@ jobs:
         cp "$QUICKSHELL_BIN" ./quickshell
         tar -czf quickshell-linux-x86_64.tar.gz quickshell
 
-    - name: Upload Quickshell artifact
+    - name: Build Matugen
+      run: |
+        cargo install matugen --root /tmp/matugen-root
+        cd /tmp/matugen-root/bin
+        tar -czf matugen-linux-x86_64.tar.gz matugen
+        cp matugen-linux-x86_64.tar.gz ${{ github.workspace }}/matugen-linux-x86_64.tar.gz
+
+    - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: quickshell-linux-x86_64
-        path: quickshell/build/quickshell-linux-x86_64.tar.gz
+        name: quickshell-and-matugen-binaries
+        path: |
+          quickshell/build/quickshell-linux-x86_64.tar.gz
+          matugen-linux-x86_64.tar.gz
         retention-days: 30
 
     - name: Upload to release (if release or tag)
@@ -119,6 +130,8 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ github.ref_name }}
-        files: quickshell/build/quickshell-linux-x86_64.tar.gz
+        files: |
+          quickshell/build/quickshell-linux-x86_64.tar.gz
+          matugen-linux-x86_64.tar.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
