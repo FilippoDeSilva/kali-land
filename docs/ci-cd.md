@@ -121,7 +121,7 @@ Built-from-source dependencies are pinned inside `.github/workflows/build-quicks
 ```yaml
 env:
   CPPTRACE_REF: v1.0.4      # Pinned cpptrace version tag (e.g. v1.0.4)
-  QUICKSHELL_REF: main      # Pinned version tag (e.g. v0.3.1) or branch (e.g. main)
+  QUICKSHELL_REF: master    # Pinned version tag (e.g. v0.3.1) or branch (e.g. master)
   MATUGEN_VERSION: 0.16.0   # Pinned matugen version on crates.io
 ```
 
