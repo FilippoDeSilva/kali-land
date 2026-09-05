@@ -528,20 +528,20 @@ configure_quickshell_hypr_env() {
         if is_vmware; then
             log_info "Applying VMware environment overrides in ${hypr_env_file}"
             if ! grep -q "QT_QUICK_BACKEND" "${hypr_env_file}"; then
-                sed -i '/hl.env("QT_QPA_PLATFORM", "wayland")/a\    -- Qt Quick backend - use software rendering for VMware compatibility\n    hl.env("QT_QUICK_BACKEND", "software")' "${hypr_env_file}"
+                echo 'hl.env("QT_QUICK_BACKEND", "software")' >> "${hypr_env_file}"
                 log_success "Added QT_QUICK_BACKEND=software for VMware compatibility"
             fi
-            if ! grep -q "QT_WAYLAND_DISABLE_WINDOWDECORATION" "${hypr_env_file}"; then
-                sed -i '/QT_QUICK_BACKEND/a\    -- Qt Wayland integration\n    hl.env("QT_WAYLAND_DISABLE_WINDOWDECORATION", "1")' "${hypr_env_file}"
-            fi
-            if ! grep -q "QT_AUTO_SCREEN_SCALE_FACTOR" "${hypr_env_file}"; then
-                sed -i '/QT_WAYLAND_DISABLE_WINDOWDECORATION/a\    -- Scale factor for high-DPI displays\n    hl.env("QT_AUTO_SCREEN_SCALE_FACTOR", "1")' "${hypr_env_file}"
+            if ! grep -q "WLR_NO_HARDWARE_CURSORS" "${hypr_env_file}"; then
+                echo 'hl.env("WLR_NO_HARDWARE_CURSORS", "1")' >> "${hypr_env_file}"
             fi
         fi
 
         if ! grep -q "QS_CONFIG" "${hypr_env_file}"; then
-            sed -i '/hl.env("QT_QPA_PLATFORM", "wayland")/a\    -- end4-pC Quickshell configuration\n    hl.env("QS_CONFIG", "end4-pC")' "${hypr_env_file}"
+            echo 'hl.env("QS_CONFIG", "end4-pC")' >> "${hypr_env_file}"
             log_success "Added QS_CONFIG environment variable for end4-pC"
+        fi
+        if ! grep -q "QT_QPA_PLATFORM" "${hypr_env_file}"; then
+            echo 'hl.env("QT_QPA_PLATFORM", "wayland")' >> "${hypr_env_file}"
         fi
     fi
 

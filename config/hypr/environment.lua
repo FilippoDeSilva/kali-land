@@ -11,10 +11,14 @@ hl.env("WLR_NO_HARDWARE_CURSORS", "1")
 -- Video acceleration for VMware
 hl.env("VDPAU_DRIVER", "va_gl")
 
--- Qt6 environment for Quickshell (override qt5ct which causes crashes)
+-- Qt & Wayland environment for Quickshell
+hl.env("QT_QPA_PLATFORM", "wayland")
 hl.env("QT_QPA_PLATFORMTHEME", "qt6ct")
+hl.env("QT_QUICK_BACKEND", "software")
+hl.env("QT_WAYLAND_DISABLE_WINDOWDECORATION", "1")
 hl.env("QT_AUTO_SCREEN_SCALE_FACTOR", "1")
 hl.env("QT_ACCESSIBILITY", "1")
+hl.env("QS_CONFIG", "end4-pC")
 
 -- Default applications
 -- Use foot for VMs (native Wayland), kitty for bare metal (GPU accelerated)
