@@ -25,8 +25,8 @@ jobs:
 
     env:
       DEBIAN_FRONTEND: noninteractive
-      CPPTRACE_REF: v0.7.3
-      QUICKSHELL_REF: v0.4.0
+      CPPTRACE_REF: v1.0.4
+      QUICKSHELL_REF: 2d3b3e9c70ef380dff751b61d334dc88df016c29
       MATUGEN_VERSION: 0.16.0
 
     steps:
@@ -92,7 +92,9 @@ jobs:
 
     - name: Clone Quickshell repository
       run: |
-        git clone --recursive --branch ${{ env.QUICKSHELL_REF }} https://github.com/outfoxxed/quickshell.git || git clone --recursive https://github.com/outfoxxed/quickshell.git quickshell
+        git clone --recursive https://github.com/outfoxxed/quickshell.git quickshell
+        cd quickshell
+        git checkout ${{ env.QUICKSHELL_REF }}
 
     - name: Build Quickshell
       run: |
