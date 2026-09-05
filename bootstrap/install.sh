@@ -26,6 +26,18 @@ if [ -f "${REPO_ROOT}/.env" ]; then
     set +a
 fi
 
+# Interrupt trap for user aborts or unexpected failures
+cleanup_on_exit() {
+    local exit_code=$?
+    if [ ${exit_code} -ne 0 ]; then
+        echo ""
+        log_warn "Installation was interrupted or exited unexpectedly (exit code ${exit_code})."
+        log_info "If dpkg or package manager was interrupted, run: sudo dpkg --configure -a"
+        log_info "You can resume installation anytime by running: ./bootstrap/install.sh"
+    fi
+}
+trap cleanup_on_exit EXIT SIGINT SIGTERM SIGHUP
+
 # Installation phases
 PHASE=0
 DRY_RUN=false
@@ -360,25 +372,38 @@ phase_6_quickshell_skeleton() {
     
     # Check if pre-built Quickshell is available from GitHub releases
     log_info "Checking for pre-built Quickshell from GitHub releases..."
-    local repo_name=$(basename "$(git config --get remote.origin.url 2>/dev/null || echo 'yourusername/kali-land')" .git)
-    local quickshell_url="https://github.com/${repo_name}/releases/latest/download/quickshell-linux-x86_64.tar.gz"
+    local repo_nwo
+    repo_nwo=$(get_github_repo_nwo)
     
-    if curl -fsSL "$quickshell_url" -o /tmp/quickshell.tar.gz 2>/dev/null; then
-        log_info "Found pre-built Quickshell, installing..."
-        tar -xzf /tmp/quickshell.tar.gz -C /tmp/
-        if sudo cp /tmp/quickshell /usr/local/bin/quickshell; then
-            sudo chmod +x /usr/local/bin/quickshell
-            log_success "Pre-built Quickshell installed successfully"
-            rm -f /tmp/quickshell.tar.gz
-        else
-            log_warn "Failed to install pre-built Quickshell, falling back to build..."
-            rm -f /tmp/quickshell.tar.gz
-            phase_6_quickshell_build_from_source
+    local download_success=false
+    local quickshell_urls=(
+        "https://github.com/${repo_nwo}/releases/download/v1.0.0/quickshell-linux-x86_64.tar.gz"
+        "https://github.com/${repo_nwo}/releases/latest/download/quickshell-linux-x86_64.tar.gz"
+    )
+    
+    for url in "${quickshell_urls[@]}"; do
+        log_info "Attempting download from ${url}..."
+        if curl -fsSL "${url}" -o /tmp/quickshell.tar.gz 2>/dev/null; then
+            log_info "Found pre-built Quickshell archive, unpacking..."
+            if tar -xzf /tmp/quickshell.tar.gz -C /tmp/ && [ -f /tmp/quickshell ]; then
+                if sudo cp /tmp/quickshell /usr/local/bin/quickshell && sudo chmod +x /usr/local/bin/quickshell; then
+                    log_success "Pre-built Quickshell installed successfully to /usr/local/bin/quickshell"
+                    rm -f /tmp/quickshell.tar.gz /tmp/quickshell
+                    download_success=true
+                    break
+                fi
+            fi
+            rm -f /tmp/quickshell.tar.gz /tmp/quickshell
         fi
-    else
-        log_info "No pre-built Quickshell found, building from source..."
-        phase_6_quickshell_build_from_source
+    done
+
+    if ${download_success}; then
+        log_success "Skipping local source compilation (pre-built binary installed)"
+        return 0
     fi
+    
+    log_info "No remote pre-built Quickshell binary available, building from source..."
+    phase_6_quickshell_build_from_source
 }
 
 # phase_6_quickshell_build_from_source() - Build Quickshell from source
@@ -395,42 +420,7 @@ phase_6_quickshell_build_from_source() {
             log_warn "Failed to install some Quickshell dependencies, continuing..."
         fi
     fi
-    
-    # Install Qt5Compat for end4-pC compatibility
-    log_info "Installing Qt5Compat for end4-pC graphical effects"
-    if ${PACKAGE_MANAGER} install -y qml6-module-qt5compat-graphicaleffects libqt6core5compat6; then
-        log_success "Qt5Compat installed successfully"
-    else
-        log_warn "Failed to install Qt5Compat, end4-pC may not work properly"
-        log_info "You may need to install manually: sudo apt install qml6-module-qt5compat-graphicaleffects libqt6core5compat6"
-    fi
-    
-    # Install additional Qt6 modules for end4-pC
-    log_info "Installing additional Qt6 modules for end4-pC"
-    if ${PACKAGE_MANAGER} install -y libqt6positioning6 libqt6positioningquick6 qml6-module-qtpositioning libqt6svg6 libqt6network6 libqt6networkauth6 libqt6qmlnetwork6; then
-        log_success "Qt6 additional modules installed successfully"
-    else
-        log_warn "Failed to install some Qt6 modules, end4-pC may not work properly"
-        log_info "You may need to install manually: sudo apt install libqt6positioning6 libqt6positioningquick6 qml6-module-qtpositioning libqt6svg6 libqt6network6 libqt6networkauth6 libqt6qmlnetwork6"
-    fi
-    
-    # Install KDE syntax highlighting for end4-pC code blocks
-    log_info "Installing KDE syntax highlighting for end4-pC"
-    if ${PACKAGE_MANAGER} install -y qml6-module-org-kde-syntaxhighlighting libkf6syntaxhighlighting6; then
-        log_success "KDE syntax highlighting installed successfully"
-    else
-        log_warn "Failed to install KDE syntax highlighting, AI chat may not work properly"
-        log_info "You may need to install manually: sudo apt install qml6-module-org-kde-syntaxhighlighting libkf6syntaxhighlighting6"
-    fi
-    
-    # Install additional end4-pC runtime dependencies
-    log_info "Installing additional end4-pC runtime dependencies"
-    if ${PACKAGE_MANAGER} install -y powerprofilesctl brightnessctl playerctl libnotify-bin libnotify-dev; then
-        log_success "Additional end4-pC dependencies installed successfully"
-    else
-        log_warn "Failed to install some end4-pC dependencies, some features may not work"
-        log_info "You may need to install manually: sudo apt install powerprofilesctl brightnessctl playerctl libnotify-bin libnotify-dev"
-    fi
+
     
     # Clone and build Quickshell
     local build_dir="/tmp/quickshell-build"

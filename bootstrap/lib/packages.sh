@@ -26,8 +26,66 @@ detect_package_manager() {
     fi
 }
 
+# ensure_dpkg_healthy() - Verify and repair dpkg state & lock recovery
+ensure_dpkg_healthy() {
+    log_step "Verifying package manager and dpkg state"
+
+    local lock_files=(
+        "/var/lib/dpkg/lock-frontend"
+        "/var/lib/dpkg/lock"
+        "/var/lib/apt/lists/lock"
+        "/var/cache/apt/archives/lock"
+    )
+
+    # Check for active background package manager processes
+    local active_pids
+    active_pids=$(pgrep -x "apt|apt-get|dpkg|unattended-upgrade|synaptic|aptd" 2>/dev/null || true)
+
+    if [ -n "${active_pids}" ]; then
+        log_warn "Active package manager process(es) detected (PIDs: ${active_pids//[$'\n']/ }). Waiting for completion..."
+        local wait_count=0
+        while [ ${wait_count} -lt 15 ]; do
+            sleep 2
+            wait_count=$((wait_count + 1))
+            active_pids=$(pgrep -x "apt|apt-get|dpkg|unattended-upgrade|synaptic|aptd" 2>/dev/null || true)
+            [ -z "${active_pids}" ] && break
+        done
+    fi
+
+    # Inspect dpkg audit for unconfigured or half-installed packages
+    local dpkg_audit
+    dpkg_audit=$(dpkg --audit 2>&1 || true)
+    
+    local has_lock=false
+    for lock_file in "${lock_files[@]}"; do
+        [ -f "${lock_file}" ] && has_lock=true
+    done
+
+    if [ -n "${dpkg_audit}" ] || ${has_lock}; then
+        # Re-check if active process is still running
+        active_pids=$(pgrep -x "apt|apt-get|dpkg|unattended-upgrade|synaptic|aptd" 2>/dev/null || true)
+        if [ -z "${active_pids}" ]; then
+            log_warn "Interrupted package state or lock detected without active process."
+            log_info "Running automatic repair routine: sudo dpkg --configure -a && sudo apt-get install -f"
+            
+            if command -v sudo &>/dev/null; then
+                sudo dpkg --configure -a || log_warn "dpkg --configure -a finished with warnings"
+                sudo apt-get install -f -y || log_warn "apt-get install -f finished with warnings"
+            else
+                dpkg --configure -a || log_warn "dpkg --configure -a finished with warnings"
+                apt-get install -f -y || log_warn "apt-get install -f finished with warnings"
+            fi
+            log_success "Package manager repair routine completed successfully"
+        fi
+    fi
+
+    log_success "dpkg state verified & healthy"
+    return 0
+}
+
 # update_package_cache() - Update package cache
 update_package_cache() {
+    ensure_dpkg_healthy
     log_step "Updating package cache"
     log_command "${PACKAGE_MANAGER} update"
     
@@ -49,15 +107,21 @@ install_packages() {
         log_error "Package file not found: ${package_file}"
         return 1
     fi
+
+    ensure_dpkg_healthy
     
     log_step "Installing packages from ${package_file}"
     
-    # Read packages from file (ignoring comments and empty lines)
+    # Read packages from file (trimming whitespace, ignoring comments and empty lines)
     local packages=()
     while IFS= read -r line || [ -n "$line" ]; do
+        # Trim leading and trailing whitespace
+        line="${line#"${line%%[![:space:]]*}"}"
+        line="${line%"${line##*[![:space:]]}"}"
+
         # Skip comments and empty lines
-        [[ "$line" =~ ^[[:space:]]*# ]] && continue
-        [[ -z "${line// }" ]] && continue
+        [[ "$line" =~ ^# ]] && continue
+        [[ -z "$line" ]] && continue
         packages+=("$line")
     done < "${package_file}"
     
@@ -73,7 +137,7 @@ install_packages() {
     local available_packages=()
     local missing_packages=()
     for pkg in "${packages[@]}"; do
-        if apt-cache policy "${pkg}" &>/dev/null; then
+        if check_package_available "${pkg}"; then
             available_packages+=("${pkg}")
         else
             log_warn "Package not available in repos, skipping: ${pkg}"
@@ -125,6 +189,7 @@ remove_packages() {
         return 0
     fi
     
+    ensure_dpkg_healthy
     log_step "Removing packages: ${packages[*]}"
     
     log_command "${PACKAGE_MANAGER} remove -y ${packages[*]}"
@@ -155,7 +220,8 @@ get_package_version() {
 # Usage: check_package_available <package>
 check_package_available() {
     local package=$1
-    apt-cache policy "${package}" &>/dev/null
+    [ -z "${package}" ] && return 1
+    apt-cache show "${package}" &>/dev/null
 }
 
 # get_package_info() - Get detailed package information
@@ -167,3 +233,4 @@ get_package_info() {
         return 1
     }
 }
+

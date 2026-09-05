@@ -164,3 +164,21 @@ print_platform_report() {
     echo "Display manager: ${PLATFORM_DISPLAY_MANAGER}"
     echo "======================"
 }
+
+# get_github_repo_nwo() - Extract owner/repo name for release asset downloads
+get_github_repo_nwo() {
+    local url
+    url="$(git config --get remote.origin.url 2>/dev/null || echo '')"
+    if [ -z "${url}" ]; then
+        echo "FilippoDeSilva/kali-land"
+        return 0
+    fi
+    local nwo
+    nwo=$(echo "${url}" | sed -E -e 's#^git@github\.com:##' -e 's#^https://github\.com/##' -e 's#\.git$##')
+    if [[ "${nwo}" =~ ^[^/]+/[^/]+$ ]]; then
+        echo "${nwo}"
+    else
+        echo "FilippoDeSilva/kali-land"
+    fi
+}
+

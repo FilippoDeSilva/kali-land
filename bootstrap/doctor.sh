@@ -293,6 +293,19 @@ test_integrations_section() {
     echo ""
 }
 
+# test_package_manager_health() - Test dpkg and package manager health
+test_package_manager_health() {
+    echo "=== Package Manager ==="
+    if ensure_dpkg_healthy; then
+        echo "  dpkg/apt status PASS (healthy)"
+        TEST_RESULTS[PackageManager]=PASS
+    else
+        echo "  dpkg/apt status WARN (issues detected)"
+        TEST_RESULTS[PackageManager]=WARN
+    fi
+    echo ""
+}
+
 # main() - Main diagnostic function
 main() {
     clear
@@ -302,6 +315,7 @@ main() {
     echo ""
     
     test_platform
+    test_package_manager_health
     test_profile_section
     test_capabilities_section
     test_display

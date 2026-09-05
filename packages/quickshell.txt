@@ -37,13 +37,12 @@ libgl-dev
 # rustc
 
 # Quickshell runtime dependencies
-networkmanager
+network-manager
 bluez
-bluez-utils
 pipewire
 pipewire-pulse
 wireplumber
-libpulse
+libpulse-dev
 jq
 python3
 python3-pip
@@ -57,7 +56,7 @@ hyprsunset
 gammastep
 
 # Theming dependencies
-kconfig
+libkf6config-dev
 qt6ct
 
 # Qt5Compat for end4-pC graphical effects
@@ -80,11 +79,11 @@ qml6-module-org-kde-syntaxhighlighting
 libkf6syntaxhighlighting6
 
 # Additional end4-pC dependencies
-powerprofilesctl
- brightnessctl
- playerctl
- libnotify-bin
- libnotify-dev
+power-profiles-daemon
+brightnessctl
+playerctl
+libnotify-bin
+libnotify-dev
 
 # Screenshot helpers
 grim
