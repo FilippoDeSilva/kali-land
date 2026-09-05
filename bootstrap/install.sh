@@ -13,6 +13,10 @@ source "${SCRIPT_DIR}/lib/platform.sh"
 source "${SCRIPT_DIR}/lib/packages.sh"
 source "${SCRIPT_DIR}/lib/filesystem.sh"
 source "${SCRIPT_DIR}/lib/prompts.sh"
+source "${SCRIPT_DIR}/lib/capabilities.sh"
+source "${SCRIPT_DIR}/lib/profile.sh"
+source "${SCRIPT_DIR}/lib/integrations.sh"
+source "${SCRIPT_DIR}/lib/backups.sh"
 
 # Load environment variables if .env file exists
 if [ -f "${REPO_ROOT}/.env" ]; then
@@ -134,9 +138,11 @@ clone_with_credentials() {
 
 # phase_0_platform_detection() - Platform detection and validation
 phase_0_platform_detection() {
-    log_step "Phase 0: Platform Detection"
+    log_step "Phase 0: Platform & Profile Detection"
     
     detect_platform
+    load_profile
+    detect_capabilities
     validate_platform
     
     if ! is_kali; then
@@ -148,6 +154,7 @@ phase_0_platform_detection() {
     fi
     
     print_platform_report
+    print_profile_report
     
     log_success "Phase 0 complete"
 }
@@ -487,29 +494,8 @@ phase_6_quickshell_build_from_source() {
         rm -rf "${build_dir}" || log_warn "Failed to cleanup build directory: ${build_dir}"
     fi
     
-    log_info "Installing end4-pC quickshell configuration"
-    
-    # Copy end4-pC quickshell from repository to user config
-    log_info "Copying end4-pC quickshell from repository to user config"
-    if [ -d "${HOME}/.config/quickshell" ]; then
-        log_info "Backing up existing quickshell config"
-        mv "${HOME}/.config/quickshell" "${HOME}/.config/quickshell.backup.$(date +%Y%m%d_%H%M%S)"
-    fi
-    
-    if [ -d "${REPO_ROOT}/integrations/end4-pC" ]; then
-        cp -r "${REPO_ROOT}/integrations/end4-pC" "${HOME}/.config/quickshell"
-        log_success "end4-pC reference shell installed to ~/.config/quickshell"
-    else
-        log_error "end4-pC directory not found in repository"
-        log_info "Falling back to cloning from GitHub"
-        if git clone https://github.com/pctrade/end4-pC "${HOME}/.config/quickshell"; then
-            log_success "end4-pC quickshell installed to ~/.config/quickshell"
-        else
-            log_error "Failed to clone end4-pC quickshell"
-            log_info "You may need to install it manually: git clone https://github.com/pctrade/end4-pC ~/.config/quickshell"
-            return 1
-        fi
-    fi
+    log_info "Deploying end4-pC reference shell integration"
+    install_integration "end4-pC"
     
     # Apply VMware compatibility fixes for Quickshell (only if running in VMware)
     if is_vmware; then

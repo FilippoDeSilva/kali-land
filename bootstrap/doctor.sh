@@ -12,6 +12,9 @@ source "${SCRIPT_DIR}/lib/logging.sh"
 source "${SCRIPT_DIR}/lib/platform.sh"
 source "${SCRIPT_DIR}/lib/packages.sh"
 source "${SCRIPT_DIR}/lib/capabilities.sh"
+source "${SCRIPT_DIR}/lib/profile.sh"
+source "${SCRIPT_DIR}/lib/integrations.sh"
+source "${SCRIPT_DIR}/lib/backups.sh"
 
 # Test results
 declare -A TEST_RESULTS
@@ -268,6 +271,28 @@ test_capabilities_section() {
     echo ""
 }
 
+# test_profile_section() - Test profile detection
+test_profile_section() {
+    detect_profile
+    echo "=== Profile ==="
+    echo "  Profile         PASS (${CURRENT_PROFILE})"
+    TEST_RESULTS[Profile]=PASS
+    echo ""
+}
+
+# test_integrations_section() - Test shell integrations
+test_integrations_section() {
+    echo "=== Shell Integrations ==="
+    if [ -d "${REPO_ROOT}/integrations/end4-pC" ]; then
+        echo "  end4-pC (ref)   PASS (available)"
+        TEST_RESULTS[Integration_end4_pC]=PASS
+    else
+        echo "  end4-pC (ref)   WARN (missing from integrations/)"
+        TEST_RESULTS[Integration_end4_pC]=WARN
+    fi
+    echo ""
+}
+
 # main() - Main diagnostic function
 main() {
     clear
@@ -277,9 +302,11 @@ main() {
     echo ""
     
     test_platform
+    test_profile_section
     test_capabilities_section
     test_display
     test_shell
+    test_integrations_section
     test_services
     test_configuration
     
