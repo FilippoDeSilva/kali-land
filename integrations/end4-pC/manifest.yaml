@@ -31,6 +31,9 @@ requires:
     - qml6-module-qt-labs-synchronizer
     - qml6-module-qt-labs-qmlmodels
     - qml6-module-qt-labs-animation
+    - qml6-module-org-kde-syntaxhighlighting
+    - qml6-module-org-kde-kirigami
+    - libkf6syntaxhighlighting6
     - libqt6core5compat6
     - libqt6svg6
     - power-profiles-daemon
