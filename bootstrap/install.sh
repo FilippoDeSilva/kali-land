@@ -479,23 +479,27 @@ phase_6_quickshell_skeleton() {
     )
     
     for url in "${quickshell_urls[@]}"; do
-        log_info "Attempting download from ${url}..."
+                log_info "Attempting download from ${url}..."
         if curl -fsSL "${url}" -o /tmp/quickshell.tar.gz 2>/dev/null; then
             local sha_url="${url}.sha256"
             if verify_sha256 "/tmp/quickshell.tar.gz" "${sha_url}"; then
                 log_info "Found verified pre-built Quickshell archive, unpacking..."
-                if tar -xzf /tmp/quickshell.tar.gz -C /tmp/ && [ -f /tmp/quickshell ]; then
-                    if sudo cp /tmp/quickshell /usr/local/bin/quickshell && sudo chmod +x /usr/local/bin/quickshell; then
+                local unpack_dir="/tmp/quickshell-unpack"
+                rm -rf "${unpack_dir}"
+                mkdir -p "${unpack_dir}"
+                if tar -xzf /tmp/quickshell.tar.gz -C "${unpack_dir}" && [ -f "${unpack_dir}/quickshell" ]; then
+                    if sudo cp "${unpack_dir}/quickshell" /usr/local/bin/quickshell && sudo chmod +x /usr/local/bin/quickshell; then
                         log_success "Pre-built Quickshell installed successfully to /usr/local/bin/quickshell"
-                        rm -f /tmp/quickshell.tar.gz /tmp/quickshell
+                        rm -rf /tmp/quickshell.tar.gz "${unpack_dir}"
                         download_success=true
                         break
                     fi
                 fi
+                rm -rf "${unpack_dir}"
             else
                 log_warn "Pre-built Quickshell binary at ${url} failed checksum verification. Rejecting."
             fi
-            rm -f /tmp/quickshell.tar.gz /tmp/quickshell
+            rm -f /tmp/quickshell.tar.gz
         fi
     done
 
@@ -568,8 +572,11 @@ phase_6_quickshell_build_from_source() {
     
     # Install Quickshell build dependencies
     log_info "Installing Quickshell Qt6 build dependencies..."
-    local quickshell_build_pkgs="qt6-base-dev qt6-declarative-dev qt6-wayland-dev qt6-shadertools-dev cmake extra-cmake-modules pkg-config ninja-build wayland-protocols libwayland-dev libegl-dev libgl-dev"
-    install_packages_from_list ${quickshell_build_pkgs} || log_warn "Failed to install build dependencies, continuing..."
+    local temp_build_pkgs
+    temp_build_pkgs=$(mktemp)
+    echo "qt6-base-dev qt6-declarative-dev qt6-wayland-dev qt6-shadertools-dev cmake extra-cmake-modules pkg-config ninja-build wayland-protocols libwayland-dev libegl-dev libgl-dev g++ build-essential" | tr ' ' '\n' > "${temp_build_pkgs}"
+    install_packages "${temp_build_pkgs}" || log_warn "Failed to install build dependencies, continuing..."
+    rm -f "${temp_build_pkgs}"
 
     
     # Clone and build Quickshell
