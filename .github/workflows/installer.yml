@@ -56,9 +56,10 @@ jobs:
         retention-days: 30
 
     - name: Upload to release (if release or tag)
-      if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/v')
+      if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v2
       with:
+        tag_name: ${{ github.ref_name }}
         files: kali-land-installer.tar.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
