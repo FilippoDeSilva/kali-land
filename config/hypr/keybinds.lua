@@ -13,10 +13,18 @@ hl.bind(mainMod .. " + return", hl.dsp.exec_cmd(terminal))
 hl.bind(mainMod .. " + q", hl.dsp.window.close())
 hl.bind(mainMod .. " + e", hl.dsp.exec_cmd(fileManager))
 hl.bind(mainMod .. " + f", hl.dsp.window.float({ action = "toggle" }))
-hl.bind(mainMod .. " + space", hl.dsp.exec_cmd("bash /home/kali/Desktop/kali-land/scripts/launcher.sh"))
+hl.bind(mainMod .. " + space", hl.dsp.exec_cmd("rofi -show drun"))
 hl.bind(mainMod .. " + d", hl.dsp.window.fullscreen())
 hl.bind(mainMod .. " + SHIFT + d", hl.dsp.window.fullscreen({ action = "toggle" }))
 hl.bind(mainMod .. " + p", hl.dsp.window.pseudo())
+
+-- Application Launchers & Rofi
+hl.bind(mainMod .. " + r", hl.dsp.exec_cmd("rofi -show run"))
+hl.bind(mainMod .. " + v", hl.dsp.exec_cmd("cliphist list | rofi -dmenu | cliphist decode | wl-copy"))
+hl.bind(mainMod .. " + period", hl.dsp.exec_cmd("quickshell"))
+
+-- Power menu
+hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd("wlogout"))
 
 -- Focus windows
 hl.bind(mainMod .. " + left", hl.dsp.focus({ direction = "left" }))
@@ -84,13 +92,6 @@ hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl set 5%-"), { loc
 hl.bind(mainMod .. " + PRINT", hl.dsp.exec_cmd("grimblast copy area"))
 hl.bind(mainMod .. " + SHIFT + PRINT", hl.dsp.exec_cmd("grimblast copy screen"))
 hl.bind(mainMod .. " + CTRL + PRINT", hl.dsp.exec_cmd("grimblast copy window"))
-
--- Power menu
-hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd("bash /home/kali/Desktop/kali-land/scripts/power-menu.sh"))
-
--- Launcher (will be Quickshell)
-hl.bind(mainMod .. " + r", hl.dsp.exec_cmd("quickshell"))
-hl.bind(mainMod .. " + period", hl.dsp.exec_cmd("quickshell"))
 
 -- Application launcher shortcuts
 hl.bind(mainMod .. " + b", hl.dsp.exec_cmd("firefox-esr"))
