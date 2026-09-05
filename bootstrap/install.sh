@@ -603,7 +603,11 @@ phase_7_matugen() {
     log_info "No remote pre-built Matugen binary found, falling back to local build..."
     if command -v cargo &>/dev/null; then
         log_info "Installing Matugen via cargo..."
-        if cargo install matugen; then
+        if cargo install matugen || [ -f "${HOME}/.cargo/bin/matugen" ]; then
+            if [ -f "${HOME}/.cargo/bin/matugen" ]; then
+                sudo cp "${HOME}/.cargo/bin/matugen" /usr/local/bin/matugen 2>/dev/null || true
+                sudo chmod +x /usr/local/bin/matugen 2>/dev/null || true
+            fi
             log_success "Matugen installed successfully via cargo"
             return 0
         else
@@ -614,6 +618,7 @@ phase_7_matugen() {
         log_info "cargo is not installed; skipping optional Matugen color generator"
         return 0
     fi
+
 }
 
 
