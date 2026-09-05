@@ -456,11 +456,60 @@ phase_6_quickshell_skeleton() {
 
     if ${download_success}; then
         log_success "Skipping local source compilation (pre-built binary installed)"
-        return 0
+    else
+        log_info "No remote pre-built Quickshell binary available, building from source..."
+        phase_6_quickshell_build_from_source
     fi
+
+    log_info "Deploying end4-pC reference shell integration..."
+    install_integration "end4-pC"
     
-    log_info "No remote pre-built Quickshell binary available, building from source..."
-    phase_6_quickshell_build_from_source
+    configure_quickshell_hypr_env
+    
+    log_success "Quickshell configuration completed"
+    log_success "Phase 5 complete"
+}
+
+# configure_quickshell_hypr_env() - Configure Hyprland environment & autostart for Quickshell
+configure_quickshell_hypr_env() {
+    local target_user_home="${HOME}"
+    if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
+        target_user_home="$(eval echo "~${SUDO_USER}")"
+    fi
+    local hypr_env_file="${target_user_home}/.config/hypr/environment.lua"
+    local hypr_autostart="${target_user_home}/.config/hypr/autostart.lua"
+
+    if [ -f "${hypr_env_file}" ]; then
+        if is_vmware; then
+            log_info "Applying VMware environment overrides in ${hypr_env_file}"
+            if ! grep -q "QT_QUICK_BACKEND" "${hypr_env_file}"; then
+                sed -i '/hl.env("QT_QPA_PLATFORM", "wayland")/a\    -- Qt Quick backend - use software rendering for VMware compatibility\n    hl.env("QT_QUICK_BACKEND", "software")' "${hypr_env_file}"
+                log_success "Added QT_QUICK_BACKEND=software for VMware compatibility"
+            fi
+            if ! grep -q "QT_WAYLAND_DISABLE_WINDOWDECORATION" "${hypr_env_file}"; then
+                sed -i '/QT_QUICK_BACKEND/a\    -- Qt Wayland integration\n    hl.env("QT_WAYLAND_DISABLE_WINDOWDECORATION", "1")' "${hypr_env_file}"
+            fi
+            if ! grep -q "QT_AUTO_SCREEN_SCALE_FACTOR" "${hypr_env_file}"; then
+                sed -i '/QT_WAYLAND_DISABLE_WINDOWDECORATION/a\    -- Scale factor for high-DPI displays\n    hl.env("QT_AUTO_SCREEN_SCALE_FACTOR", "1")' "${hypr_env_file}"
+            fi
+        fi
+
+        if ! grep -q "QS_CONFIG" "${hypr_env_file}"; then
+            sed -i '/hl.env("QT_QPA_PLATFORM", "wayland")/a\    -- end4-pC Quickshell configuration\n    hl.env("QS_CONFIG", "end4-pC")' "${hypr_env_file}"
+            log_success "Added QS_CONFIG environment variable for end4-pC"
+        fi
+    fi
+
+    if [ -f "${hypr_autostart}" ]; then
+        sed -i 's|quickshell --path.*|quickshell|g' "${hypr_autostart}"
+        log_success "Hyprland autostart updated for end4-pC Quickshell configuration"
+    fi
+
+    if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
+        local user_group
+        user_group="$(id -gn "${SUDO_USER}" 2>/dev/null || echo "${SUDO_USER}")"
+        chown -R "${SUDO_USER}:${user_group}" "${target_user_home}/.config/hypr" 2>/dev/null || true
+    fi
 }
 
 # phase_6_quickshell_build_from_source() - Build Quickshell from source
@@ -540,79 +589,6 @@ phase_6_quickshell_build_from_source() {
     if [ -d "${build_dir}" ]; then
         rm -rf "${build_dir}" || log_warn "Failed to cleanup build directory: ${build_dir}"
     fi
-    
-    log_info "Deploying end4-pC reference shell integration"
-    install_integration "end4-pC"
-    
-    # Apply VMware compatibility fixes for Quickshell (only if running in VMware)
-    if is_vmware; then
-        log_info "Applying VMware compatibility fixes for Quickshell"
-        
-        # Update Hyprland environment.lua with Quickshell-specific environment variables
-        local hypr_env_file="${HOME}/.config/hypr/environment.lua"
-        if [ -f "${hypr_env_file}" ]; then
-            log_info "Updating Hyprland environment for Quickshell VMware compatibility"
-            
-            # Check if QT_QUICK_BACKEND is already set
-            if ! grep -q "QT_QUICK_BACKEND" "${hypr_env_file}"; then
-                # Add Quickshell environment variables
-                sed -i '/hl.env("QT_QPA_PLATFORM", "wayland")/a\    -- Qt Quick backend - use software rendering for VMware compatibility\n    hl.env("QT_QUICK_BACKEND", "software")' "${hypr_env_file}"
-                log_success "Added QT_QUICK_BACKEND=software for VMware compatibility"
-            else
-                log_info "QT_QUICK_BACKEND already configured"
-            fi
-            
-            # Ensure other Qt environment variables are present
-            if ! grep -q "QT_WAYLAND_DISABLE_WINDOWDECORATION" "${hypr_env_file}"; then
-                sed -i '/QT_QUICK_BACKEND/a\    -- Qt Wayland integration\n    hl.env("QT_WAYLAND_DISABLE_WINDOWDECORATION", "1")' "${hypr_env_file}"
-            fi
-            
-            if ! grep -q "QT_AUTO_SCREEN_SCALE_FACTOR" "${hypr_env_file}"; then
-                sed -i '/QT_WAYLAND_DISABLE_WINDOWDECORATION/a\    -- Scale factor for high-DPI displays\n    hl.env("QT_AUTO_SCREEN_SCALE_FACTOR", "1")' "${hypr_env_file}"
-            fi
-            
-            # Add end4-pC specific environment variable
-            if ! grep -q "QS_CONFIG" "${hypr_env_file}"; then
-                sed -i '/QT_AUTO_SCREEN_SCALE_FACTOR/a\    -- end4-pC Quickshell configuration\n    hl.env("QS_CONFIG", "end4-pC")' "${hypr_env_file}"
-                log_success "Added QS_CONFIG environment variable for end4-pC"
-            fi
-            
-            log_success "Quickshell environment variables configured"
-        else
-            log_warn "Hyprland environment.lua not found, skipping Quickshell environment setup"
-        fi
-    else
-        log_info "Not running in VMware, skipping VMware-specific Quickshell optimizations"
-        
-        # Still add end4-pC environment variable for non-VMware systems
-        local hypr_env_file="${HOME}/.config/hypr/environment.lua"
-        if [ -f "${hypr_env_file}" ]; then
-            if ! grep -q "QS_CONFIG" "${hypr_env_file}"; then
-                sed -i '/hl.env("QT_QPA_PLATFORM", "wayland")/a\    -- end4-pC Quickshell configuration\n    hl.env("QS_CONFIG", "end4-pC")' "${hypr_env_file}"
-                log_success "Added QS_CONFIG environment variable for end4-pC"
-            fi
-        fi
-    fi
-    
-    # end4-pC uses its own configuration management, no need for kali-land-specific overrides
-    log_info "end4-pC uses independent configuration management"
-    
-    # Update Hyprland autostart to use standard quickshell (end4-pC manages its own config)
-    local hypr_autostart="${HOME}/.config/hypr/autostart.lua"
-    if [ -f "${hypr_autostart}" ]; then
-        log_info "Updating Hyprland autostart for end4-pC Quickshell configuration"
-        
-        # Replace any --path arguments with standard quickshell command
-        sed -i 's|quickshell --path.*|quickshell|g' "${hypr_autostart}"
-        
-        log_success "Hyprland autostart updated for end4-pC Quickshell configuration"
-    else
-        log_warn "Hyprland autostart.lua not found, skipping autostart update"
-    fi
-    
-    log_success "Quickshell configuration completed"
-    
-    log_success "Phase 5 complete"
 }
 
 # phase_7_matugen() - Install Matugen (Material You Color Generator)
@@ -680,23 +656,32 @@ phase_7_matugen() {
         log_info "cargo is not installed; skipping optional Matugen color generator"
         return 0
     fi
-
 }
 
-
-
-# phase_6_desktop_services() - Install desktop services
+# phase_6_desktop_services() - Install desktop services & Hyprland Lua Configuration
 phase_6_desktop_services() {
-    log_step "Phase 6: Desktop Services"
+    log_step "Phase 6: Desktop Services & Hyprland Configuration"
     
     ensure_directories
     
-    local hypr_config_dir="${HOME}/.config/hypr"
+    local target_user_home="${HOME}"
+    if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
+        target_user_home="$(eval echo "~${SUDO_USER}")"
+    fi
+    local hypr_config_dir="${target_user_home}/.config/hypr"
     mkdir -p "${hypr_config_dir}"
     
-    # Copy Lua configuration files
+    # Backup and copy Lua configuration files
     if [ -d "${REPO_ROOT}/config/hypr" ]; then
-        log_info "Copying Lua configuration files to ${hypr_config_dir}"
+        log_info "Deploying Lua configuration files to ${hypr_config_dir}"
+
+        # If legacy hyprland.conf exists, back it up and rename to hyprland.conf.bak
+        if [ -f "${hypr_config_dir}/hyprland.conf" ]; then
+            log_warn "Legacy hyprland.conf detected. Backing up and disabling legacy config file..."
+            backup_config_with_manifest "${hypr_config_dir}/hyprland.conf" "Legacy Hyprland Config" 2>/dev/null || true
+            mv "${hypr_config_dir}/hyprland.conf" "${hypr_config_dir}/hyprland.conf.bak"
+        fi
+
         cp -r "${REPO_ROOT}/config/hypr/"*.lua "${hypr_config_dir}/"
         
         # Detect if running in VM and set appropriate terminal
@@ -705,7 +690,6 @@ phase_6_desktop_services() {
             sed -i 's/hl.env("TERMINAL", "kitty")/hl.env("TERMINAL", "foot")/' "${hypr_config_dir}/environment.lua"
         else
             log_info "Bare metal detected - keeping terminal as kitty (GPU accelerated)"
-            # kitty is already the default, no change needed
         fi
         
         # Ensure both terminals are available for fallback
@@ -716,12 +700,18 @@ phase_6_desktop_services() {
             log_warn "kitty not available, installation may have failed"
         fi
         
+        if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
+            local user_group
+            user_group="$(id -gn "${SUDO_USER}" 2>/dev/null || echo "${SUDO_USER}")"
+            chown -R "${SUDO_USER}:${user_group}" "${hypr_config_dir}" 2>/dev/null || true
+        fi
+
         log_success "Hyprland Lua configuration installed"
     else
         log_warn "Hyprland configuration directory not found"
     fi
     
-    log_success "Phase 5 complete"
+    log_success "Phase 6 complete"
 }
 
 # phase_6_quickshell_bar() - Build Quickshell bar

@@ -89,6 +89,12 @@ test_display() {
     echo ""
 }
 
+# Target home resolution for doctor diagnostics
+TARGET_HOME="${HOME}"
+if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
+    TARGET_HOME="$(eval echo "~${SUDO_USER}")"
+fi
+
 # test_shell() - Test Quickshell shell
 test_shell() {
     echo "=== Shell ==="
@@ -103,7 +109,7 @@ test_shell() {
     fi
     
     # Config test
-    if [ -d "${HOME}/.config/quickshell" ]; then
+    if [ -d "${TARGET_HOME}/.config/quickshell" ]; then
         echo "  Config          PASS (exists)"
         TEST_RESULTS[QuickshellConfig]=PASS
     else
@@ -180,10 +186,10 @@ test_configuration() {
     echo "=== Configuration ==="
     
     # Hyprland config test
-    if [ -f "${HOME}/.config/hypr/hyprland.lua" ]; then
+    if [ -f "${TARGET_HOME}/.config/hypr/hyprland.lua" ]; then
         echo "  Hyprland config PASS (Lua format exists)"
         TEST_RESULTS[HyprlandConfig]=PASS
-    elif [ -f "${HOME}/.config/hypr/hyprland.conf" ]; then
+    elif [ -f "${TARGET_HOME}/.config/hypr/hyprland.conf" ]; then
         echo "  Hyprland config WARN (old .conf format, consider migrating to Lua)"
         TEST_RESULTS[HyprlandConfig]=WARN
     else
@@ -192,7 +198,7 @@ test_configuration() {
     fi
     
     # Quickshell config test
-    if [ -d "${HOME}/.config/quickshell" ]; then
+    if [ -d "${TARGET_HOME}/.config/quickshell" ]; then
         echo "  Quickshell      PASS (exists)"
         TEST_RESULTS[QuickshellConfig]=PASS
     else

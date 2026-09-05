@@ -75,7 +75,11 @@ validate_integration_capabilities() {
 # install_integration() - Install a shell integration with prompt & backup protection
 install_integration() {
     local shell_name=${1:-"end4-pC"}
-    local target_dir="${HOME}/.config/quickshell"
+    local target_user_home="${HOME}"
+    if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
+        target_user_home="$(eval echo "~${SUDO_USER}")"
+    fi
+    local target_dir="${target_user_home}/.config/quickshell"
     local source_dir="${INTEGRATIONS_DIR}/${shell_name}"
 
     log_step "Deploying shell integration [${shell_name}]"

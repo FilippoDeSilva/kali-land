@@ -9,11 +9,30 @@ readonly FILESYSTEM_SH_SOURCED=1
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${LIB_DIR}/logging.sh"
 
+# Target user and home directory resolution (handles sudo execution)
+if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
+    TARGET_USER="${SUDO_USER}"
+    TARGET_HOME="$(eval echo "~${SUDO_USER}")"
+else
+    TARGET_USER="$(id -un)"
+    TARGET_HOME="${HOME}"
+fi
+
 # Directory constants
 REPO_ROOT="$(cd "${LIB_DIR}/../.." && pwd)"
-CONFIG_DIR="${HOME}/.config"
-BACKUP_DIR="${HOME}/.local/state/kali-land/backups"
-STATE_DIR="${HOME}/.local/state/kali-land"
+CONFIG_DIR="${TARGET_HOME}/.config"
+STATE_DIR="${TARGET_HOME}/.local/state/kali-land"
+BACKUP_DIR="${STATE_DIR}/backups"
+
+# fix_ownership() - Ensure target user owns installed files
+fix_ownership() {
+    local target_path=$1
+    if [ -n "${TARGET_USER}" ] && [ -e "${target_path}" ]; then
+        local user_group
+        user_group="$(id -gn "${TARGET_USER}" 2>/dev/null || echo "${TARGET_USER}")"
+        chown -R "${TARGET_USER}:${user_group}" "${target_path}" 2>/dev/null || true
+    fi
+}
 
 # ensure_directories() - Create required directories
 ensure_directories() {

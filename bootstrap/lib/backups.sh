@@ -10,7 +10,16 @@ LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${LIB_DIR}/logging.sh"
 source "${LIB_DIR}/prompts.sh"
 
-STATE_DIR="${HOME}/.local/state/kali-land"
+# Target user and home directory resolution (handles sudo execution)
+if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
+    TARGET_USER="${SUDO_USER}"
+    TARGET_HOME="$(eval echo "~${SUDO_USER}")"
+else
+    TARGET_USER="$(id -un)"
+    TARGET_HOME="${HOME}"
+fi
+
+STATE_DIR="${TARGET_HOME}/.local/state/kali-land"
 BACKUP_BASE="${STATE_DIR}/backups"
 
 # protect_and_install_config() - Protect user configuration: detect -> prompt -> backup -> change -> validate
@@ -46,6 +55,12 @@ protect_and_install_config() {
     log_info "Copying ${source_path} -> ${target_path}"
     mkdir -p "$(dirname "${target_path}")"
     if cp -r "${source_path}" "${target_path}"; then
+        if [ -n "${TARGET_USER}" ]; then
+            local user_group
+            user_group="$(id -gn "${TARGET_USER}" 2>/dev/null || echo "${TARGET_USER}")"
+            chown -R "${TARGET_USER}:${user_group}" "${target_path}" 2>/dev/null || true
+            chown -R "${TARGET_USER}:${user_group}" "$(dirname "${target_path}")" 2>/dev/null || true
+        fi
         log_success "Successfully deployed configuration for ${component_name}"
         return 0
     else
