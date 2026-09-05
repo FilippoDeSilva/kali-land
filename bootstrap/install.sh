@@ -26,7 +26,13 @@ if [ -f "${REPO_ROOT}/.env" ]; then
     set +a
 fi
 
-KALI_LAND_VERSION="${KALI_LAND_VERSION:-1.0.0}"
+if [ -n "${KALI_LAND_VERSION:-}" ]; then
+    log_info "Using KALI_LAND_VERSION=${KALI_LAND_VERSION} from environment"
+elif [ -f "${REPO_ROOT}/VERSION" ]; then
+    KALI_LAND_VERSION="$(tr -d '\r\n' < "${REPO_ROOT}/VERSION")"
+else
+    KALI_LAND_VERSION="1.0.0"
+fi
 
 # Interrupt trap for user aborts or unexpected failures
 cleanup_on_exit() {

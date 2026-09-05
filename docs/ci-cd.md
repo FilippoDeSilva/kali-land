@@ -107,22 +107,69 @@ The installer will automatically:
 4. **Faster Development:** CI/CD builds Quickshell automatically on changes
 5. **Easy Distribution:** Pre-built packages are attached to releases
 
-## Maintenance
+## Maintenance & Dependency Management
 
-### Dependencies
+### Versioning Model
 
-The CI/CD workflows require no additional dependencies beyond standard GitHub Actions.
+`kali-land` uses a single source of truth for versioning:
+- **`VERSION` File**: Located at the repository root (`/VERSION`). `bootstrap/install.sh` dynamically reads this file to determine `KALI_LAND_VERSION` unless overridden via environment variable (`KALI_LAND_VERSION=1.1.0 ./bootstrap/install.sh`).
 
-### Secrets
+### Upstream Dependency Pinned Versions
 
-No secrets are required for the basic workflows. The GitHub token is automatically provided by GitHub Actions.
+Built-from-source dependencies are pinned inside `.github/workflows/build-quickshell.yml` under `env`:
 
-### Updates
+```yaml
+env:
+  CPPTRACE_REF: v0.7.3      # Pinned cpptrace tag/commit
+  QUICKSHELL_REF: v0.4.0    # Pinned quickshell tag/commit
+  MATUGEN_VERSION: 0.16.0   # Pinned matugen version on crates.io
+```
 
-To update the workflows:
-1. Edit the workflow files in `.github/workflows/`
-2. Commit and push changes
-3. Workflows will automatically update on next push
+### Upstream Dependency & Version Upgrade Guide
+
+When an upstream dependency releases an update, a patch, or a new version:
+
+#### Step 1: Verify Upstream Release
+Check the upstream repositories for new stable tags or commit SHAs:
+- **Quickshell**: [outfoxxed/quickshell releases](https://github.com/outfoxxed/quickshell/releases)
+- **cpptrace**: [jeremy-rifkin/cpptrace releases](https://github.com/jeremy-rifkin/cpptrace/releases)
+- **Matugen**: [matugen on crates.io](https://crates.io/crates/matugen)
+
+#### Step 2: Update Pinned Variables in CI
+Edit `.github/workflows/build-quickshell.yml` and update the relevant environment variable:
+```yaml
+env:
+  QUICKSHELL_REF: v0.5.0   # Updated tag or commit SHA
+```
+
+#### Step 3: Bump Project Version (If Applicable)
+If the dependency bump constitutes a new `kali-land` release:
+1. Update the root `VERSION` file:
+   ```bash
+   echo "1.1.0" > VERSION
+   ```
+2. Commit the changes:
+   ```bash
+   git add VERSION .github/workflows/build-quickshell.yml
+   git commit -m "chore(deps): update Quickshell to v0.5.0 and bump version to 1.1.0"
+   git push origin main
+   ```
+
+#### Step 4: Re-Trigger Release CI Build & Asset Distribution
+Tag and push the new release version (or force-push to update existing release assets):
+```bash
+# For new version:
+git tag -a v1.1.0 -m "Release v1.1.0"
+git push origin v1.1.0
+
+# To re-build and overwrite assets for current version (e.g. v1.0.0):
+git tag -f -a v1.0.0 -m "Release v1.0.0 (updated binaries)"
+git push origin -f v1.0.0
+```
+
+GitHub Actions will automatically run the container build, compile updated binaries, compute SHA-256 checksums, and attach the updated assets to the release.
+
+---
 
 ## Troubleshooting
 
@@ -131,19 +178,12 @@ To update the workflows:
 If the Quickshell build fails in CI/CD:
 1. Check the Actions tab in GitHub
 2. Review the build logs
-3. Update build dependencies if needed
-4. Check for Quickshell repository changes
+3. Update build dependencies in `.github/workflows/build-quickshell.yml` if new Qt/system libs are required
+4. Verify upstream commit/tag compatibility
 
-### Artifact Issues
+### Checksum Verification Failures
 
-If artifacts aren't uploaded:
-1. Check workflow permissions in repository settings
-2. Ensure GitHub Actions has write permissions
-3. Verify token has proper scopes
-
-### Installation Issues
-
-If users can't download pre-built binaries:
-1. Check that releases are published
-2. Verify artifact names match expected patterns
-3. Check download URLs in install script
+If `install.sh` rejects a prebuilt binary with a SHA-256 mismatch:
+1. Ensure both `.tar.gz` and `.tar.gz.sha256` were uploaded cleanly by CI.
+2. Run `sha256sum /tmp/quickshell.tar.gz` manually to inspect hash output.
+3. Re-trigger CI tag build if release assets were partially uploaded or corrupted.
