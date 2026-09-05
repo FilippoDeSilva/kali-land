@@ -27,7 +27,7 @@ The project uses `end4-pC` as its primary reference integration proof-of-concept
 ### end4-pC Structure
 
 ```text
-end4-pC/
+integrations/end4-pC/
 ├── shell.qml                    # Main entry point
 ├── panelFamilies/               # Panel configurations
 ├── modules/                     # UI modules (vertical bar, launcher, sidebars)

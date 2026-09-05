@@ -26,6 +26,8 @@ if [ -f "${REPO_ROOT}/.env" ]; then
     set +a
 fi
 
+KALI_LAND_VERSION="${KALI_LAND_VERSION:-1.0.0}"
+
 # Interrupt trap for user aborts or unexpected failures
 cleanup_on_exit() {
     local exit_code=$?
@@ -363,6 +365,50 @@ phase_5_desktop_services() {
     log_success "Phase 4 complete"
 }
 
+# verify_sha256() - Verify SHA-256 checksum of downloaded binary archive
+verify_sha256() {
+    local file_path="$1"
+    local sha_url="$2"
+    local sha_file="${file_path}.sha256"
+
+    log_info "Downloading SHA-256 checksum from ${sha_url}..."
+    if ! curl -fsSL "${sha_url}" -o "${sha_file}" 2>/dev/null; then
+        log_warn "SHA-256 checksum file not found at ${sha_url}"
+        rm -f "${sha_file}"
+        return 1
+    fi
+
+    local expected_hash
+    expected_hash=$(awk '{print $1}' "${sha_file}" | head -n 1)
+    if [ -z "${expected_hash}" ]; then
+        log_warn "Downloaded SHA-256 checksum file was empty"
+        rm -f "${sha_file}"
+        return 1
+    fi
+
+    local actual_hash=""
+    if command -v sha256sum &>/dev/null; then
+        actual_hash=$(sha256sum "${file_path}" | awk '{print $1}')
+    elif command -v shasum &>/dev/null; then
+        actual_hash=$(shasum -a 256 "${file_path}" | awk '{print $1}')
+    fi
+
+    rm -f "${sha_file}"
+
+    if [ -z "${actual_hash}" ]; then
+        log_warn "No sha256sum or shasum tool available to verify integrity"
+        return 1
+    fi
+
+    if [ "${expected_hash}" = "${actual_hash}" ]; then
+        log_success "SHA-256 checksum verified: ${actual_hash:0:12}..."
+        return 0
+    else
+        log_error "SHA-256 checksum mismatch! (Expected: ${expected_hash}, Got: ${actual_hash})"
+        return 1
+    fi
+}
+
 # phase_6_quickshell_skeleton() - Install Quickshell skeleton
 phase_6_quickshell_skeleton() {
     log_step "Phase 5: Quickshell Installation"
@@ -377,21 +423,26 @@ phase_6_quickshell_skeleton() {
     
     local download_success=false
     local quickshell_urls=(
-        "https://github.com/${repo_nwo}/releases/download/v1.0.0/quickshell-linux-x86_64.tar.gz"
+        "https://github.com/${repo_nwo}/releases/download/v${KALI_LAND_VERSION}/quickshell-linux-x86_64.tar.gz"
         "https://github.com/${repo_nwo}/releases/latest/download/quickshell-linux-x86_64.tar.gz"
     )
     
     for url in "${quickshell_urls[@]}"; do
         log_info "Attempting download from ${url}..."
         if curl -fsSL "${url}" -o /tmp/quickshell.tar.gz 2>/dev/null; then
-            log_info "Found pre-built Quickshell archive, unpacking..."
-            if tar -xzf /tmp/quickshell.tar.gz -C /tmp/ && [ -f /tmp/quickshell ]; then
-                if sudo cp /tmp/quickshell /usr/local/bin/quickshell && sudo chmod +x /usr/local/bin/quickshell; then
-                    log_success "Pre-built Quickshell installed successfully to /usr/local/bin/quickshell"
-                    rm -f /tmp/quickshell.tar.gz /tmp/quickshell
-                    download_success=true
-                    break
+            local sha_url="${url}.sha256"
+            if verify_sha256 "/tmp/quickshell.tar.gz" "${sha_url}"; then
+                log_info "Found verified pre-built Quickshell archive, unpacking..."
+                if tar -xzf /tmp/quickshell.tar.gz -C /tmp/ && [ -f /tmp/quickshell ]; then
+                    if sudo cp /tmp/quickshell /usr/local/bin/quickshell && sudo chmod +x /usr/local/bin/quickshell; then
+                        log_success "Pre-built Quickshell installed successfully to /usr/local/bin/quickshell"
+                        rm -f /tmp/quickshell.tar.gz /tmp/quickshell
+                        download_success=true
+                        break
+                    fi
                 fi
+            else
+                log_warn "Pre-built Quickshell binary at ${url} failed checksum verification. Rejecting."
             fi
             rm -f /tmp/quickshell.tar.gz /tmp/quickshell
         fi
@@ -574,21 +625,26 @@ phase_7_matugen() {
     
     local download_success=false
     local matugen_urls=(
-        "https://github.com/${repo_nwo}/releases/download/v1.0.0/matugen-linux-x86_64.tar.gz"
+        "https://github.com/${repo_nwo}/releases/download/v${KALI_LAND_VERSION}/matugen-linux-x86_64.tar.gz"
         "https://github.com/${repo_nwo}/releases/latest/download/matugen-linux-x86_64.tar.gz"
     )
     
     for url in "${matugen_urls[@]}"; do
         log_info "Attempting download from ${url}..."
         if curl -fsSL "${url}" -o /tmp/matugen.tar.gz 2>/dev/null; then
-            log_info "Found pre-built Matugen archive, unpacking..."
-            if tar -xzf /tmp/matugen.tar.gz -C /tmp/ && [ -f /tmp/matugen ]; then
-                if sudo cp /tmp/matugen /usr/local/bin/matugen && sudo chmod +x /usr/local/bin/matugen; then
-                    log_success "Pre-built Matugen installed successfully to /usr/local/bin/matugen"
-                    rm -f /tmp/matugen.tar.gz /tmp/matugen
-                    download_success=true
-                    break
+            local sha_url="${url}.sha256"
+            if verify_sha256 "/tmp/matugen.tar.gz" "${sha_url}"; then
+                log_info "Found verified pre-built Matugen archive, unpacking..."
+                if tar -xzf /tmp/matugen.tar.gz -C /tmp/ && [ -f /tmp/matugen ]; then
+                    if sudo cp /tmp/matugen /usr/local/bin/matugen && sudo chmod +x /usr/local/bin/matugen; then
+                        log_success "Pre-built Matugen installed successfully to /usr/local/bin/matugen"
+                        rm -f /tmp/matugen.tar.gz /tmp/matugen
+                        download_success=true
+                        break
+                    fi
                 fi
+            else
+                log_warn "Pre-built Matugen binary at ${url} failed checksum verification. Rejecting."
             fi
             rm -f /tmp/matugen.tar.gz /tmp/matugen
         fi

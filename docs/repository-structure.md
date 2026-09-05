@@ -84,7 +84,7 @@ config/
 
 **Purpose:** Source of truth for all user configuration. The installation system copies these files to `~/.config/` during installation.
 
-**Note**: Quickshell configuration is provided by end4-pC in the `end4-pC/` directory, not in `config/quickshell/`.
+**Note**: Quickshell shell integration source is provided in `integrations/end4-pC/`.
 
 ### Hyprland Configuration Structure
 
@@ -100,19 +100,20 @@ Hyprland uses a modular Lua configuration format:
 - **vmware.lua**: VMware-specific optimizations
 - **minimal.lua**: Minimal configuration for testing
 
-### Quickshell Configuration Structure
+### Quickshell Integration Structure
 
-kali-land uses the end4-pC Quickshell configuration for a professional Material 3 design:
+`kali-land` decoupled shell configuration from platform runtime. The repository provides `end4-pC` as the default reference shell integration:
 
-- **end4-pC/**: Cloned end4-pC Quickshell configuration
+- **integrations/end4-pC/**: Reference shell integration source
   - **shell.qml**: Main entry point for end4-pC
   - **modules/**: Various UI modules (bar, launcher, etc.)
   - **services/**: Backend services (network, audio, etc.)
   - **panelFamilies/**: Different panel configurations
   - **defaults/**: Default configurations and presets
   - **assets/**: Icons, fonts, images
+  - **manifest.yaml**: Integration capability manifest
 
-The installation script clones end4-pC to `~/.config/quickshell/` and sets up the necessary environment variables. The basic `config/quickshell/` directory serves as a backup/alternative configuration.
+The installation script deploys `integrations/end4-pC/` to `~/.config/quickshell/` and sets up the required environment variables (`QS_CONFIG=end4-pC`).
 
 For detailed Quickshell architecture, see [Quickshell Architecture](quickshell-architecture.md).
 
@@ -162,7 +163,7 @@ Repository (Source of Truth)
 bootstrap/install.sh
     ↓
 ~/.config/hypr/ (Runtime)
-~/.config/quickshell/ (Runtime - end4-pC)
+~/.config/quickshell/ (Runtime deployed from integrations/end4-pC)
 ~/.config/foot/ (Runtime)
 ~/.config/kitty/ (Runtime)
 ~/.config/gtk/ (Runtime)
@@ -172,8 +173,8 @@ bootstrap/install.sh
 
 The installation system:
 1. Reads configuration from `config/` in the repository
-2. Copies files to appropriate locations in `~/.config/`
-3. Clones end4-pC to `~/.config/quickshell/`
+2. Copies Hyprland and app configs to appropriate locations in `~/.config/`
+3. Deploys reference shell integration from `integrations/end4-pC` to `~/.config/quickshell/`
 4. Sets up necessary environment variables
 5. Applies VMware optimizations only if VMware is detected
 6. Preserves existing files by backing them up
@@ -188,12 +189,12 @@ The installation system:
 3. Update documentation as needed
 4. Add to installation script if it requires special handling
 
-### Adding a New Quickshell Component
+### Adding a New Quickshell Shell Integration
 
-Quickshell configuration is managed by end4-pC. To customize:
-1. Modify files in `end4-pC/` before installation
-2. The installer will clone the modified version to `~/.config/quickshell/`
-3. Alternatively, customize after installation in `~/.config/quickshell/`
+Under the BYOS model:
+1. Create a new directory under `integrations/<shell-name>/` with a `manifest.yaml`
+2. Deploy using `bootstrap/lib/integrations.sh` (`install_integration <shell-name>`)
+3. `~/.config/quickshell/` will receive the selected shell integration
 
 ### Adding a New Package Group
 

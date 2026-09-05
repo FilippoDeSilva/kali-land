@@ -22,10 +22,7 @@ sudo ./bootstrap/install.sh
 The installer sets up:
 
 - **Hyprland**: Modern Wayland compositor
-- **Quickshell**: Professional desktop shell (end4-pC with Material 3 design)
-- **Desktop Services**: Audio, network, notifications, clipboard
-- **Applications**: Terminal, file manager, launcher
-- **Configuration**: Complete modular configuration system
+- **Quickshell**: Modern desktop shell engine (with `end4-pC` as the default reference shell integration)
 
 ## Installation Process
 
@@ -37,23 +34,24 @@ The installer is divided into phases:
 4. **Hyprland Installation**: Installs and configures Hyprland
 5. **Fonts Installation**: Installs required fonts
 6. **Desktop Services**: Installs audio, network, and desktop services
-7. **Quickshell Installation**: Installs Quickshell with end4-pC configuration
+7. **Quickshell Installation**: Installs Quickshell engine & deploys `end4-pC` reference integration
 8. **VMware Optimization**: Optimizes for VMware environment (if detected)
 
 ## Quickshell Installation
 
-The installer uses a smart Quickshell installation strategy:
+The installer uses a secure, high-performance installation strategy:
 
-1. **Pre-built Binary Check**: First checks for pre-built Quickshell from GitHub releases
-2. **Fast Installation**: If pre-built binary is available, downloads and installs it
-3. **Fallback**: If no pre-built version, builds from source
-4. **end4-pC Configuration**: Clones end4-pC configuration for Material 3 design
-5. **Dependencies**: Installs all required Qt6 modules and dependencies
+1. **Pre-built Binary & SHA-256 Verification**: Checks for pre-built binaries from GitHub Releases matching `KALI_LAND_VERSION`.
+2. **Cryptographic Check**: Downloads and verifies SHA-256 checksums (`.sha256`) before unpacking binaries.
+3. **Fast Installation**: Installs verified prebuilt binaries directly to `/usr/local/bin`.
+4. **Fallback**: If remote binaries are missing or checksum validation fails, builds Quickshell from source using CMake and Ninja.
+5. **Reference Integration**: Deploys `integrations/end4-pC` to `~/.config/quickshell` as the default reference shell integration.
 
 This provides:
-- **Fast installation** when pre-built binaries are available
-- **Reliable fallback** to source building when needed
-- **Professional UI** with end4-pC Material 3 design
+- **Maximum security**: Cryptographic verification before execution
+- **Fast installation**: Fast binary deployment when release artifacts are present
+- **Reliable fallback**: Automated source compilation when prebuilts are unavailable
+- **Modular BYOS**: Clear separation between platform runtime and shell integrations
 
 ## Requirements
 
@@ -203,39 +201,38 @@ Quickshell is not available in Kali repositories. Installation options:
 
 #### Option 1: Build from Source (Recommended)
 
-1. Install Qt6 dependencies:
+1. Install build dependencies:
    ```bash
-   sudo apt install -y qt6-base-dev qt6-declarative-dev qt6-wayland-dev cmake
+   sudo apt install -y qt6-base-dev qt6-declarative-dev qt6-wayland-dev cmake ninja-build build-essential pkg-config libpipewire-0.3-dev libpam0g-dev libpolkit-gobject-1-dev
    ```
 
 2. Clone and build Quickshell:
    ```bash
-   git clone https://github.com/prairielearner/quickshell.git /tmp/quickshell
+   git clone --recursive https://github.com/outfoxxed/quickshell.git /tmp/quickshell
    cd /tmp/quickshell
    mkdir build && cd build
-   cmake ..
-   make
-   sudo make install
+   cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DDISTRIBUTOR="kali-land" ..
+   ninja
+   sudo cmake --install .
    ```
 
-#### Option 2: Use Pre-built Binaries
+#### Option 2: Pre-built Release Binaries with Checksum Verification
 
-Check the Quickshell releases for pre-built binaries that might work on Kali.
+Download prebuilt binaries and SHA-256 checksums attached to official `kali-land` GitHub Releases:
+```bash
+curl -fsSL "https://github.com/FilippoDeSilva/kali-land/releases/download/v1.0.0/quickshell-linux-x86_64.tar.gz" -o /tmp/quickshell.tar.gz
+curl -fsSL "https://github.com/FilippoDeSilva/kali-land/releases/download/v1.0.0/quickshell-linux-x86_64.tar.gz.sha256" -o /tmp/quickshell.tar.gz.sha256
+sha256sum -c /tmp/quickshell.tar.gz.sha256
+tar -xzf /tmp/quickshell.tar.gz -C /tmp/
+sudo cp /tmp/quickshell /usr/local/bin/quickshell
+```
 
-### Phase 6: Quickshell Configuration (Automated)
+### Phase 6: Shell Integration Deployment
 
-The installer creates a modular Quickshell configuration with the following structure:
+`kali-land` uses a **Bring Your Own Shell (BYOS)** architecture. By default, the installer deploys the reference integration from `integrations/end4-pC` into `~/.config/quickshell`:
 
 ```
-config/quickshell/
-├── shell.qml                 # Main entry point
-├── qmldir                    # QML module registration
-├── Colors.qml                # Global color theme (singleton)
-└── components/
-    └── bar/
-        ├── TopBarConfig.qml  # Bar configuration object
-        ├── WorkspaceIndicator.qml  # Workspace display component
-        └── Clock.qml         # Time display component
+integrations/end4-pC/   ──(deployed to)──>   ~/.config/quickshell/
 ```
 
 **Key Design Principles:**

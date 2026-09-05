@@ -18,13 +18,18 @@ kali-land uses GitHub Actions for CI/CD to build and distribute Quickshell and t
 **Process:**
 1. Uses GitHub Actions with official Kali Linux container (`kalilinux/kali-rolling:latest`)
 2. Installs all Quickshell build dependencies
-3. Clones the official Quickshell repository (with recursive submodules for `cpptrace`)
-4. Builds Quickshell with cmake and ninja
-5. Creates a tar.gz package with the Quickshell binary
-6. Uploads the artifact (retained for 30 days)
-7. On release creation, uploads the artifact to the release
+3. Clones pinned versions of upstream dependencies: `cpptrace` (`v0.7.3`) and `quickshell` (`v0.4.0`)
+4. Builds Quickshell with CMake and Ninja (`-DDISTRIBUTOR="kali-land"`)
+5. Compiles Matugen (`0.16.0`) with Cargo
+6. Generates SHA-256 checksum files (`.sha256`) for both `quickshell` and `matugen` archives
+7. Uploads temporary CI artifacts for development pushes (retained 30 days)
+8. On git tag/release publication, attaches immutable release binaries and `.sha256` checksum files to the release assets
 
-**Output:** `quickshell-linux-x86_64.tar.gz`
+**Outputs:**
+- `quickshell-linux-x86_64.tar.gz`
+- `quickshell-linux-x86_64.tar.gz.sha256`
+- `matugen-linux-x86_64.tar.gz`
+- `matugen-linux-x86_64.tar.gz.sha256`
 
 ### 2. Installer Build Workflow
 
@@ -43,13 +48,13 @@ kali-land uses GitHub Actions for CI/CD to build and distribute Quickshell and t
 
 **Output:** `kali-land-installer.tar.gz`
 
-## Installation Process
+## Installation & Verification Process
 
-The installer script (`bootstrap/install.sh`) has been updated to:
+The installer script (`bootstrap/install.sh`) uses a 3-tier distribution strategy:
 
-1. **First**, check for pre-built Quickshell from GitHub releases
-2. **If found**, download and install the pre-built binary (much faster)
-3. **If not found**, fall back to building from source (original behavior)
+1. **GitHub Release Binary Check**: Checks for pre-built binaries matching `KALI_LAND_VERSION` from GitHub releases
+2. **Cryptographic SHA-256 Checksum Verification**: Downloads `.sha256` hash files and verifies integrity using `sha256sum`/`shasum`. If checksum validation fails, rejects the binary.
+3. **Automated Source Compilation Fallback**: If remote prebuilt binaries are missing or fail integrity checks, builds Quickshell and dependencies locally from source using CMake and Ninja.
 
 This provides the best of both worlds:
 - **Fast installation** when pre-built binaries are available
