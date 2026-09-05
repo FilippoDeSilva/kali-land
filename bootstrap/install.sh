@@ -506,10 +506,11 @@ phase_6_quickshell_skeleton() {
         phase_6_quickshell_build_from_source
     fi
 
-    log_info "Deploying end4-pC reference shell integration..."
-    install_integration "end4-pC"
+    local shell_name="end4-pC"
+    log_info "Deploying default reference shell integration [${shell_name}]..."
+    install_integration "${shell_name}"
     
-    configure_quickshell_hypr_env
+    configure_quickshell_hypr_env "${shell_name}"
     
     log_success "Quickshell configuration completed"
     log_success "Phase 5 complete"
@@ -517,6 +518,7 @@ phase_6_quickshell_skeleton() {
 
 # configure_quickshell_hypr_env() - Configure Hyprland environment & autostart for Quickshell
 configure_quickshell_hypr_env() {
+    local shell_name="${1:-end4-pC}"
     local target_user_home="${HOME}"
     if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
         target_user_home="$(eval echo "~${SUDO_USER}")"
@@ -537,8 +539,8 @@ configure_quickshell_hypr_env() {
         fi
 
         if ! grep -q "QS_CONFIG" "${hypr_env_file}"; then
-            echo 'hl.env("QS_CONFIG", "end4-pC")' >> "${hypr_env_file}"
-            log_success "Added QS_CONFIG environment variable for end4-pC"
+            echo "hl.env(\"QS_CONFIG\", \"${shell_name}\")" >> "${hypr_env_file}"
+            log_success "Added QS_CONFIG environment variable for ${shell_name}"
         fi
         if ! grep -q "QT_QPA_PLATFORM" "${hypr_env_file}"; then
             echo 'hl.env("QT_QPA_PLATFORM", "wayland")' >> "${hypr_env_file}"

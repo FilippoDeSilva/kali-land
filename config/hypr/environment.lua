@@ -18,7 +18,6 @@ hl.env("QT_QUICK_BACKEND", "software")
 hl.env("QT_WAYLAND_DISABLE_WINDOWDECORATION", "1")
 hl.env("QT_AUTO_SCREEN_SCALE_FACTOR", "1")
 hl.env("QT_ACCESSIBILITY", "1")
-hl.env("QS_CONFIG", "end4-pC")
 
 -- Default applications
 -- Use foot for VMs (native Wayland), kitty for bare metal (GPU accelerated)
