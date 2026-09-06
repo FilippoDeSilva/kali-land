@@ -43,6 +43,13 @@ if [ -d "${REPO_ROOT}/themes" ]; then
     cp -r "${REPO_ROOT}/themes/"* "${HOME}/.local/share/themes/"
 fi
 
+# Deploy fontconfig configuration
+if [ -d "${REPO_ROOT}/config/fontconfig" ]; then
+    echo "Deploying fontconfig rules..."
+    mkdir -p "${HOME}/.config/fontconfig"
+    cp -r "${REPO_ROOT}/config/fontconfig/"* "${HOME}/.config/fontconfig/"
+fi
+
 # Deploy font assets (e.g. MaterialSymbolsRounded.ttf)
 if [ -d "${REPO_ROOT}/integrations/end4-pC/assets/fonts" ]; then
     echo "Deploying font assets to ~/.local/share/fonts..."

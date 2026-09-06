@@ -379,6 +379,18 @@ deploy_hyprland_config() {
     else
         log_warn "Hyprland configuration directory not found in repository"
     fi
+
+    if [ -d "${REPO_ROOT}/config/fontconfig" ]; then
+        local fontconfig_dir="${target_user_home}/.config/fontconfig"
+        log_info "Deploying fontconfig rules to ${fontconfig_dir}"
+        mkdir -p "${fontconfig_dir}"
+        cp -r "${REPO_ROOT}/config/fontconfig/"* "${fontconfig_dir}/"
+        if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
+            chown -R "${SUDO_USER}:${user_group}" "${fontconfig_dir}" 2>/dev/null || true
+        fi
+        fc-cache -fv &>/dev/null || true
+        log_success "Fontconfig configuration installed"
+    fi
 }
 
 # phase_5_desktop_services() - Install desktop services & Hyprland Lua Configuration
