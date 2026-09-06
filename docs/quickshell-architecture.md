@@ -1,91 +1,144 @@
-# Quickshell Architecture in kali-land
+# Quickshell Architecture & BYOS Guide in kali-land
 
 ## Overview
 
-Quickshell serves as the graphical desktop shell runtime layer in `kali-land`. It provides user-facing UI components (bars, panels, launchers, control centers, widgets, lock screens, and sidebars) while Hyprland handles window management.
+Quickshell serves as the graphical desktop shell runtime layer in `kali-land`. It provides user-facing UI components (status bars, widget panels, launchers, control centers, lock screens, and sidebars) while Hyprland handles window management.
 
+> **"Who says Kali Linux doesn't deserve world-class aesthetics?"**
 > **"kali-land owns the environment; the user owns the experience."**
 
 `kali-land` strictly distinguishes between:
 ```text
-Quickshell Runtime (Platform)  ≠  Quickshell Shell Integration (Experience)
+Quickshell Runtime (Platform Engine)  ≠  Quickshell Shell Integration (User Experience)
 ```
 
 ---
 
-## Bring Your Own Shell (BYOS) & Manifest Standard
+## Bring Your Own Shell (BYOS)
 
-`kali-land` adopts a **Bring Your Own Shell (BYOS)** model. The platform provides a stable Wayland runtime, capability detection, package resolution, font delivery, and safety/rollback mechanisms, while allowing users to select or bring their preferred Quickshell shell.
+`kali-land` is built on a **Bring Your Own Shell (BYOS)** architecture. You are never locked into a hardcoded interface or theme! You have complete freedom to:
+1. **Adopt a Reference Shell**: Use pre-configured reference integrations like `end4-pC` out-of-the-box.
+2. **Port an Existing Shell**: Bring any existing Quickshell configuration from the community.
+3. **Build Your Own Custom Shell**: Create a personalized desktop shell from scratch tailored to your workflow.
 
-Every shell integration in `kali-land` defines its capability contract and package/font requirements in a standardized `manifest.yaml`:
+---
+
+## `kali-land` Standards & Manifest Specification
+
+To make any Quickshell project work seamlessly with `kali-land`'s automated installer (`bootstrap/install.sh`), package resolver, and diagnostic system (`bootstrap/doctor.sh`), every integration must include a standardized `manifest.yaml` in its root folder (`integrations/<shell-name>/manifest.yaml`).
+
+### Standard `manifest.yaml` Schema
 
 ```yaml
-name: end4-pC
+name: my-custom-shell
 version: "1.0.0"
 type: quickshell
-description: "Material 3 Quickshell desktop shell reference integration for kali-land"
-provenance: "https://github.com/pctrade/end4-pC"
+description: "My custom Material 3 desktop shell integration for kali-land"
+provenance: "https://github.com/myuser/my-custom-shell"
 
+# Main QML entry point file (relative to integration root)
 entry: "shell.qml"
 
 requires:
+  # System display & compositor capabilities required by the shell
   capabilities:
     - wayland
     - hyprland
     - quickshell
+    
+  # System APT package dependencies required by the shell
   packages:
     - qml6-module-qtcore
     - qml6-module-qtquick
+    - qml6-module-qtquick-controls
+    - qml6-module-qtquick-layouts
+    - qml6-module-qt5compat-graphicaleffects
     - fontconfig
     - grim
     - slurp
     - wl-clipboard
-    - wf-recorder
-    - tesseract-ocr
-    - jq
     - playerctl
+    
+  # Declarative Font System dependencies
   fonts:
+    # System font packages installed via apt
     packages:
       - fonts-inter
       - fonts-roboto
       - fonts-jetbrains-mono
       - fonts-noto-color-emoji
       - fonts-font-awesome
+    # Local TTF/OTF font assets bundled inside assets/fonts/
     assets:
       - "assets/fonts/MaterialSymbolsRounded.ttf"
+      - "assets/fonts/MyCustomFont.ttf"
 
+# Environment variables exported when launching Quickshell
 environment:
   QT_QUICK_BACKEND: "software" # Recommended for VMware compatibility
-  QS_CONFIG: "end4-pC"
+  QS_CONFIG: "my-custom-shell"
 ```
 
 ---
 
-## Reference Shell Integration (`end4-pC`)
+## Best Practices for Custom Shell Developers
 
-`kali-land` uses `end4-pC` as its primary reference integration proof-of-concept.
+### 1. Package Placement Standards (`requires.packages`)
+- **Qt6 QML Modules**: Declare all Qt modules your QML code imports (e.g. `qml6-module-qtquick-layouts`, `qml6-module-qt5compat-graphicaleffects`).
+- **CLI Helpers**: Declare any command line tools your scripts invoke (e.g. `grim`, `slurp`, `playerctl`, `wl-clipboard`, `jq`, `tesseract-ocr`).
+- The installer automatically parses these packages and installs missing dependencies before building/deploying the shell.
 
-### Directory Structure
+### 2. Font Asset Standards (`requires.fonts`)
+- **System Fonts**: Place system font packages under `requires.fonts.packages` (e.g. `fonts-inter`, `fonts-roboto`).
+- **Custom Font TTF Files**: Place custom `.ttf` or `.otf` font files inside `integrations/<shell-name>/assets/fonts/` and list them under `requires.fonts.assets`.
+- The installer copies all files in `assets/fonts/` directly to `~/.local/share/fonts/` and automatically executes `fc-cache -fv`. This guarantees zero invisible text in Qt 6 QML components.
 
-```text
-integrations/end4-pC/
-├── manifest.yaml                # Standardized capability & package manifest
-├── shell.qml                    # Main entry point
-├── panelFamilies/               # Panel configurations
-├── modules/                     # UI modules (bar, launcher, sidebars, lock screen)
-├── services/                    # Backend Qt/QML service bridges
-├── assets/                      # Icons, wallpapers, bundled fonts
-│   └── fonts/                   # TTF/OTF font assets (auto-synced to ~/.local/share/fonts/)
-├── defaults/                    # Default configurations
-├── scripts/                     # Helper scripts
-└── translations/                # i18n support
+### 3. Keybindings & IPC Integration Standards
+- Place your custom keybindings in `config/hypr/keybinds.lua`.
+- Trigger Quickshell features cleanly via IPC commands rather than hardcoding complex shell execution lines:
+
+```lua
+-- Example in config/hypr/keybinds.lua
+local mainMod = "SUPER"
+
+-- Trigger custom search launcher
+hl.bind(mainMod .. " + space", hl.dsp.exec_cmd("bash -c 'quickshell ipc call search toggle'"))
+
+-- Trigger custom lock screen
+hl.bind(mainMod .. " + l", hl.dsp.exec_cmd("bash -c 'quickshell ipc call lock activate'"))
 ```
 
 ---
 
-## Quickshell IPC Interface
+## Step-by-Step: Creating & Deploying a Custom Shell
 
-Default keybindings in `kali-land` (`config/hypr/keybinds.lua`) interact with Quickshell using native IPC signals:
+1. **Create a Directory**:
+   ```bash
+   mkdir -p integrations/my-shell/assets/fonts
+   ```
+
+2. **Create `manifest.yaml`**:
+   Write your `manifest.yaml` following the standard schema above.
+
+3. **Add Entry Point (`shell.qml`)**:
+   Create your main `shell.qml` file inside `integrations/my-shell/`.
+
+4. **Deploy via Installer**:
+   Deploy your custom integration to `~/.config/quickshell`:
+   ```bash
+   ./bootstrap/install.sh
+   ```
+   Or deploy programmatically via the bootstrap library in bash:
+   ```bash
+   source bootstrap/lib/integrations.sh
+   install_integration "my-shell"
+   ```
+
+---
+
+## Reference IPC Endpoints (`end4-pC`)
+
+The primary reference integration (`end4-pC`) supports the following native IPC commands out-of-the-box:
 
 | Feature / UI Component | Quickshell IPC Command | Description |
 |------------------------|------------------------|-------------|
@@ -103,17 +156,6 @@ Default keybindings in `kali-land` (`config/hypr/keybinds.lua`) interact with Qu
 | **Screen Capture (Region)** | `quickshell ipc call region screenshot` | Interactive area screenshot |
 | **Screen Record (Region)** | `quickshell ipc call region record` | Interactive area video recorder |
 | **Text OCR Extraction** | `quickshell ipc call region ocr` | Extract text from screen region |
-
----
-
-## Declarative Font Delivery System
-
-In Qt 6 QML, rendering text with `Text.NativeRendering` when a font is missing causes glyph rasterization to fail, making text invisible. 
-
-`kali-land` solves this cleanly via the **Declarative Font Delivery System**:
-1. **Manifest Declarations**: System font packages (`fonts-inter`, `fonts-roboto`, `fonts-jetbrains-mono`) and local TTF font assets are declared in `manifest.yaml`.
-2. **Automated Sync**: The installer (`bootstrap/lib/integrations.sh`) installs system package dependencies, copies bundled `.ttf` assets to `~/.local/share/fonts/`, and runs `fc-cache -fv`.
-3. **Zero Configuration**: Quickshell UI text renders crisply out-of-the-box on both bare-metal and virtual machines.
 
 ---
 
