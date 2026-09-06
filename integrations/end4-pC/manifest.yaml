@@ -42,11 +42,6 @@ requires:
     - playerctl
     - libnotify-bin
     - fontconfig
-    - fonts-font-awesome
-    - fonts-jetbrains-mono
-    - fonts-noto-color-emoji
-    - fonts-inter
-    - fonts-roboto
     - grim
     - slurp
     - wl-clipboard
@@ -55,6 +50,15 @@ requires:
     - jq
     - sox
     - ffmpeg
+  fonts:
+    packages:
+      - fonts-font-awesome
+      - fonts-jetbrains-mono
+      - fonts-noto-color-emoji
+      - fonts-inter
+      - fonts-roboto
+    assets:
+      - "assets/fonts/MaterialSymbolsRounded.ttf"
 
 optional:
   capabilities:

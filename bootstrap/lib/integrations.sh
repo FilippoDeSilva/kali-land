@@ -116,6 +116,83 @@ with open(sys.argv[1]) as f:
     rm -f "${temp_pkg_list}"
 }
 
+# install_integration_fonts() - Parse and install font requirements, assets, and fontconfig fallbacks from manifest.yaml
+install_integration_fonts() {
+    local shell_name=$1
+    local shell_dir="${INTEGRATIONS_DIR}/${shell_name}"
+    local manifest="${shell_dir}/manifest.yaml"
+    local target_user_home="${HOME}"
+    if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
+        target_user_home="$(eval echo "~${SUDO_USER}")"
+    fi
+
+    if [ ! -f "${manifest}" ]; then
+        return 0
+    fi
+
+    log_step "Resolving font requirements & fallbacks for integration [${shell_name}]"
+
+    # 1. Parse font packages declared in manifest.yaml
+    local temp_font_pkgs
+    temp_font_pkgs=$(mktemp)
+
+    python3 -c '
+import sys
+manifest_path = sys.argv[1]
+try:
+    import yaml
+    with open(manifest_path) as f:
+        data = yaml.safe_load(f) or {}
+    pkgs = data.get("requires", {}).get("fonts", {}).get("packages", [])
+    for p in pkgs:
+        print(p)
+except Exception:
+    in_fonts = False
+    in_pkgs = False
+    with open(manifest_path) as f:
+        for line in f:
+            raw = line.strip()
+            if "fonts:" in raw:
+                in_fonts = True
+                continue
+            if in_fonts and "packages:" in raw:
+                in_pkgs = True
+                continue
+            if in_pkgs:
+                if raw.startswith("- "):
+                    pkg = raw[2:].strip().split("#")[0].strip()
+                    if pkg:
+                        print(pkg)
+                elif raw and not raw.startswith("#") and ":" in raw:
+                    break
+' "${manifest}" > "${temp_font_pkgs}"
+
+    if [ -s "${temp_font_pkgs}" ]; then
+        log_info "Installing system font packages declared in [${shell_name}/manifest.yaml]:"
+        cat "${temp_font_pkgs}"
+        install_packages "${temp_font_pkgs}" || log_warn "Failed to install some font packages, continuing..."
+    fi
+    rm -f "${temp_font_pkgs}"
+
+    # 2. Sync local font assets to ~/.local/share/fonts/
+    if [ -d "${shell_dir}/assets/fonts" ]; then
+        local user_font_dir="${target_user_home}/.local/share/fonts"
+        log_info "Deploying integration font assets to ${user_font_dir}"
+        mkdir -p "${user_font_dir}"
+        cp -r "${shell_dir}/assets/fonts/"* "${user_font_dir}/" 2>/dev/null || true
+        if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
+            local user_group
+            user_group="$(id -gn "${SUDO_USER}" 2>/dev/null || echo "${SUDO_USER}")"
+            chown -R "${SUDO_USER}:${user_group}" "${user_font_dir}" 2>/dev/null || true
+        fi
+    fi
+
+    # 3. Refresh font cache
+    fc-cache -fv &>/dev/null || true
+    log_success "Font requirements and assets successfully processed for [${shell_name}]"
+}
+
+
 # install_integration() - Install a shell integration with prompt & backup protection
 install_integration() {
     local shell_name=${1:-"end4-pC"}
@@ -139,21 +216,10 @@ install_integration() {
     # Install integration-specific package dependencies declared in manifest.yaml
     install_integration_dependencies "${shell_name}"
 
+    # Install integration font requirements, assets & fontconfig fallbacks
+    install_integration_fonts "${shell_name}"
+
     # Use protected config installation flow (prompt -> backup -> deploy)
     protect_and_install_config "${source_dir}" "${target_dir}" "Shell Integration (${shell_name})"
-
-    # Install font assets from integration if available (e.g. MaterialSymbolsRounded.ttf)
-    if [ -d "${source_dir}/assets/fonts" ]; then
-        local user_font_dir="${target_user_home}/.local/share/fonts"
-        log_info "Installing integration font assets to ${user_font_dir}"
-        mkdir -p "${user_font_dir}"
-        cp -r "${source_dir}/assets/fonts/"* "${user_font_dir}/" 2>/dev/null || true
-        if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
-            local user_group
-            user_group="$(id -gn "${SUDO_USER}" 2>/dev/null || echo "${SUDO_USER}")"
-            chown -R "${SUDO_USER}:${user_group}" "${user_font_dir}" 2>/dev/null || true
-        fi
-        fc-cache -fv &>/dev/null || true
-        log_success "Font assets registered via fc-cache"
-    fi
 }
+

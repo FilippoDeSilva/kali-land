@@ -43,7 +43,7 @@ if [ -d "${REPO_ROOT}/themes" ]; then
     cp -r "${REPO_ROOT}/themes/"* "${HOME}/.local/share/themes/"
 fi
 
-# Deploy font assets (e.g. MaterialSymbolsRounded.ttf)
+# Deploy font assets to ~/.local/share/fonts
 if [ -d "${REPO_ROOT}/integrations/end4-pC/assets/fonts" ]; then
     echo "Deploying font assets to ~/.local/share/fonts..."
     mkdir -p "${HOME}/.local/share/fonts"
@@ -51,6 +51,8 @@ if [ -d "${REPO_ROOT}/integrations/end4-pC/assets/fonts" ]; then
     fc-cache -fv &>/dev/null || true
     echo "Font cache updated via fc-cache."
 fi
+
+
 
 echo "Configuration deployment complete!"
 echo "Backups saved at: ${BACKUP_DIR}"
