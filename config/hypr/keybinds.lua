@@ -33,7 +33,6 @@ hl.bind(mainMod .. " + SHIFT + g", hl.dsp.exec_cmd("geany"))
 hl.bind(mainMod .. " + space", exec_ipc("quickshell ipc call search toggle"))
 hl.bind("ALT + space", exec_ipc("quickshell ipc call search toggle"))
 hl.bind(mainMod .. " + r", exec_ipc("quickshell ipc call search toggle"))
-hl.bind(mainMod .. " + slash", exec_ipc("quickshell ipc call search toggle"))
 
 -- Clipboard Search & Manager (Native end4-pC Clipboard)
 hl.bind(mainMod .. " + v", exec_ipc("quickshell ipc call search clipboardToggle"))
