@@ -54,12 +54,16 @@ hl.bind(mainMod .. " + Escape", exec_ipc("quickshell ipc call session toggle"))
 hl.bind(mainMod .. " + SHIFT + Escape", exec_ipc("quickshell ipc call session toggle"))
 
 -- ===================================================================
--- 5. end4-pC Wallpapers & Customization Settings
+-- 5. end4-pC Wallpapers, Themes & Customization Settings
 -- ===================================================================
 hl.bind(mainMod .. " + w", exec_ipc("quickshell ipc call wallpaperSelector toggle"))
 hl.bind(mainMod .. " + SHIFT + w", exec_ipc("quickshell ipc call wallpaperSelector random"))
 hl.bind(mainMod .. " + ALT + w", exec_ipc("quickshell ipc call background toggleCenteredWallpaper"))
 hl.bind(mainMod .. " + comma", exec_ipc("quickshell ipc call settings toggle"))
+hl.bind(mainMod .. " + i", exec_ipc("quickshell ipc call settings toggle"))
+hl.bind(mainMod .. " + SHIFT + t", exec_ipc("~/.config/quickshell/scripts/colors/switchwall.sh --noswitch"))
+hl.bind(mainMod .. " + slash", exec_ipc("quickshell ipc call search toggle"))
+
 
 -- ===================================================================
 -- 6. end4-pC Sidebars & Status Bar

@@ -68,10 +68,13 @@ The keybinding system follows these principles:
 |------------|--------|------------------------|
 | `SUPER + L` / `SUPER + SHIFT + L` | Lock Screen | `quickshell ipc call lock activate` |
 | `SUPER + Escape` / `SUPER + SHIFT + Escape` | Session / Power Menu | `quickshell ipc call session toggle` |
-| `SUPER + W` | Open Wallpaper Selector | `quickshell ipc call wallpaperSelector toggle` |
-| `SUPER + SHIFT + W` | Set Random Wallpaper | `quickshell ipc call wallpaperSelector random` |
-| `SUPER + Comma` | Shell Settings | `quickshell ipc call settings toggle` |
+| `SUPER + W` | Open Wallpaper & Theme Selector | `quickshell ipc call wallpaperSelector toggle` |
+| `SUPER + SHIFT + W` | Set Random Wallpaper & Theme | `quickshell ipc call wallpaperSelector random` |
+| `SUPER + SHIFT + T` | Regenerate / Switch Theme Colors | `switchwall.sh --noswitch` |
+| `SUPER + Comma` / `SUPER + I` | Shell Settings & Preferences | `quickshell ipc call settings toggle` |
+| `SUPER + /` | Search & Cheatsheet Overview | `quickshell ipc call search toggle` |
 | `SUPER + A` | Left Sidebar | `quickshell ipc call sidebarLeft toggle` |
+
 | `SUPER + N` / `SUPER + Period` | Right Sidebar | `quickshell ipc call sidebarRight toggle` |
 | `SUPER + B` | Toggle Status Bar | `quickshell ipc call bar toggle` |
 | `SUPER + O` | Toggle Widgets Overlay | `quickshell ipc call overlay toggle` |
