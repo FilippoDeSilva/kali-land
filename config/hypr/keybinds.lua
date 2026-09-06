@@ -18,13 +18,23 @@ hl.bind(mainMod .. " + d", hl.dsp.window.fullscreen())
 hl.bind(mainMod .. " + SHIFT + d", hl.dsp.window.fullscreen({ action = "toggle" }))
 hl.bind(mainMod .. " + p", hl.dsp.window.pseudo())
 
+-- Quickshell & Desktop Integration Controls
+hl.bind(mainMod .. " + w", hl.dsp.exec_cmd("quickshell ipc call wallpaperSelector toggle"))
+hl.bind(mainMod .. " + SHIFT + w", hl.dsp.exec_cmd("quickshell ipc call wallpaperSelector random"))
+hl.bind(mainMod .. " + tab", hl.dsp.exec_cmd("quickshell ipc call overview toggle"))
+hl.bind(mainMod .. " + a", hl.dsp.exec_cmd("quickshell ipc call sidebarLeft toggle"))
+hl.bind(mainMod .. " + n", hl.dsp.exec_cmd("quickshell ipc call sidebarRight toggle"))
+hl.bind(mainMod .. " + period", hl.dsp.exec_cmd("quickshell ipc call sidebarRight toggle"))
+hl.bind(mainMod .. " + comma", hl.dsp.exec_cmd("quickshell ipc call settings toggle"))
+
 -- Application Launchers & Rofi
 hl.bind(mainMod .. " + r", hl.dsp.exec_cmd("rofi -show run"))
 hl.bind(mainMod .. " + v", hl.dsp.exec_cmd("cliphist list | rofi -dmenu | cliphist decode | wl-copy"))
-hl.bind(mainMod .. " + period", hl.dsp.exec_cmd("quickshell"))
 
--- Power menu
-hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd("wlogout"))
+-- Lockscreen & Power Menu
+hl.bind(mainMod .. " + SHIFT + e", hl.dsp.exec_cmd("quickshell ipc call lock activate || swaylock"))
+hl.bind(mainMod .. " + l", hl.dsp.exec_cmd("quickshell ipc call lock activate || swaylock"))
+hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd("quickshell ipc call sessionScreen toggle || wlogout"))
 
 -- Focus windows
 hl.bind(mainMod .. " + left", hl.dsp.focus({ direction = "left" }))
@@ -100,10 +110,6 @@ hl.bind(mainMod .. " + g", hl.dsp.exec_cmd("geany"))
 -- Configuration management
 hl.bind(mainMod .. " + SHIFT + r", hl.dsp.exec_cmd("hyprctl reload"))
 hl.bind(mainMod .. " + SHIFT + q", hl.dsp.exec_cmd("hyprctl dispatch exit"))
-
--- System controls
-hl.bind(mainMod .. " + SHIFT + e", hl.dsp.exec_cmd("wlogout"))
-hl.bind(mainMod .. " + l", hl.dsp.exec_cmd("swaylock"))
 
 -- Resize with mouse
 hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(), { mouse = true })
