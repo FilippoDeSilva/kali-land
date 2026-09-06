@@ -2,7 +2,7 @@
 
 > **Who says Kali doesn't deserve Aesthetics?**
 
-A professional, modular, reproducible desktop platform for Kali Linux built on Wayland, Hyprland, and Quickshell.
+A modular, reproducible desktop platform for Kali Linux built on Wayland, Hyprland, and Quickshell.
 
 ## Core Principle
 
