@@ -156,4 +156,40 @@ install_integration() {
         fc-cache -fv &>/dev/null || true
         log_success "Font assets registered via fc-cache"
     fi
+
+    # Deploy default wallpaper asset & initialize config.json with wallpaperPath
+    if [ -f "${source_dir}/assets/images/default_wallpaper.png" ]; then
+        local user_wall_dir="${target_user_home}/Pictures/Wallpapers"
+        local user_wall_file="${user_wall_dir}/default_wallpaper.png"
+        local user_config_dir="${target_user_home}/.config/illogical-impulse"
+        local user_config_file="${user_config_dir}/config.json"
+
+        log_info "Deploying integration default wallpaper to ${user_wall_dir}"
+        mkdir -p "${user_wall_dir}" "${user_config_dir}"
+        cp "${source_dir}/assets/images/default_wallpaper.png" "${user_wall_file}" 2>/dev/null || true
+
+        python3 -c "
+import json, os
+cfg = '${user_config_file}'
+wall = '${user_wall_file}'
+os.makedirs(os.path.dirname(cfg), exist_ok=True)
+data = {}
+if os.path.exists(cfg):
+    try:
+        with open(cfg, 'r') as f: data = json.load(f)
+    except Exception: data = {}
+bg = data.get('background', {})
+if not bg.get('wallpaperPath'):
+    bg['wallpaperPath'] = wall
+    data['background'] = bg
+    with open(cfg, 'w') as f: json.dump(data, f, indent=4)
+" 2>/dev/null || true
+
+        if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
+            local user_group
+            user_group="$(id -gn "${SUDO_USER}" 2>/dev/null || echo "${SUDO_USER}")"
+            chown -R "${SUDO_USER}:${user_group}" "${user_wall_dir}" "${user_config_dir}" 2>/dev/null || true
+        fi
+        log_success "Integration default wallpaper initialized at ${user_wall_file}"
+    fi
 }

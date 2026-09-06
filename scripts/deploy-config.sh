@@ -52,6 +52,31 @@ if [ -d "${REPO_ROOT}/integrations/end4-pC/assets/fonts" ]; then
     echo "Font cache updated via fc-cache."
 fi
 
+# Deploy default wallpaper and initialize illogical-impulse config
+if [ -f "${REPO_ROOT}/integrations/end4-pC/assets/images/default_wallpaper.png" ]; then
+    echo "Deploying default wallpaper to ~/Pictures/Wallpapers..."
+    mkdir -p "${HOME}/Pictures/Wallpapers"
+    cp "${REPO_ROOT}/integrations/end4-pC/assets/images/default_wallpaper.png" "${HOME}/Pictures/Wallpapers/default_wallpaper.png"
+    
+    python3 -c '
+import json, os
+cfg = os.path.expanduser("~/.config/illogical-impulse/config.json")
+wall = os.path.expanduser("~/Pictures/Wallpapers/default_wallpaper.png")
+os.makedirs(os.path.dirname(cfg), exist_ok=True)
+data = {}
+if os.path.exists(cfg):
+    try:
+        with open(cfg, "r") as f: data = json.load(f)
+    except Exception: data = {}
+bg = data.get("background", {})
+if not bg.get("wallpaperPath"):
+    bg["wallpaperPath"] = wall
+    data["background"] = bg
+    with open(cfg, "w") as f: json.dump(data, f, indent=4)
+' 2>/dev/null || true
+    echo "Illogical impulse configuration initialized with valid wallpaper path."
+fi
+
 echo "Configuration deployment complete!"
 echo "Backups saved at: ${BACKUP_DIR}"
 echo ""
