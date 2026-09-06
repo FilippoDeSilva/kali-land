@@ -22,3 +22,5 @@ jq
 socat
 cargo
 rustc
+kali-menu
+kali-defaults
