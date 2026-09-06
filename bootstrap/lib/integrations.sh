@@ -141,4 +141,19 @@ install_integration() {
 
     # Use protected config installation flow (prompt -> backup -> deploy)
     protect_and_install_config "${source_dir}" "${target_dir}" "Shell Integration (${shell_name})"
+
+    # Install font assets from integration if available (e.g. MaterialSymbolsRounded.ttf)
+    if [ -d "${source_dir}/assets/fonts" ]; then
+        local user_font_dir="${target_user_home}/.local/share/fonts"
+        log_info "Installing integration font assets to ${user_font_dir}"
+        mkdir -p "${user_font_dir}"
+        cp -r "${source_dir}/assets/fonts/"* "${user_font_dir}/" 2>/dev/null || true
+        if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
+            local user_group
+            user_group="$(id -gn "${SUDO_USER}" 2>/dev/null || echo "${SUDO_USER}")"
+            chown -R "${SUDO_USER}:${user_group}" "${user_font_dir}" 2>/dev/null || true
+        fi
+        fc-cache -fv &>/dev/null || true
+        log_success "Font assets registered via fc-cache"
+    fi
 }

@@ -23,6 +23,10 @@ hl.bind(mainMod .. " + d", hl.dsp.window.fullscreen())
 hl.bind(mainMod .. " + SHIFT + d", hl.dsp.window.fullscreen({ action = "toggle" }))
 hl.bind(mainMod .. " + p", hl.dsp.window.pseudo())
 
+-- Dedicated Application Shortcuts (No collision with SUPER+B bar toggle)
+hl.bind(mainMod .. " + SHIFT + b", hl.dsp.exec_cmd("firefox-esr"))
+hl.bind(mainMod .. " + SHIFT + g", hl.dsp.exec_cmd("geany"))
+
 -- ===================================================================
 -- 2. end4-pC Search & Application Launcher
 -- ===================================================================
@@ -58,7 +62,7 @@ hl.bind(mainMod .. " + ALT + w", exec_ipc("quickshell ipc call background toggle
 hl.bind(mainMod .. " + comma", exec_ipc("quickshell ipc call settings toggle"))
 
 -- ===================================================================
--- 6. end4-pC Sidebars & Overlay Panels
+-- 6. end4-pC Sidebars & Status Bar
 -- ===================================================================
 hl.bind(mainMod .. " + a", exec_ipc("quickshell ipc call sidebarLeft toggle"))
 hl.bind(mainMod .. " + n", exec_ipc("quickshell ipc call sidebarRight toggle"))
@@ -67,27 +71,35 @@ hl.bind(mainMod .. " + b", exec_ipc("quickshell ipc call bar toggle"))
 hl.bind(mainMod .. " + o", exec_ipc("quickshell ipc call overlay toggle"))
 
 -- ===================================================================
--- 7. end4-pC Tools, Screen Capture & Accessibility
+-- 7. end4-pC Tools & Screen Capture
 -- ===================================================================
 hl.bind(mainMod .. " + t", exec_ipc("quickshell ipc call screenTranslator translate"))
 hl.bind(mainMod .. " + k", exec_ipc("quickshell ipc call osk toggle"))
-hl.bind(mainMod .. " + PRINT", exec_ipc("quickshell ipc call region screenshot"))
-hl.bind("PRINT", exec_ipc("quickshell ipc call region screenshot"))
-hl.bind(mainMod .. " + SHIFT + PRINT", exec_ipc("quickshell ipc call region record"))
-hl.bind(mainMod .. " + ALT + PRINT", exec_ipc("quickshell ipc call region ocr"))
+hl.bind("Print", exec_ipc("quickshell ipc call region screenshot"))
+hl.bind(mainMod .. " + Print", exec_ipc("quickshell ipc call region screenshot"))
+hl.bind(mainMod .. " + SHIFT + Print", exec_ipc("quickshell ipc call region record"))
+hl.bind(mainMod .. " + ALT + Print", exec_ipc("quickshell ipc call region ocr"))
 
 -- ===================================================================
--- 8. end4-pC Media & Sound Controls
+-- 8. Media & Volume Controls (Hardware Keys + Standard Key Combinations)
 -- ===================================================================
 hl.bind(mainMod .. " + m", exec_ipc("quickshell ipc call mediaControls toggle"))
-hl.bind("XF86AudioPlay", exec_ipc("quickshell ipc call mpris playPause"), { locked = true })
-hl.bind("XF86AudioNext", exec_ipc("quickshell ipc call mpris next"), { locked = true })
-hl.bind("XF86AudioPrev", exec_ipc("quickshell ipc call mpris previous"), { locked = true })
+hl.bind(mainMod .. " + SHIFT + space", exec_ipc("quickshell ipc call mpris playPause || playerctl play-pause"))
+hl.bind(mainMod .. " + bracketright", exec_ipc("quickshell ipc call mpris next || playerctl next"))
+hl.bind(mainMod .. " + bracketleft", exec_ipc("quickshell ipc call mpris previous || playerctl previous"))
+
+hl.bind("XF86AudioPlay", exec_ipc("quickshell ipc call mpris playPause || playerctl play-pause"), { locked = true })
+hl.bind("XF86AudioNext", exec_ipc("quickshell ipc call mpris next || playerctl next"), { locked = true })
+hl.bind("XF86AudioPrev", exec_ipc("quickshell ipc call mpris previous || playerctl previous"), { locked = true })
+
+hl.bind(mainMod .. " + equal", exec_ipc("wpctl set-volume -l 1.4 @DEFAULT_AUDIO_SINK@ 5%+"))
+hl.bind(mainMod .. " + minus", exec_ipc("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"))
 hl.bind("XF86AudioRaiseVolume", exec_ipc("wpctl set-volume -l 1.4 @DEFAULT_AUDIO_SINK@ 5%+"), { locked = true, repeating = true })
 hl.bind("XF86AudioLowerVolume", exec_ipc("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"), { locked = true, repeating = true })
 hl.bind("XF86AudioMute", exec_ipc("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"), { locked = true, repeating = true })
-hl.bind("XF86MonBrightnessUp", exec_ipc("quickshell ipc call brightness increment"), { locked = true, repeating = true })
-hl.bind("XF86MonBrightnessDown", exec_ipc("quickshell ipc call brightness decrement"), { locked = true, repeating = true })
+
+hl.bind("XF86MonBrightnessUp", exec_ipc("quickshell ipc call brightness increment || brightnessctl set +5%"), { locked = true, repeating = true })
+hl.bind("XF86MonBrightnessDown", exec_ipc("quickshell ipc call brightness decrement || brightnessctl set 5%-"), { locked = true, repeating = true })
 
 -- ===================================================================
 -- 9. Window Focus & Movement
@@ -138,10 +150,6 @@ hl.bind(mainMod .. " + mouse_up", hl.dsp.focus({ workspace = "e-1" }))
 -- Special workspace (scratchpad)
 hl.bind(mainMod .. " + s", hl.dsp.workspace.toggle_special("magic"))
 hl.bind(mainMod .. " + SHIFT + s", hl.dsp.window.move({ workspace = "special:magic" }))
-
--- Application shortcuts
-hl.bind(mainMod .. " + b", hl.dsp.exec_cmd("firefox-esr"))
-hl.bind(mainMod .. " + g", hl.dsp.exec_cmd("geany"))
 
 -- Configuration management
 hl.bind(mainMod .. " + SHIFT + r", hl.dsp.exec_cmd("hyprctl reload"))

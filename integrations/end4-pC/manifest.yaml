@@ -41,6 +41,20 @@ requires:
     - libsecret-tools
     - playerctl
     - libnotify-bin
+    - fontconfig
+    - fonts-font-awesome
+    - fonts-jetbrains-mono
+    - fonts-noto-color-emoji
+    - fonts-inter
+    - fonts-roboto
+    - grim
+    - slurp
+    - wl-clipboard
+    - wf-recorder
+    - tesseract-ocr
+    - jq
+    - sox
+    - ffmpeg
 
 optional:
   capabilities:
