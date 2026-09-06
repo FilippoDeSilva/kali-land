@@ -36,6 +36,17 @@ mkdir -p "${HOME}/.config/quickshell/components"
 mkdir -p "${HOME}/.config/quickshell/theme"
 cp -r "${REPO_ROOT}/config/quickshell/"* "${HOME}/.config/quickshell/"
 
+# Backup and deploy Rofi configuration
+if [ -d "${REPO_ROOT}/config/rofi" ]; then
+    if [ -d "${HOME}/.config/rofi" ]; then
+        echo "Backing up existing Rofi configuration..."
+        cp -r "${HOME}/.config/rofi" "${BACKUP_DIR}/"
+    fi
+    echo "Deploying Rofi configuration..."
+    mkdir -p "${HOME}/.config/rofi"
+    cp -r "${REPO_ROOT}/config/rofi/"* "${HOME}/.config/rofi/"
+fi
+
 # Deploy theme files
 if [ -d "${REPO_ROOT}/themes" ]; then
     echo "Deploying themes..."
