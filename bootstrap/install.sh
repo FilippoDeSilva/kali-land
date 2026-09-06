@@ -392,17 +392,6 @@ deploy_hyprland_config() {
     else
         log_warn "Hyprland configuration directory not found in repository"
     fi
-
-    if [ -d "${REPO_ROOT}/config/rofi" ]; then
-        local rofi_config_dir="${target_user_home}/.config/rofi"
-        log_info "Deploying Rofi configuration files to ${rofi_config_dir}"
-        mkdir -p "${rofi_config_dir}"
-        cp -r "${REPO_ROOT}/config/rofi/"* "${rofi_config_dir}/"
-        if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
-            chown -R "${SUDO_USER}:${user_group}" "${rofi_config_dir}" 2>/dev/null || true
-        fi
-        log_success "Rofi configuration installed"
-    fi
 }
 
 # phase_5_desktop_services() - Install desktop services & Hyprland Lua Configuration

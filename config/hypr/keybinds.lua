@@ -1,71 +1,115 @@
--- Keybindings configuration
--- Modular keybinding setup for keyboard-first workflow
+-- Keybindings configuration for Kali-Land
+-- Decoupled BYOS Architecture: All default keybindings are mapped
+-- directly to end4-pC Quickshell IPC features out-of-the-box.
+-- Theming is handled 100% by end4-pC (no hardcoded themes).
 
--- Modifier variable
 local mainMod = "SUPER"
--- Use the TERMINAL environment variable (set in environment.lua)
--- For VMs: foot (native Wayland), for bare metal: kitty/alacritty (GPU accelerated)
-local terminal = os.getenv("TERMINAL") or "kitty"
+local terminal = os.getenv("TERMINAL") or "foot"
 local fileManager = "thunar"
 
--- Window management
+-- Helper function to wrap commands safely in bash -c
+local function exec_ipc(cmd)
+    return hl.dsp.exec_cmd("bash -c '" .. cmd .. "'")
+end
+
+-- ===================================================================
+-- 1. Window & Application Management
+-- ===================================================================
 hl.bind(mainMod .. " + return", hl.dsp.exec_cmd(terminal))
 hl.bind(mainMod .. " + q", hl.dsp.window.close())
 hl.bind(mainMod .. " + e", hl.dsp.exec_cmd(fileManager))
 hl.bind(mainMod .. " + f", hl.dsp.window.float({ action = "toggle" }))
-hl.bind(mainMod .. " + space", hl.dsp.exec_cmd("bash -c 'quickshell ipc call overview toggle || rofi -show drun'"))
-hl.bind("ALT + space", hl.dsp.exec_cmd("bash -c 'quickshell ipc call overview toggle || rofi -show drun'"))
 hl.bind(mainMod .. " + d", hl.dsp.window.fullscreen())
 hl.bind(mainMod .. " + SHIFT + d", hl.dsp.window.fullscreen({ action = "toggle" }))
 hl.bind(mainMod .. " + p", hl.dsp.window.pseudo())
 
 -- ===================================================================
--- Default Shell Integration Controls (end4-pC via Quickshell IPC)
--- Note: Users can customize these keybindings or swap in their own
--- shell integration (Waybar, Ags, custom Quickshell, etc.) anytime.
--- Includes VMware-friendly alternate shortcuts for host key capture.
+-- 2. end4-pC Search & Application Launcher
 -- ===================================================================
-hl.bind(mainMod .. " + w", hl.dsp.exec_cmd("bash -c 'quickshell ipc call wallpaperSelector toggle'"))
-hl.bind(mainMod .. " + SHIFT + w", hl.dsp.exec_cmd("bash -c 'quickshell ipc call wallpaperSelector random'"))
-hl.bind(mainMod .. " + tab", hl.dsp.exec_cmd("bash -c 'quickshell ipc call overview toggle'"))
-hl.bind("ALT + tab", hl.dsp.exec_cmd("bash -c 'quickshell ipc call overview toggle'"))
-hl.bind(mainMod .. " + a", hl.dsp.exec_cmd("bash -c 'quickshell ipc call sidebarLeft toggle'"))
-hl.bind(mainMod .. " + n", hl.dsp.exec_cmd("bash -c 'quickshell ipc call sidebarRight toggle'"))
-hl.bind(mainMod .. " + period", hl.dsp.exec_cmd("bash -c 'quickshell ipc call sidebarRight toggle'"))
-hl.bind(mainMod .. " + comma", hl.dsp.exec_cmd("bash -c 'quickshell ipc call settings toggle'"))
-hl.bind(mainMod .. " + t", hl.dsp.exec_cmd("bash -c 'quickshell ipc call translator translate'"))
+hl.bind(mainMod .. " + space", exec_ipc("quickshell ipc call search toggle"))
+hl.bind("ALT + space", exec_ipc("quickshell ipc call search toggle"))
+hl.bind(mainMod .. " + r", exec_ipc("quickshell ipc call search toggle"))
 
--- Application Launchers & Rofi (Styled with ~/.config/rofi/config.rasi)
-hl.bind(mainMod .. " + r", hl.dsp.exec_cmd("bash -c 'quickshell ipc call overview toggle || rofi -show run'"))
-hl.bind(mainMod .. " + v", hl.dsp.exec_cmd("bash -c 'cliphist list | rofi -dmenu -theme ~/.config/rofi/config.rasi | cliphist decode | wl-copy'"))
-hl.bind(mainMod .. " + SHIFT + v", hl.dsp.exec_cmd("bash -c 'cliphist list | rofi -dmenu -theme ~/.config/rofi/config.rasi | cliphist decode | wl-copy'"))
+-- Clipboard Search & Manager (Native end4-pC Clipboard)
+hl.bind(mainMod .. " + v", exec_ipc("quickshell ipc call search clipboardToggle"))
+hl.bind(mainMod .. " + SHIFT + v", exec_ipc("quickshell ipc call search clipboardToggle"))
 
--- Lockscreen & Power Menu (VMware-friendly shortcuts)
-hl.bind(mainMod .. " + SHIFT + e", hl.dsp.exec_cmd("bash -c 'quickshell ipc call lock activate || swaylock'"))
-hl.bind(mainMod .. " + SHIFT + l", hl.dsp.exec_cmd("bash -c 'quickshell ipc call lock activate || swaylock'"))
-hl.bind(mainMod .. " + l", hl.dsp.exec_cmd("bash -c 'quickshell ipc call lock activate || swaylock'"))
-hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd("bash -c 'quickshell ipc call sessionScreen toggle || wlogout'"))
-hl.bind(mainMod .. " + SHIFT + Escape", hl.dsp.exec_cmd("bash -c 'quickshell ipc call sessionScreen toggle || wlogout'"))
+-- ===================================================================
+-- 3. end4-pC Workspace Overview & Workspaces Switcher
+-- ===================================================================
+hl.bind(mainMod .. " + tab", exec_ipc("quickshell ipc call search workspacesToggle"))
+hl.bind("ALT + tab", exec_ipc("quickshell ipc call search workspacesToggle"))
 
--- Focus windows
+-- ===================================================================
+-- 4. end4-pC Lock Screen & Session / Power Menu
+-- ===================================================================
+hl.bind(mainMod .. " + SHIFT + e", exec_ipc("quickshell ipc call lock activate"))
+hl.bind(mainMod .. " + l", exec_ipc("quickshell ipc call lock activate"))
+hl.bind(mainMod .. " + SHIFT + l", exec_ipc("quickshell ipc call lock activate"))
+hl.bind(mainMod .. " + Escape", exec_ipc("quickshell ipc call session toggle"))
+hl.bind(mainMod .. " + SHIFT + Escape", exec_ipc("quickshell ipc call session toggle"))
+
+-- ===================================================================
+-- 5. end4-pC Wallpapers & Customization Settings
+-- ===================================================================
+hl.bind(mainMod .. " + w", exec_ipc("quickshell ipc call wallpaperSelector toggle"))
+hl.bind(mainMod .. " + SHIFT + w", exec_ipc("quickshell ipc call wallpaperSelector random"))
+hl.bind(mainMod .. " + ALT + w", exec_ipc("quickshell ipc call background toggleCenteredWallpaper"))
+hl.bind(mainMod .. " + comma", exec_ipc("quickshell ipc call settings toggle"))
+
+-- ===================================================================
+-- 6. end4-pC Sidebars & Overlay Panels
+-- ===================================================================
+hl.bind(mainMod .. " + a", exec_ipc("quickshell ipc call sidebarLeft toggle"))
+hl.bind(mainMod .. " + n", exec_ipc("quickshell ipc call sidebarRight toggle"))
+hl.bind(mainMod .. " + period", exec_ipc("quickshell ipc call sidebarRight toggle"))
+hl.bind(mainMod .. " + b", exec_ipc("quickshell ipc call bar toggle"))
+hl.bind(mainMod .. " + o", exec_ipc("quickshell ipc call overlay toggle"))
+
+-- ===================================================================
+-- 7. end4-pC Tools, Screen Capture & Accessibility
+-- ===================================================================
+hl.bind(mainMod .. " + t", exec_ipc("quickshell ipc call screenTranslator translate"))
+hl.bind(mainMod .. " + k", exec_ipc("quickshell ipc call osk toggle"))
+hl.bind(mainMod .. " + PRINT", exec_ipc("quickshell ipc call region screenshot"))
+hl.bind("PRINT", exec_ipc("quickshell ipc call region screenshot"))
+hl.bind(mainMod .. " + SHIFT + PRINT", exec_ipc("quickshell ipc call region record"))
+hl.bind(mainMod .. " + ALT + PRINT", exec_ipc("quickshell ipc call region ocr"))
+
+-- ===================================================================
+-- 8. end4-pC Media & Sound Controls
+-- ===================================================================
+hl.bind(mainMod .. " + m", exec_ipc("quickshell ipc call mediaControls toggle"))
+hl.bind("XF86AudioPlay", exec_ipc("quickshell ipc call mpris playPause"), { locked = true })
+hl.bind("XF86AudioNext", exec_ipc("quickshell ipc call mpris next"), { locked = true })
+hl.bind("XF86AudioPrev", exec_ipc("quickshell ipc call mpris previous"), { locked = true })
+hl.bind("XF86AudioRaiseVolume", exec_ipc("wpctl set-volume -l 1.4 @DEFAULT_AUDIO_SINK@ 5%+"), { locked = true, repeating = true })
+hl.bind("XF86AudioLowerVolume", exec_ipc("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"), { locked = true, repeating = true })
+hl.bind("XF86AudioMute", exec_ipc("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"), { locked = true, repeating = true })
+hl.bind("XF86MonBrightnessUp", exec_ipc("quickshell ipc call brightness increment"), { locked = true, repeating = true })
+hl.bind("XF86MonBrightnessDown", exec_ipc("quickshell ipc call brightness decrement"), { locked = true, repeating = true })
+
+-- ===================================================================
+-- 9. Window Focus & Movement
+-- ===================================================================
 hl.bind(mainMod .. " + left", hl.dsp.focus({ direction = "left" }))
 hl.bind(mainMod .. " + right", hl.dsp.focus({ direction = "right" }))
 hl.bind(mainMod .. " + up", hl.dsp.focus({ direction = "up" }))
 hl.bind(mainMod .. " + down", hl.dsp.focus({ direction = "down" }))
 
--- Move windows
 hl.bind(mainMod .. " + SHIFT + left", hl.dsp.window.move({ direction = "left" }))
 hl.bind(mainMod .. " + SHIFT + right", hl.dsp.window.move({ direction = "right" }))
 hl.bind(mainMod .. " + SHIFT + up", hl.dsp.window.move({ direction = "up" }))
 hl.bind(mainMod .. " + SHIFT + down", hl.dsp.window.move({ direction = "down" }))
 
--- Resize windows
 hl.bind(mainMod .. " + CTRL + left", hl.dsp.exec_cmd("resizeactive -20 0"))
 hl.bind(mainMod .. " + CTRL + right", hl.dsp.exec_cmd("resizeactive 20 0"))
 hl.bind(mainMod .. " + CTRL + up", hl.dsp.exec_cmd("resizeactive 0 -20"))
 hl.bind(mainMod .. " + CTRL + down", hl.dsp.exec_cmd("resizeactive 0 20"))
 
--- Workspace management
+-- ===================================================================
+-- 10. Workspace Management
+-- ===================================================================
 hl.bind(mainMod .. " + 1", hl.dsp.focus({ workspace = 1 }))
 hl.bind(mainMod .. " + 2", hl.dsp.focus({ workspace = 2 }))
 hl.bind(mainMod .. " + 3", hl.dsp.focus({ workspace = 3 }))
@@ -77,7 +121,6 @@ hl.bind(mainMod .. " + 8", hl.dsp.focus({ workspace = 8 }))
 hl.bind(mainMod .. " + 9", hl.dsp.focus({ workspace = 9 }))
 hl.bind(mainMod .. " + 0", hl.dsp.focus({ workspace = 10 }))
 
--- Move windows to workspaces
 hl.bind(mainMod .. " + SHIFT + 1", hl.dsp.window.move({ workspace = 1 }))
 hl.bind(mainMod .. " + SHIFT + 2", hl.dsp.window.move({ workspace = 2 }))
 hl.bind(mainMod .. " + SHIFT + 3", hl.dsp.window.move({ workspace = 3 }))
@@ -89,7 +132,6 @@ hl.bind(mainMod .. " + SHIFT + 8", hl.dsp.window.move({ workspace = 8 }))
 hl.bind(mainMod .. " + SHIFT + 9", hl.dsp.window.move({ workspace = 9 }))
 hl.bind(mainMod .. " + SHIFT + 0", hl.dsp.window.move({ workspace = 10 }))
 
--- Scroll through workspaces
 hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" }))
 hl.bind(mainMod .. " + mouse_up", hl.dsp.focus({ workspace = "e-1" }))
 
@@ -97,24 +139,7 @@ hl.bind(mainMod .. " + mouse_up", hl.dsp.focus({ workspace = "e-1" }))
 hl.bind(mainMod .. " + s", hl.dsp.workspace.toggle_special("magic"))
 hl.bind(mainMod .. " + SHIFT + s", hl.dsp.window.move({ workspace = "special:magic" }))
 
--- Media and volume controls
-hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume -l 1.4 @DEFAULT_AUDIO_SINK@ 5%+"), { locked = true, repeating = true })
-hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"), { locked = true, repeating = true })
-hl.bind("XF86AudioMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"), { locked = true, repeating = true })
-hl.bind("XF86AudioPlay", hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
-hl.bind("XF86AudioNext", hl.dsp.exec_cmd("playerctl next"), { locked = true })
-hl.bind("XF86AudioPrev", hl.dsp.exec_cmd("playerctl previous"), { locked = true })
-
--- Brightness controls
-hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("brightnessctl set +5%"), { locked = true, repeating = true })
-hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl set 5%-"), { locked = true, repeating = true })
-
--- Screenshot & Screen Capture
-hl.bind(mainMod .. " + PRINT", hl.dsp.exec_cmd("quickshell ipc call region screenshot || grimblast copy area"))
-hl.bind(mainMod .. " + SHIFT + PRINT", hl.dsp.exec_cmd("grimblast copy screen"))
-hl.bind(mainMod .. " + CTRL + PRINT", hl.dsp.exec_cmd("grimblast copy window"))
-
--- Application launcher shortcuts
+-- Application shortcuts
 hl.bind(mainMod .. " + b", hl.dsp.exec_cmd("firefox-esr"))
 hl.bind(mainMod .. " + g", hl.dsp.exec_cmd("geany"))
 
@@ -122,6 +147,6 @@ hl.bind(mainMod .. " + g", hl.dsp.exec_cmd("geany"))
 hl.bind(mainMod .. " + SHIFT + r", hl.dsp.exec_cmd("hyprctl reload"))
 hl.bind(mainMod .. " + SHIFT + q", hl.dsp.exec_cmd("hyprctl dispatch exit"))
 
--- Resize with mouse
+-- Mouse actions
 hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(), { mouse = true })
 hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
