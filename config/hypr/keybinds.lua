@@ -18,7 +18,11 @@ hl.bind(mainMod .. " + d", hl.dsp.window.fullscreen())
 hl.bind(mainMod .. " + SHIFT + d", hl.dsp.window.fullscreen({ action = "toggle" }))
 hl.bind(mainMod .. " + p", hl.dsp.window.pseudo())
 
--- Quickshell & Desktop Integration Controls
+-- ===================================================================
+-- Default Shell Integration Controls (end4-pC via Quickshell IPC)
+-- Note: Users can customize these keybindings or swap in their own
+-- shell integration (Waybar, Ags, custom Quickshell, etc.) anytime.
+-- ===================================================================
 hl.bind(mainMod .. " + w", hl.dsp.exec_cmd("quickshell ipc call wallpaperSelector toggle"))
 hl.bind(mainMod .. " + SHIFT + w", hl.dsp.exec_cmd("quickshell ipc call wallpaperSelector random"))
 hl.bind(mainMod .. " + tab", hl.dsp.exec_cmd("quickshell ipc call overview toggle"))
@@ -26,6 +30,7 @@ hl.bind(mainMod .. " + a", hl.dsp.exec_cmd("quickshell ipc call sidebarLeft togg
 hl.bind(mainMod .. " + n", hl.dsp.exec_cmd("quickshell ipc call sidebarRight toggle"))
 hl.bind(mainMod .. " + period", hl.dsp.exec_cmd("quickshell ipc call sidebarRight toggle"))
 hl.bind(mainMod .. " + comma", hl.dsp.exec_cmd("quickshell ipc call settings toggle"))
+hl.bind(mainMod .. " + t", hl.dsp.exec_cmd("quickshell ipc call translator translate"))
 
 -- Application Launchers & Rofi
 hl.bind(mainMod .. " + r", hl.dsp.exec_cmd("rofi -show run"))
@@ -98,8 +103,8 @@ hl.bind("XF86AudioPrev", hl.dsp.exec_cmd("playerctl previous"), { locked = true 
 hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("brightnessctl set +5%"), { locked = true, repeating = true })
 hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl set 5%-"), { locked = true, repeating = true })
 
--- Screenshot
-hl.bind(mainMod .. " + PRINT", hl.dsp.exec_cmd("grimblast copy area"))
+-- Screenshot & Screen Capture
+hl.bind(mainMod .. " + PRINT", hl.dsp.exec_cmd("quickshell ipc call region screenshot || grimblast copy area"))
 hl.bind(mainMod .. " + SHIFT + PRINT", hl.dsp.exec_cmd("grimblast copy screen"))
 hl.bind(mainMod .. " + CTRL + PRINT", hl.dsp.exec_cmd("grimblast copy window"))
 
