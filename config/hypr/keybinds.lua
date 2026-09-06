@@ -13,7 +13,7 @@ hl.bind(mainMod .. " + return", hl.dsp.exec_cmd(terminal))
 hl.bind(mainMod .. " + q", hl.dsp.window.close())
 hl.bind(mainMod .. " + e", hl.dsp.exec_cmd(fileManager))
 hl.bind(mainMod .. " + f", hl.dsp.window.float({ action = "toggle" }))
-hl.bind(mainMod .. " + space", hl.dsp.exec_cmd("rofi -show drun"))
+hl.bind(mainMod .. " + space", hl.dsp.exec_cmd("quickshell ipc call overview toggle || rofi -show drun"))
 hl.bind(mainMod .. " + d", hl.dsp.window.fullscreen())
 hl.bind(mainMod .. " + SHIFT + d", hl.dsp.window.fullscreen({ action = "toggle" }))
 hl.bind(mainMod .. " + p", hl.dsp.window.pseudo())
@@ -33,7 +33,7 @@ hl.bind(mainMod .. " + comma", hl.dsp.exec_cmd("quickshell ipc call settings tog
 hl.bind(mainMod .. " + t", hl.dsp.exec_cmd("quickshell ipc call translator translate"))
 
 -- Application Launchers & Rofi
-hl.bind(mainMod .. " + r", hl.dsp.exec_cmd("rofi -show run"))
+hl.bind(mainMod .. " + r", hl.dsp.exec_cmd("quickshell ipc call overview toggle || rofi -show run"))
 hl.bind(mainMod .. " + v", hl.dsp.exec_cmd("cliphist list | rofi -dmenu | cliphist decode | wl-copy"))
 
 -- Lockscreen & Power Menu

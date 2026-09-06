@@ -1,0 +1,102 @@
+/* Kali-Land Modern Rofi Theme */
+
+configuration {
+    modi: "drun,run,filebrowser,window";
+    font: "JetBrainsMono Nerd Font 12";
+    show-icons: true;
+    icon-theme: "Papirus-Dark";
+    terminal: "foot";
+    drun-display-format: "{icon} {name}";
+    location: 0;
+    disable-history: false;
+    hide-scrollbar: true;
+    display-drun: " 🔍 Search ";
+    display-run: " 🏃 Run ";
+    display-window: " 🪟 Windows ";
+    display-Network: " 󰤨  Network ";
+}
+
+* {
+    bg-col: #0f141dE6;
+    bg-col-light: #1e2538;
+    border-col: #3b82f6;
+    selected-col: #2563eb;
+    blue: #60a5fa;
+    fg-col: #e2e8f0;
+    fg-col2: #94a3b8;
+    grey: #475569;
+
+    width: 600;
+    margin: 0;
+    padding: 0;
+    spacing: 0;
+}
+
+element-text, element-icon , mode-toggler {
+    background-color: inherit;
+    text-color:       inherit;
+}
+
+window {
+    height: 450px;
+    border: 2px;
+    border-color: @border-col;
+    background-color: @bg-col;
+    border-radius: 16px;
+    padding: 20px;
+}
+
+mainbox {
+    background-color: transparent;
+    children: [inputbar, listview];
+}
+
+inputbar {
+    children: [prompt, entry];
+    background-color: @bg-col-light;
+    border-radius: 10px;
+    padding: 6px;
+    margin: 0px 0px 16px 0px;
+}
+
+prompt {
+    background-color: @selected-col;
+    padding: 8px 14px;
+    text-color: #ffffff;
+    border-radius: 8px;
+}
+
+entry {
+    padding: 8px 12px;
+    text-color: @fg-col;
+    background-color: transparent;
+    placeholder: "Type to search...";
+    placeholder-color: @fg-col2;
+}
+
+listview {
+    border: 0px;
+    padding: 6px 0px 0px;
+    margin: 0px;
+    columns: 1;
+    lines: 7;
+    background-color: transparent;
+    spacing: 6px;
+}
+
+element {
+    padding: 10px 14px;
+    background-color: transparent;
+    text-color: @fg-col;
+    border-radius: 10px;
+}
+
+element-icon {
+    size: 24px;
+    margin: 0px 12px 0px 0px;
+}
+
+element selected {
+    background-color: @selected-col;
+    text-color: #ffffff;
+}
