@@ -333,21 +333,8 @@ phase_3_hyprland_installation() {
 
 # phase_4_fonts() - Install required fonts
 phase_4_fonts() {
-    log_step "Phase 4: Fonts Installation"
-    
-    detect_package_manager
-    update_package_cache
-    
-    log_info "Installing required fonts for ekremx25 quickshell"
-    if [ -f "${REPO_ROOT}/packages/fonts.txt" ]; then
-        if ! install_packages "${REPO_ROOT}/packages/fonts.txt"; then
-            log_warn "Failed to install some fonts, continuing..."
-        fi
-    fi
-    
-    log_info "Note: JetBrains Mono Nerd Font may need manual installation"
-    log_info "Download from: https://github.com/ryanoasis/nerd-fonts/releases"
-    
+    log_step "Phase 4: Font System Initialization"
+    fc-cache -fv &>/dev/null || true
     log_success "Phase 4 complete"
 }
 
@@ -533,10 +520,7 @@ configure_quickshell_hypr_env() {
     if [ -f "${hypr_env_file}" ]; then
         if is_vmware; then
             log_info "Applying VMware environment overrides in ${hypr_env_file}"
-            if ! grep -q "QT_QUICK_BACKEND" "${hypr_env_file}"; then
-                echo 'hl.env("QT_QUICK_BACKEND", "software")' >> "${hypr_env_file}"
-                log_success "Added QT_QUICK_BACKEND=software for VMware compatibility"
-            fi
+            sed -i '/hl.env("QT_QUICK_BACKEND", "software")/d' "${hypr_env_file}" 2>/dev/null || true
             if ! grep -q "WLR_NO_HARDWARE_CURSORS" "${hypr_env_file}"; then
                 echo 'hl.env("WLR_NO_HARDWARE_CURSORS", "1")' >> "${hypr_env_file}"
             fi
@@ -887,8 +871,6 @@ main() {
     phase_7_matugen || log_warn "Matugen installation failed, continuing..."
     
     # Optional phases - can fail gracefully
-    # Note: ekremx25 quickshell provides most functionality (bar, launcher, control center, etc.)
-    log_info "ekremx25 quickshell provides bar, launcher, control center, and other features"
     log_info "Skipping custom implementation phases"
     
     if ${phase_failed}; then

@@ -5,8 +5,7 @@
 hl.env("XCURSOR_SIZE", "24")
 hl.env("HYPRCURSOR_SIZE", "24")
 
--- VMware / Software rendering compatibility
-hl.env("QT_QUICK_BACKEND", "software")
+-- VMware / Software rendering compatibility (Mesa LLVMpipe GLSL OpenGL)
 hl.env("LIBGL_ALWAYS_SOFTWARE", "1")
 hl.env("WLR_NO_HARDWARE_CURSORS", "1")
 hl.env("WLR_RENDERER_ALLOW_SOFTWARE", "1")

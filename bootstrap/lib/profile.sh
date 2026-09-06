@@ -64,7 +64,6 @@ apply_profile_environment() {
 
     if [ "${profile_name}" = "vmware" ]; then
         log_info "Applying VMware software rendering & display compatibility"
-        export QT_QUICK_BACKEND="software"
         export LIBGL_ALWAYS_SOFTWARE="1"
         export WLR_NO_HARDWARE_CURSORS="1"
         export WLR_RENDERER_ALLOW_SOFTWARE="1"
@@ -72,9 +71,7 @@ apply_profile_environment() {
         if [ -d "${target_user_home}" ]; then
             for sh_file in "${target_user_home}/.bashrc" "${target_user_home}/.profile"; do
                 if [ -f "${sh_file}" ]; then
-                    if ! grep -q "QT_QUICK_BACKEND" "${sh_file}"; then
-                        echo 'export QT_QUICK_BACKEND="software"' >> "${sh_file}"
-                    fi
+                    sed -i '/export QT_QUICK_BACKEND="software"/d' "${sh_file}" 2>/dev/null || true
                     if ! grep -q "LIBGL_ALWAYS_SOFTWARE" "${sh_file}"; then
                         echo 'export LIBGL_ALWAYS_SOFTWARE="1"' >> "${sh_file}"
                     fi
