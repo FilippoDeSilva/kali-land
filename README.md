@@ -73,11 +73,14 @@ See [Installation Guide](docs/installation.md) for detailed instructions.
 
 ## Key Features
 
-- **Bring Your Own Shell (BYOS)**: Support for modular Quickshell configurations with `end4-pC` as reference.
-- **Platform/Experience Separation**: Platform runtime is isolated from user interface themes.
+- **Bring Your Own Shell (BYOS)**: Support for modular Quickshell desktop shells with `end4-pC` as the primary reference integration.
+- **Declarative Manifest Font Delivery**: Integration `manifest.yaml` files declaratively state system font packages and local TTF assets, automatically installed and cached during setup.
+- **Modular Lua Hyprland Configuration**: Clean, maintainable Hyprland setup using native Lua configuration modules (`hyprland.lua`, `keybinds.lua`, `environment.lua`, etc.).
+- **Platform/Experience Separation**: Core platform runtime is completely decoupled from user interface themes.
 - **Automated Installation & Rollback**: Safe, idempotent setup with timestamped backups (`~/.local/state/kali-land/backups/`).
 - **VMware & Bare-metal Profiles**: Automatic environment detection and dynamic virtualization optimization.
-- **Preserves Security Tooling**: Complete compatibility with Kali security tools.
+- **Preserves Security Tooling**: 100% compatibility with official Kali Linux penetration testing tools.
+
 
 ## Documentation
 

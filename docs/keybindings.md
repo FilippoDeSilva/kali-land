@@ -1,147 +1,128 @@
 # Keybindings
 
-This document describes the keybinding scheme for the kali-land Desktop.
+This document describes the keybinding scheme for the `kali-land` Desktop.
 
 ## Philosophy
 
 The keybinding system follows these principles:
 
-- **Super modifier** as primary modifier
+- **Super modifier (`SUPER`)** as the primary modifier key
+- **Decoupled BYOS Architecture**: All default keybindings invoke `end4-pC` Quickshell IPC commands out-of-the-box
 - **Predictable patterns** for similar actions
-- **Minimal conflicts** with terminal and browser shortcuts
-- **Keyboard-first** workflow
-- **Discoverable** and consistent
+- **Minimal conflicts** with terminal (`foot`/`kitty`) and browser (`firefox-esr`) shortcuts
+- **Keyboard-first** workflow with instant discoverability
+
+---
 
 ## Primary Keybindings
 
-### Window Management
+### Window & Application Management
+
+| Keybinding | Action | Command / Dispatcher |
+|------------|--------|----------------------|
+| `SUPER + Return` | Open Terminal | `$TERMINAL` (`foot` in VM, `kitty` bare metal) |
+| `SUPER + Q` | Close Active Window | `close` |
+| `SUPER + E` | Open File Manager | `thunar` |
+| `SUPER + F` | Toggle Floating | `window.float({ action = "toggle" })` |
+| `SUPER + D` | Fullscreen Window | `window.fullscreen()` |
+| `SUPER + SHIFT + D` | Toggle Fullscreen | `window.fullscreen({ action = "toggle" })` |
+| `SUPER + P` | Toggle Pseudo Tiling | `window.pseudo()` |
+| `SUPER + SHIFT + B` | Launch Web Browser | `firefox-esr` |
+| `SUPER + SHIFT + G` | Launch Text Editor | `geany` |
+
+### Search & Launcher (Quickshell IPC)
+
+| Keybinding | Action | Quickshell IPC Command |
+|------------|--------|------------------------|
+| `SUPER + Space` / `ALT + Space` / `SUPER + R` | Toggle Application Launcher | `quickshell ipc call search toggle` |
+| `SUPER + V` / `SUPER + SHIFT + V` | Toggle Clipboard Manager | `quickshell ipc call search clipboardToggle` |
+| `SUPER + Tab` / `ALT + Tab` | Workspace Overview | `quickshell ipc call search workspacesToggle` |
+
+### Screen Capture & Tools (Quickshell IPC)
+
+| Keybinding | Action | Quickshell IPC Command |
+|------------|--------|------------------------|
+| `Print` / `SUPER + Print` | Interactive Region Screenshot | `quickshell ipc call region screenshot` |
+| `SUPER + SHIFT + Print` | Interactive Region Screen Recording | `quickshell ipc call region record` |
+| `SUPER + ALT + Print` | Region Text OCR Extraction | `quickshell ipc call region ocr` |
+| `SUPER + T` | Screen Translator | `quickshell ipc call screenTranslator translate` |
+| `SUPER + K` | On-Screen Keyboard | `quickshell ipc call osk toggle` |
+
+### Media & Volume Controls
+
+| Keybinding | Action | Command / Quickshell IPC |
+|------------|--------|--------------------------|
+| `SUPER + M` | Toggle Media Player Controls & Lyrics | `quickshell ipc call mediaControls toggle` |
+| `SUPER + SHIFT + Space` / `XF86AudioPlay` | Play / Pause Media | `quickshell ipc call mpris playPause` |
+| `SUPER + ]` / `XF86AudioNext` | Skip Next Track | `quickshell ipc call mpris next` |
+| `SUPER + [` / `XF86AudioPrev` | Skip Previous Track | `quickshell ipc call mpris previous` |
+| `SUPER + =` / `XF86AudioRaiseVolume` | Volume Up (+5%) | `wpctl set-volume -l 1.4 @DEFAULT_AUDIO_SINK@ 5%+` |
+| `SUPER + -` / `XF86AudioLowerVolume` | Volume Down (-5%) | `wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-` |
+| `XF86AudioMute` | Toggle Mute | `wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle` |
+| `XF86MonBrightnessUp` | Brightness Up (+5%) | `quickshell ipc call brightness increment` |
+| `XF86MonBrightnessDown` | Brightness Down (-5%) | `quickshell ipc call brightness decrement` |
+
+### Lock Screen, Session & Sidebars
+
+| Keybinding | Action | Quickshell IPC Command |
+|------------|--------|------------------------|
+| `SUPER + L` / `SUPER + SHIFT + L` | Lock Screen | `quickshell ipc call lock activate` |
+| `SUPER + Escape` / `SUPER + SHIFT + Escape` | Session / Power Menu | `quickshell ipc call session toggle` |
+| `SUPER + W` | Open Wallpaper Selector | `quickshell ipc call wallpaperSelector toggle` |
+| `SUPER + SHIFT + W` | Set Random Wallpaper | `quickshell ipc call wallpaperSelector random` |
+| `SUPER + Comma` | Shell Settings | `quickshell ipc call settings toggle` |
+| `SUPER + A` | Left Sidebar | `quickshell ipc call sidebarLeft toggle` |
+| `SUPER + N` / `SUPER + Period` | Right Sidebar | `quickshell ipc call sidebarRight toggle` |
+| `SUPER + B` | Toggle Status Bar | `quickshell ipc call bar toggle` |
+| `SUPER + O` | Toggle Widgets Overlay | `quickshell ipc call overlay toggle` |
+
+### Window Focus & Navigation
 
 | Keybinding | Action |
 |------------|--------|
-| `Super + Enter` | Open terminal |
-| `Super + Q` | Close window |
-| `Super + F` | Toggle fullscreen |
-| `Super + V` | Toggle floating |
-| `Super + Space` | Open launcher |
-| `Super + Escape` | Open control center |
-| `Super + L` | Lock screen |
+| `SUPER + Left / Right / Up / Down` | Move Focus |
+| `SUPER + SHIFT + Left / Right / Up / Down` | Move Active Window |
+| `SUPER + CTRL + Left / Right / Up / Down` | Resize Active Window |
 
-### Navigation
+### Workspaces & Scratchpad
 
 | Keybinding | Action |
 |------------|--------|
-| `Super + H` | Focus left |
-| `Super + J` | Focus down |
-| `Super + K` | Focus up |
-| `Super + L` | Focus right |
-| `Super + Shift + H` | Move window left |
-| `Super + Shift + J` | Move window down |
-| `Super + Shift + K` | Move window up |
-| `Super + Shift + L` | Move window right |
+| `SUPER + 1..9, 0` | Switch to Workspace 1..10 |
+| `SUPER + SHIFT + 1..9, 0` | Move Window to Workspace 1..10 |
+| `SUPER + S` | Toggle Special Scratchpad Workspace |
+| `SUPER + SHIFT + S` | Move Window to Special Scratchpad |
+| `SUPER + Mouse Scroll Up/Down` | Switch Workspaces |
+| `SUPER + Mouse Drag` | Move Floating Window |
+| `SUPER + Right Mouse Drag` | Resize Floating Window |
 
-### Workspaces
+---
 
-| Keybinding | Action |
-|------------|--------|
-| `Super + 1` | Switch to workspace 1 |
-| `Super + 2` | Switch to workspace 2 |
-| `Super + 3` | Switch to workspace 3 |
-| `Super + 4` | Switch to workspace 4 |
-| `Super + 5` | Switch to workspace 5 |
-| `Super + 6` | Switch to workspace 6 |
-| `Super + 7` | Switch to workspace 7 |
-| `Super + 8` | Switch to workspace 8 |
-| `Super + 9` | Switch to workspace 9 |
-| `Super + 0` | Switch to workspace 10 |
-| `Super + Shift + 1` | Move window to workspace 1 |
-| `Super + Shift + 2` | Move window to workspace 2 |
-| `Super + Shift + 3` | Move window to workspace 3 |
-| `Super + Shift + 4` | Move window to workspace 4 |
-| `Super + Shift + 5` | Move window to workspace 5 |
-| `Super + Shift + 6` | Move window to workspace 6 |
-| `Super + Shift + 7` | Move window to workspace 7 |
-| `Super + Shift + 8` | Move window to workspace 8 |
-| `Super + Shift + 9` | Move window to workspace 9 |
-| `Super + Shift + 0` | Move window to workspace 10 |
+## Configuration File
 
-### System
+Keybindings are configured in `config/hypr/keybinds.lua` using Hyprland's Lua binding API:
 
-| Keybinding | Action |
-|------------|--------|
-| `Super + Shift + Escape` | Open power menu |
-| `Super + Print` | Screenshot |
-| `Super + Shift + Print` | Screenshot region |
-| `Super + Ctrl + Print` | Screenshot window |
-| `Super + M` | Toggle mute |
-| `Super + Volume Up` | Volume up |
-| `Super + Volume Down` | Volume down |
+```lua
+-- Sample snippet from config/hypr/keybinds.lua
+local mainMod = "SUPER"
 
-## Hyprland Configuration
+-- Quickshell Launcher & Search
+hl.bind(mainMod .. " + space", hl.dsp.exec_cmd("bash -c 'quickshell ipc call search toggle'"))
 
-Keybindings are configured in `config/hypr/keybinds.conf`:
-
-```conf
-# Terminal
-bind = SUPER, Return, exec, kitty
-
-# Launcher
-bind = SUPER, Space, exec, quickshell launcher
-
-# Close window
-bind = SUPER, Q, killactive,
-
-# Fullscreen
-bind = SUPER, F, fullscreen,
-
-# Toggle floating
-bind = SUPER, V, togglegroup,
-
-# Focus movement
-bind = SUPER, H, movefocus, l
-bind = SUPER, J, movefocus, d
-bind = SUPER, K, movefocus, u
-bind = SUPER, L, movefocus, r
-
-# Window movement
-bind = SUPER SHIFT, H, movewindow, l
-bind = SUPER SHIFT, J, movewindow, d
-bind = SUPER SHIFT, K, movewindow, u
-bind = SUPER SHIFT, L, movewindow, r
-
-# Workspaces
-bind = SUPER, 1, workspace, 1
-bind = SUPER, 2, workspace, 2
-# ... etc
-
-# Move to workspace
-bind = SUPER SHIFT, 1, movetoworkspace, 1
-bind = SUPER SHIFT, 2, movetoworkspace, 2
-# ... etc
+-- Screen Capture & OCR
+hl.bind("Print", hl.dsp.exec_cmd("bash -c 'quickshell ipc call region screenshot'"))
+hl.bind(mainMod .. " + SHIFT + Print", hl.dsp.exec_cmd("bash -c 'quickshell ipc call region record'"))
+hl.bind(mainMod .. " + ALT + Print", hl.dsp.exec_cmd("bash -c 'quickshell ipc call region ocr'"))
 ```
 
-## Quickshell Integration
+## Reloading Keybindings
 
-Quickshell components respond to these keybindings:
+To apply keybinding changes without restarting Hyprland:
 
-- **Launcher**: `Super + Space`
-- **Control Center**: `Super + Escape`
-- **Power Menu**: `Super + Shift + Escape`
+```bash
+# Via Keybinding:
+SUPER + SHIFT + R
 
-## Customization
-
-To customize keybindings:
-
-1. Edit `config/hypr/keybinds.conf`
-2. Reload Hyprland: `Super + Shift + R` or `hyprctl reload`
-3. Test your changes
-
-## Conflicts
-
-Avoid conflicts with:
-
-- Terminal applications (kitty, foot)
-- Browser shortcuts (Firefox, Chromium)
-- Accessibility shortcuts
-- Kali security tools
-
-If you experience conflicts, check the application's keybinding settings and adjust accordingly.
+# Via Command:
+hyprctl reload
+```

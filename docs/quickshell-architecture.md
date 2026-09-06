@@ -2,212 +2,123 @@
 
 ## Overview
 
-Quickshell serves as the graphical desktop shell runtime layer in `kali-land`. It provides user-facing UI components (bars, panels, launchers, control centers, widgets) while Hyprland handles window management.
+Quickshell serves as the graphical desktop shell runtime layer in `kali-land`. It provides user-facing UI components (bars, panels, launchers, control centers, widgets, lock screens, and sidebars) while Hyprland handles window management.
 
 > **"kali-land owns the environment; the user owns the experience."**
 
 `kali-land` strictly distinguishes between:
 ```text
-Quickshell Runtime (Platform)  ≠  Quickshell Shell Configuration (Experience)
+Quickshell Runtime (Platform)  ≠  Quickshell Shell Integration (Experience)
 ```
 
-## Bring Your Own Shell (BYOS)
+---
 
-`kali-land` adopts a **Bring Your Own Shell (BYOS)** model. The platform provides a stable runtime, capability detection, service integration, and safety/rollback mechanisms, while allowing users to select or bring their preferred Quickshell shell.
+## Bring Your Own Shell (BYOS) & Manifest Standard
 
-Users may run:
-1. **`end4-pC` (Primary Reference Integration)**: Material 3 Quickshell desktop shell.
-2. **Custom / User Shells**: Personal or third-party Quickshell configurations.
-3. **Future Shells**: Additional community or official integrations.
+`kali-land` adopts a **Bring Your Own Shell (BYOS)** model. The platform provides a stable Wayland runtime, capability detection, package resolution, font delivery, and safety/rollback mechanisms, while allowing users to select or bring their preferred Quickshell shell.
+
+Every shell integration in `kali-land` defines its capability contract and package/font requirements in a standardized `manifest.yaml`:
+
+```yaml
+name: end4-pC
+version: "1.0.0"
+type: quickshell
+description: "Material 3 Quickshell desktop shell reference integration for kali-land"
+provenance: "https://github.com/pctrade/end4-pC"
+
+entry: "shell.qml"
+
+requires:
+  capabilities:
+    - wayland
+    - hyprland
+    - quickshell
+  packages:
+    - qml6-module-qtcore
+    - qml6-module-qtquick
+    - fontconfig
+    - grim
+    - slurp
+    - wl-clipboard
+    - wf-recorder
+    - tesseract-ocr
+    - jq
+    - playerctl
+  fonts:
+    packages:
+      - fonts-inter
+      - fonts-roboto
+      - fonts-jetbrains-mono
+      - fonts-noto-color-emoji
+      - fonts-font-awesome
+    assets:
+      - "assets/fonts/MaterialSymbolsRounded.ttf"
+
+environment:
+  QT_QUICK_BACKEND: "software" # Recommended for VMware compatibility
+  QS_CONFIG: "end4-pC"
+```
+
+---
 
 ## Reference Shell Integration (`end4-pC`)
 
-The project uses `end4-pC` as its primary reference integration proof-of-concept.
+`kali-land` uses `end4-pC` as its primary reference integration proof-of-concept.
 
-### end4-pC Structure
+### Directory Structure
 
 ```text
 integrations/end4-pC/
+├── manifest.yaml                # Standardized capability & package manifest
 ├── shell.qml                    # Main entry point
 ├── panelFamilies/               # Panel configurations
-├── modules/                     # UI modules (vertical bar, launcher, sidebars)
+├── modules/                     # UI modules (bar, launcher, sidebars, lock screen)
 ├── services/                    # Backend Qt/QML service bridges
-├── assets/                      # Icons, fonts, visual assets
+├── assets/                      # Icons, wallpapers, bundled fonts
+│   └── fonts/                   # TTF/OTF font assets (auto-synced to ~/.local/share/fonts/)
 ├── defaults/                    # Default configurations
 ├── scripts/                     # Helper scripts
 └── translations/                # i18n support
 ```
 
-### Integration Guidelines
+---
 
-When integrating or adapting a reference shell in `kali-land`:
-- **Respect Upstream Provenance**: Maintain upstream attribution and architecture.
-- **Isolate Platform Adaptations**: Keep `kali-land`-specific bridges modular.
-- **Capability Degradation**: Missing optional capabilities (e.g. Bluetooth, battery on desktops) must degrade gracefully without crashing the shell.
+## Quickshell IPC Interface
 
-### Planned Component Structure
+Default keybindings in `kali-land` (`config/hypr/keybinds.lua`) interact with Quickshell using native IPC signals:
 
-#### 1. TopBarConfig.qml
+| Feature / UI Component | Quickshell IPC Command | Description |
+|------------------------|------------------------|-------------|
+| **Application Launcher** | `quickshell ipc call search toggle` | Toggle search bar & app grid |
+| **Clipboard Manager** | `quickshell ipc call search clipboardToggle` | Search & paste clipboard history |
+| **Workspace Overview** | `quickshell ipc call search workspacesToggle` | Interactive workspace switcher |
+| **Lock Screen** | `quickshell ipc call lock activate` | Lock session with PIN/password |
+| **Session / Power Menu** | `quickshell ipc call session toggle` | Shutdown, reboot, sleep, logout |
+| **Wallpaper Selector** | `quickshell ipc call wallpaperSelector toggle` | Select & apply wallhaven wallpapers |
+| **Random Wallpaper** | `quickshell ipc call wallpaperSelector random` | Switch to random wallpaper |
+| **Media Player Controls** | `quickshell ipc call mediaControls toggle` | Music player UI & synchronized lyrics |
+| **Left Sidebar** | `quickshell ipc call sidebarLeft toggle` | Quick settings & widgets |
+| **Right Sidebar** | `quickshell ipc call sidebarRight toggle` | Notifications & calendar |
+| **Status Bar** | `quickshell ipc call bar toggle` | Hide / show desktop status bar |
+| **Screen Capture (Region)** | `quickshell ipc call region screenshot` | Interactive area screenshot |
+| **Screen Record (Region)** | `quickshell ipc call region record` | Interactive area video recorder |
+| **Text OCR Extraction** | `quickshell ipc call region ocr` | Extract text from screen region |
 
-Central configuration for the top bar:
+---
 
-```qml
-QtObject {
-    readonly property int barHeight: 30
-    readonly property string backgroundColor: "#1e1e2e"
-    readonly property string textColor: "#cdd6f4"
-    readonly property string accentColor: "#89b4fa"
-    
-    property bool showWorkspace: true
-    property bool showClock: true
-    property bool showSystemInfo: true
-}
-```
+## Declarative Font Delivery System
 
-#### 2. WorkspaceIndicator.qml
+In Qt 6 QML, rendering text with `Text.NativeRendering` when a font is missing causes glyph rasterization to fail, making text invisible. 
 
-Displays the current workspace number with optional name.
+`kali-land` solves this cleanly via the **Declarative Font Delivery System**:
+1. **Manifest Declarations**: System font packages (`fonts-inter`, `fonts-roboto`, `fonts-jetbrains-mono`) and local TTF font assets are declared in `manifest.yaml`.
+2. **Automated Sync**: The installer (`bootstrap/lib/integrations.sh`) installs system package dependencies, copies bundled `.ttf` assets to `~/.local/share/fonts/`, and runs `fc-cache -fv`.
+3. **Zero Configuration**: Quickshell UI text renders crisply out-of-the-box on both bare-metal and virtual machines.
 
-#### 3. Clock.qml
-
-Displays current time with configurable format and optional date.
-
-## qmldir Module Registration
-
-The `qmldir` file registers components for import in other QML files.
-
-**Current Registration:**
-```
-singleton Colors 1.0 Colors.qml
-```
-
-**Future Registration (when modular):**
-```
-singleton Colors 1.0 Colors.qml
-TopBarConfig 1.0 components/bar/TopBarConfig.qml
-WorkspaceIndicator 1.0 components/bar/WorkspaceIndicator.qml
-Clock 1.0 components/bar/Clock.qml
-```
-
-## Component Communication
-
-### Current: Inline
-
-Components communicate via direct property binding within the same file:
-
-```qml
-Text {
-    text: "WS 1"
-    color: "#cdd6f4"
-}
-```
-
-### Future: Parent-Child
-
-When modularized, components will communicate via property binding:
-
-```qml
-// Parent (shell.qml)
-WorkspaceIndicator {
-    workspaceNumber: "1"
-    visible: barConfig.showWorkspace
-}
-
-// Child (WorkspaceIndicator.qml)
-Text {
-    text: "WS " + root.workspaceNumber
-}
-```
-
-## Adding New Features
-
-### Current Approach
-
-Add features directly to `shell.qml`:
-
-```qml
-// Add new section to the bar
-Text {
-    text: "New Feature"
-    color: "#cdd6f4"
-}
-```
-
-### Future Modular Approach
-
-When Quickshell matures:
-
-1. Create component file in `components/`
-2. Register in `qmldir`
-3. Import and use in `shell.qml`
-
-## Future Extensions
-
-### Planned Components
-
-1. **Launcher** - Application search and command execution
-2. **Control Center** - Network, volume, brightness, battery controls
-3. **Power Menu** - Lock, logout, suspend, reboot, shutdown
-4. **Notification Popup** - Toast notifications and history
-5. **Window Switcher** - Alt-tab window list with thumbnails
-
-### Services Layer
-
-Future architecture will include a services layer for system integration:
-
-```
-services/
-├── HyprlandService.qml   # Hyprland IPC
-├── AudioService.qml      # PulseAudio/PipeWire
-├── NetworkService.qml    # NetworkManager
-└── BatteryService.qml    # UPower
-```
-
-## Testing
-
-### Manual Testing
-
-1. Start Quickshell: `quickshell --config ~/.config/quickshell`
-2. Check logs: `/run/user/1000/quickshell/by-id/*/log.qslog`
-3. Verify bar visibility
-4. Test features
-
-### Common Issues
-
-**Configuration not loading:**
-- Check syntax in shell.qml
-- Verify all imports are valid
-- Check log file for specific errors
-
-**Module loading errors:**
-- qmldir path issues (not currently used)
-- Component registration errors (not currently used)
-
-**Deprecated warnings:**
-- Use `implicitWidth`/`implicitHeight` instead of `width`/`height`
-- Check QML version compatibility
-
-## Best Practices
-
-1. **Keep it simple** - Monolithic is fine for now
-2. **Use comments** - Document each section clearly
-3. **Centralize colors** - When migrating to Colors.qml
-4. **Test incrementally** - Verify each change
-5. **Follow naming conventions** - PascalCase for types, camelCase for properties
-6. **Document changes** - Update this file when structure changes
-
-## Migration to Modular Architecture
-
-When Quickshell's qmldir support improves:
-
-1. Create component files in `components/`
-2. Update `qmldir` registration
-3. Refactor `shell.qml` to use components
-4. Test each component independently
-5. Update documentation
+---
 
 ## References
 
-- [Quickshell Documentation](https://github.com/outfoxxed/quickshell)
-- [QML Documentation](https://doc.qt.io/qt-6/qmlapplications.html)
-- [Qt Quick Controls](https://doc.qt.io/qt-6/qtquickcontrols-index.html)
+- [Quickshell Repository](https://github.com/outfoxxed/quickshell)
+- [end4-pC Reference Shell](https://github.com/pctrade/end4-pC)
+- [Qt 6 QML Documentation](https://doc.qt.io/qt-6/qmlapplications.html)
