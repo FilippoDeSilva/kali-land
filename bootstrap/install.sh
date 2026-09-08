@@ -530,47 +530,52 @@ phase_6_quickshell_skeleton() {
     detect_package_manager
     update_package_cache
     
-    # Check if pre-built Quickshell is available from GitHub releases
-    log_info "Checking for pre-built Quickshell from GitHub releases..."
-    local repo_nwo
-    repo_nwo=$(get_github_repo_nwo)
-    
-    local download_success=false
-    local quickshell_urls=(
-        "https://github.com/${repo_nwo}/releases/download/v${KALI_LAND_VERSION}/quickshell-linux-x86_64.tar.gz"
-        "https://github.com/${repo_nwo}/releases/latest/download/quickshell-linux-x86_64.tar.gz"
-    )
-    
-    for url in "${quickshell_urls[@]}"; do
-        log_info "Attempting download from ${url}..."
-        if curl -fsSL "${url}" -o /tmp/quickshell.tar.gz 2>/dev/null; then
-            local sha_url="${url}.sha256"
-            if verify_sha256 "/tmp/quickshell.tar.gz" "${sha_url}"; then
-                log_info "Found verified pre-built Quickshell archive, unpacking..."
-                local unpack_dir="/tmp/quickshell-unpack"
-                rm -rf "${unpack_dir}"
-                mkdir -p "${unpack_dir}"
-                if tar -xzf /tmp/quickshell.tar.gz -C "${unpack_dir}" && [ -f "${unpack_dir}/quickshell" ]; then
-                    if sudo cp "${unpack_dir}/quickshell" /usr/local/bin/quickshell && sudo chmod +x /usr/local/bin/quickshell; then
-                        log_success "Pre-built Quickshell installed successfully to /usr/local/bin/quickshell"
-                        rm -rf /tmp/quickshell.tar.gz "${unpack_dir}"
-                        download_success=true
-                        break
-                    fi
-                fi
-                rm -rf "${unpack_dir}"
-            else
-                log_warn "Pre-built Quickshell binary at ${url} failed checksum verification. Rejecting."
-            fi
-            rm -f /tmp/quickshell.tar.gz
-        fi
-    done
-
-    if ${download_success}; then
-        log_success "Skipping local source compilation (pre-built binary installed)"
+    # Check if Quickshell binary is already present
+    if command -v quickshell &>/dev/null || [ -x /usr/local/bin/quickshell ]; then
+        log_success "Quickshell runtime is already installed on system at $(command -v quickshell || echo /usr/local/bin/quickshell)"
     else
-        log_info "No remote pre-built Quickshell binary available, building from source..."
-        phase_6_quickshell_build_from_source
+        # Check if pre-built Quickshell is available from GitHub releases
+        log_info "Checking for pre-built Quickshell from GitHub releases..."
+        local repo_nwo
+        repo_nwo=$(get_github_repo_nwo)
+        
+        local download_success=false
+        local quickshell_urls=(
+            "https://github.com/${repo_nwo}/releases/download/v${KALI_LAND_VERSION}/quickshell-linux-x86_64.tar.gz"
+            "https://github.com/${repo_nwo}/releases/latest/download/quickshell-linux-x86_64.tar.gz"
+        )
+        
+        for url in "${quickshell_urls[@]}"; do
+            log_info "Attempting download from ${url}..."
+            if curl -fsSL "${url}" -o /tmp/quickshell.tar.gz 2>/dev/null; then
+                local sha_url="${url}.sha256"
+                if verify_sha256 "/tmp/quickshell.tar.gz" "${sha_url}"; then
+                    log_info "Found verified pre-built Quickshell archive, unpacking..."
+                    local unpack_dir="/tmp/quickshell-unpack"
+                    rm -rf "${unpack_dir}"
+                    mkdir -p "${unpack_dir}"
+                    if tar -xzf /tmp/quickshell.tar.gz -C "${unpack_dir}" && [ -f "${unpack_dir}/quickshell" ]; then
+                        if sudo cp "${unpack_dir}/quickshell" /usr/local/bin/quickshell && sudo chmod +x /usr/local/bin/quickshell; then
+                            log_success "Pre-built Quickshell installed successfully to /usr/local/bin/quickshell"
+                            rm -rf /tmp/quickshell.tar.gz "${unpack_dir}"
+                            download_success=true
+                            break
+                        fi
+                    fi
+                    rm -rf "${unpack_dir}"
+                else
+                    log_warn "Pre-built Quickshell binary at ${url} failed checksum verification. Rejecting."
+                fi
+                rm -f /tmp/quickshell.tar.gz
+            fi
+        done
+
+        if ${download_success}; then
+            log_success "Skipping local source compilation (pre-built binary installed)"
+        else
+            log_info "No remote pre-built Quickshell binary available, building from source..."
+            phase_6_quickshell_build_from_source
+        fi
     fi
 
     log_info "Deploying selected shell integration [${SELECTED_SHELL}] to isolated path..."
