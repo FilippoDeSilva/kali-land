@@ -17,13 +17,13 @@ detect_capabilities() {
     log_step "Detecting system capabilities"
 
     # Core Display & Compositor
-    detect_cap "wayland" "[ \"${XDG_SESSION_TYPE:-}\" = \"wayland\" ] || command -v Wayland &>/dev/null"
-    detect_cap "hyprland" "command -v Hyprland &>/dev/null"
-    detect_cap "xwayland" "command -v Xwayland &>/dev/null"
+    detect_cap "wayland" "[ \"${XDG_SESSION_TYPE:-}\" = \"wayland\" ] || command -v wayland-info &>/dev/null || command -v wayland-scanner &>/dev/null || dpkg -s wayland-protocols &>/dev/null"
+    detect_cap "hyprland" "command -v hyprland &>/dev/null || command -v Hyprland &>/dev/null || dpkg -s hyprland &>/dev/null"
+    detect_cap "xwayland" "command -v xwayland &>/dev/null || command -v Xwayland &>/dev/null || dpkg -s xwayland &>/dev/null"
     detect_cap "hyprland-ipc" "[ -n \"${HYPRLAND_INSTANCE_SIGNATURE:-}\" ] || command -v hyprctl &>/dev/null"
 
     # Shell Runtime
-    detect_cap "quickshell" "command -v quickshell &>/dev/null"
+    detect_cap "quickshell" "command -v quickshell &>/dev/null || [ -x /usr/local/bin/quickshell ]"
 
     # Desktop Services
     detect_cap "pipewire" "command -v pipewire &>/dev/null || systemctl --user is-active pipewire &>/dev/null"

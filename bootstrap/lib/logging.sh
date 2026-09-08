@@ -89,7 +89,7 @@ log() {
     
     # Write to terminal if level is high enough
     if [ ${level} -ge ${LOG_CURRENT_LEVEL} ]; then
-        echo -e "${color}[${level_name}]${COLOR_RESET} ${message}"
+        echo -e "${color}[${level_name}]${COLOR_RESET} ${message}" >&2
     fi
 }
 

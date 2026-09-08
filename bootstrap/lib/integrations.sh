@@ -238,12 +238,12 @@ resolve_custom_shell_path() {
         log_step "Cloning custom shell repository from ${raw_url}"
         if [ -d "${resolved_dir}" ]; then
             log_info "Target custom integration directory already exists at ${resolved_dir}, updating..."
-            git -C "${resolved_dir}" pull || log_warn "Failed to pull latest git changes, using existing copy"
+            git -C "${resolved_dir}" pull >&2 || log_warn "Failed to pull latest git changes, using existing copy"
         else
             if command -v clone_with_credentials &>/dev/null; then
-                clone_with_credentials "${raw_url}" "${resolved_dir}"
+                clone_with_credentials "${raw_url}" "${resolved_dir}" >&2
             else
-                git clone --recursive "${raw_url}" "${resolved_dir}"
+                git clone --recursive "${raw_url}" "${resolved_dir}" >&2
             fi
         fi
     elif [ -d "${shell_arg}" ]; then
