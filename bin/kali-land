@@ -1,0 +1,134 @@
+#!/bin/bash
+# bin/kali-land - Main CLI executable for kali-land desktop platform
+
+set -Eeuo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+# Source library modules
+source "${REPO_ROOT}/bootstrap/lib/logging.sh"
+source "${REPO_ROOT}/bootstrap/lib/platform.sh"
+source "${REPO_ROOT}/bootstrap/lib/capabilities.sh"
+source "${REPO_ROOT}/bootstrap/lib/backups.sh"
+source "${REPO_ROOT}/bootstrap/lib/prompts.sh"
+source "${REPO_ROOT}/bootstrap/lib/ledger.sh"
+source "${REPO_ROOT}/bootstrap/lib/integrations.sh"
+
+show_help() {
+    echo "=========================================================="
+    echo "  kali-land CLI — Kali Linux Desktop Platform Manager"
+    echo "=========================================================="
+    echo "Usage: kali-land <command> [subcommand] [options]"
+    echo ""
+    echo "Commands:"
+    echo "  install [OPTIONS]      Run full installation lifecycle"
+    echo "                           --platform-only  Install Wayland/Hyprland without a shell"
+    echo "                           --shell <spec>   Specify shell (end4-pC, path:/dir, git:url, none)"
+    echo "  shell <subcommand>     Manage desktop shell integrations:"
+    echo "                           list             List all bundled and custom shells"
+    echo "                           discover <path>  Pre-flight dry-run audit of a custom shell"
+    echo "                           import <path>    Import a custom shell into managed path"
+    echo "                           install <spec>   Install bundled or custom shell"
+    echo "                           switch <id>      Switch active desktop shell"
+    echo "                           remove <id>      Remove installed shell integration"
+    echo "  doctor                 Run health diagnostic & capability checks"
+    echo "  rollback               List and restore configuration backups"
+    echo "  update                 Update platform & integration components"
+    echo "  uninstall              Safely purge kali-land managed resources"
+    echo "  version                Print version information"
+    echo "  help                   Show this help message"
+    echo ""
+}
+
+show_version() {
+    local version="1.0.0"
+    if [ -f "${REPO_ROOT}/VERSION" ]; then
+        version="$(tr -d '\r\n' < "${REPO_ROOT}/VERSION")"
+    fi
+    echo "kali-land v${version}"
+}
+
+if [ $# -eq 0 ]; then
+    show_help
+    exit 0
+fi
+
+COMMAND="$1"
+shift
+
+case "${COMMAND}" in
+    install)
+        exec "${REPO_ROOT}/bootstrap/install.sh" "$@"
+        ;;
+    doctor)
+        exec "${REPO_ROOT}/bootstrap/doctor.sh" "$@"
+        ;;
+    uninstall)
+        exec "${REPO_ROOT}/bootstrap/uninstall.sh" "$@"
+        ;;
+    version|--version|-v)
+        show_version
+        ;;
+    help|--help|-h)
+        show_help
+        ;;
+    rollback)
+        log_step "Rolling back configuration..."
+        list_backups
+        echo ""
+        local chosen_backup
+        chosen_backup=$(prompt "Enter backup folder name to restore (or leave blank to cancel)")
+        if [ -n "${chosen_backup}" ]; then
+            restore_backup "${chosen_backup}"
+        else
+            log_info "Rollback cancelled."
+        fi
+        ;;
+    update)
+        log_step "Updating kali-land platform and integrations..."
+        if [ -d "${REPO_ROOT}/.git" ]; then
+            log_info "Pulling latest repository changes..."
+            git -C "${REPO_ROOT}" pull || log_warn "Failed to pull git update"
+        fi
+        exec "${REPO_ROOT}/bootstrap/install.sh" --non-interactive "$@"
+        ;;
+    shell)
+        if [ $# -eq 0 ]; then
+            list_all_shells
+            exit 0
+        fi
+        SUBCOMMAND="$1"
+        shift
+        case "${SUBCOMMAND}" in
+            list)
+                list_all_shells
+                ;;
+            discover)
+                discover_shell "${1:-}"
+                ;;
+            import)
+                import_shell "${1:-}"
+                ;;
+            install)
+                install_integration "${1:-end4-pC}"
+                ;;
+            switch)
+                switch_shell "${1:-}"
+                ;;
+            remove)
+                remove_shell "${1:-}"
+                ;;
+            *)
+                log_error "Unknown shell subcommand: ${SUBCOMMAND}"
+                show_help
+                exit 1
+                ;;
+        esac
+        ;;
+    *)
+        log_error "Unknown command: ${COMMAND}"
+        show_help
+        exit 1
+        ;;
+esac

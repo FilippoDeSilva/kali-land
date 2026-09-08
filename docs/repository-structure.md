@@ -39,15 +39,16 @@ kali-land/
 ```text
 bootstrap/
 ├── install.sh                  # Main entry-point installer script
-├── uninstall.sh                # System uninstallation script
-├── doctor.sh                   # System diagnostic & validation tool
+├── uninstall.sh                # Provenance-aware system uninstallation script
+├── doctor.sh                   # Platform & integration diagnostic tool
 └── lib/
     ├── backups.sh              # Protected backup management (~/.local/state/kali-land/backups/)
     ├── capabilities.sh         # System & display capability detector
     ├── filesystem.sh           # Safe directory creation & copy utilities
     ├── integrations.sh         # Shell integration manager, manifest parser & font installer
+    ├── ledger.sh               # Resource ownership & package provenance state engine (~/.local/state/kali-land/state/installation.json)
     ├── logging.sh              # Structured CLI logging (log_info, log_step, log_success)
-    ├── packages.sh             # APT package manager wrapper
+    ├── packages.sh             # APT package manager wrapper with provenance tracking
     ├── platform.sh             # OS distribution & virtualization detector
     ├── profile.sh              # Hardware profile loader
     └── prompts.sh              # Interactive prompt utilities

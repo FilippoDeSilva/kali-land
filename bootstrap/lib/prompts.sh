@@ -186,3 +186,86 @@ spinner() {
     
     printf "   \r"
 }
+
+# print_section_header() - Print a styled section box header
+# Usage: print_section_header <title>
+print_section_header() {
+    local title=$1
+    echo ""
+    echo "=========================================================="
+    echo "  ${title}"
+    echo "=========================================================="
+    echo ""
+}
+
+# prompt_path() - Ask user to enter a folder path with validation
+# Usage: prompt_path <message> [must_exist: true|false]
+prompt_path() {
+    local message=$1
+    local must_exist=${2:-true}
+    local input_path=""
+    local expanded_path=""
+
+    while true; do
+        printf "%b" "${COLOR_PROMPT}${message}:${COLOR_RESET} "
+        read -r input_path
+        
+        # Strip surrounding quotes if user copied path with quotes
+        input_path=$(echo "${input_path}" | sed -e 's/^["'\'' ]*//' -e 's/["'\'' ]*$//')
+        
+        if [ -z "${input_path}" ]; then
+            log_error "Path cannot be empty. Please try again."
+            continue
+        fi
+
+        # Expand home directory (~)
+        if [[ "${input_path}" == "~"* ]]; then
+            local target_user_home="${HOME}"
+            if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
+                target_user_home="$(eval echo "~${SUDO_USER}")"
+            fi
+            expanded_path="${target_user_home}${input_path:1}"
+        else
+            expanded_path="$(cd "$(dirname "${input_path}")" 2>/dev/null && pwd)/$(basename "${input_path}")" 2>/dev/null || expanded_path="${input_path}"
+        fi
+
+        if ${must_exist} && [ ! -d "${expanded_path}" ]; then
+            log_error "Directory does not exist at [${expanded_path}]. Please check the path and try again."
+            continue
+        fi
+
+        echo "${expanded_path}"
+        return 0
+    done
+}
+
+# prompt_url() - Ask user to enter a Git repository URL with basic validation
+# Usage: prompt_url <message>
+prompt_url() {
+    local message=$1
+    local url=""
+
+    while true; do
+        printf "%b" "${COLOR_PROMPT}${message}:${COLOR_RESET} "
+        read -r url
+        
+        # Clean quotes/spaces
+        url=$(echo "${url}" | sed -e 's/^["'\'' ]*//' -e 's/["'\'' ]*$//')
+
+        if [ -z "${url}" ]; then
+            log_error "URL cannot be empty. Please try again."
+            continue
+        fi
+
+        if [[ ! "${url}" =~ ^(https?://|git@|file://) ]]; then
+            log_warn "URL [${url}] does not start with http://, https://, or git@."
+            if ! confirm "Proceed with this repository string anyway?" "y"; then
+                continue
+            fi
+        fi
+
+        echo "${url}"
+        return 0
+    done
+}
+

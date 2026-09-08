@@ -10,11 +10,23 @@ require("keybinds")
 require("rules")
 require("autostart")
 
--- VMware-specific configuration (only load if running in VMware)
-local vm_detected = os.getenv("VIRTUALIZATION") == "vmware" or 
-                   os.getenv("DESKTOP_SESSION") == "vmware" or
-                   (os.execute("systemd-detect-virt") == 0 and os.execute("systemd-detect-virt | grep -q vmware") == 0)
+-- VMware-specific configuration (only loaded if genuinely running under VMware virtualization)
+local function check_is_vmware()
+    if os.getenv("VIRTUALIZATION") == "vmware" then
+        return true
+    end
+    local handle = io.popen("systemd-detect-virt 2>/dev/null")
+    if handle then
+        local result = handle:read("*a") or ""
+        handle:close()
+        result = result:gsub("%s+", "")
+        if result == "vmware" then
+            return true
+        fi
+    end
+    return false
+end
 
-if vm_detected then
+if check_is_vmware() then
     require("vmware")
 end

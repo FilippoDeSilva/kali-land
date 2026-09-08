@@ -5,9 +5,10 @@
 [ -n "${PACKAGES_SH_SOURCED:-}" ] && return 0
 readonly PACKAGES_SH_SOURCED=1
 
-# Source logging
+# Source logging & ledger
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${LIB_DIR}/logging.sh"
+[ -f "${LIB_DIR}/ledger.sh" ] && source "${LIB_DIR}/ledger.sh"
 
 # Package manager detection
 PACKAGE_MANAGER=""
@@ -80,10 +81,11 @@ update_package_cache() {
     fi
 }
 
-# install_packages() - Install packages from list
+# install_packages() - Install packages from list with provenance tracking
 # Usage: install_packages <package_list_file>
 install_packages() {
     local package_file=$1
+    local caller_tag="$(basename "${package_file}")"
     
     if [ ! -f "${package_file}" ]; then
         log_error "Package file not found: ${package_file}"
@@ -112,51 +114,53 @@ install_packages() {
         return 0
     fi
     
-    log_info "Packages to install: ${packages[*]}"
+    log_info "Packages requested: ${packages[*]}"
     
-    # Check if packages are available and filter out unavailable ones
-    log_info "Checking package availability..."
+    # Check package availability and existing status for provenance tracking
     local available_packages=()
     local missing_packages=()
+    local newly_needed_packages=()
+
     for pkg in "${packages[@]}"; do
-        if check_package_available "${pkg}"; then
+        if check_package_installed "${pkg}"; then
+            log_info "Package [${pkg}] is already installed on system"
+            if command -v record_package_provenance &>/dev/null; then
+                record_package_provenance "${pkg}" "already_present" "${caller_tag}"
+            fi
+        elif check_package_available "${pkg}"; then
             available_packages+=("${pkg}")
+            newly_needed_packages+=("${pkg}")
         else
             log_warn "Package not available in repos, skipping: ${pkg}"
             missing_packages+=("${pkg}")
+            if command -v record_package_provenance &>/dev/null; then
+                record_package_provenance "${pkg}" "failed" "${caller_tag}"
+            fi
         fi
     done
-    
-    if [ ${#available_packages[@]} -eq 0 ]; then
-        log_warn "No available packages to install"
-        if [ ${#missing_packages[@]} -gt 0 ]; then
-            log_info "The following packages were not available:"
-            for pkg in "${missing_packages[@]}"; do
-                log_info "  - ${pkg}"
-            done
-        fi
-        return 1
+
+    if [ ${#newly_needed_packages[@]} -eq 0 ]; then
+        log_success "All available requested packages are already installed."
+        return 0
     fi
-    
-    if [ ${#missing_packages[@]} -gt 0 ]; then
-        log_info "Some packages were not available and will be skipped:"
-        for pkg in "${missing_packages[@]}"; do
-            log_info "  - ${pkg}"
-        done
-        log_info "Continuing with available packages..."
-    fi
-    
-    # Install available packages
-    log_info "Installing ${#available_packages[@]} available packages..."
-    log_command "${PACKAGE_MANAGER} install -y ${available_packages[*]}"
-    if ${PACKAGE_MANAGER} install -y "${available_packages[@]}"; then
+
+    log_info "Installing ${#newly_needed_packages[@]} new packages: ${newly_needed_packages[*]}"
+    log_command "${PACKAGE_MANAGER} install -y ${newly_needed_packages[*]}"
+    if ${PACKAGE_MANAGER} install -y "${newly_needed_packages[@]}"; then
         log_success "Packages installed successfully"
-        if [ ${#missing_packages[@]} -gt 0 ]; then
-            log_info "Skipped ${#missing_packages[@]} unavailable packages"
-        fi
+        for pkg in "${newly_needed_packages[@]}"; do
+            if command -v record_package_provenance &>/dev/null; then
+                record_package_provenance "${pkg}" "installed_by_kali_land" "${caller_tag}"
+            fi
+        done
         return 0
     else
         log_failure "Failed to install packages"
+        for pkg in "${newly_needed_packages[@]}"; do
+            if command -v record_package_provenance &>/dev/null; then
+                record_package_provenance "${pkg}" "failed" "${caller_tag}"
+            fi
+        done
         return 1
     fi
 }

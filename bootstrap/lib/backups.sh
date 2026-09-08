@@ -5,10 +5,11 @@
 [ -n "${BACKUPS_SH_SOURCED:-}" ] && return 0
 readonly BACKUPS_SH_SOURCED=1
 
-# Source logging and prompts
+# Source logging, prompts & ledger
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${LIB_DIR}/logging.sh"
 source "${LIB_DIR}/prompts.sh"
+[ -f "${LIB_DIR}/ledger.sh" ] && source "${LIB_DIR}/ledger.sh"
 
 # Target user and home directory resolution (handles sudo execution)
 if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
@@ -61,6 +62,9 @@ protect_and_install_config() {
             chown -R "${TARGET_USER}:${user_group}" "${target_path}" 2>/dev/null || true
             chown -R "${TARGET_USER}:${user_group}" "$(dirname "${target_path}")" 2>/dev/null || true
         fi
+        if command -v record_file_provenance &>/dev/null; then
+            record_file_provenance "${target_path}" "created" "${component_name}"
+        fi
         log_success "Successfully deployed configuration for ${component_name}"
         return 0
     else
@@ -93,6 +97,9 @@ Original Path: ${target_path}
 Backup Path: ${backup_target}
 Created By: kali-land installer
 EOF
+        if command -v record_file_provenance &>/dev/null; then
+            record_file_provenance "${target_path}" "backed_up" "${component_name}"
+        fi
         log_success "Backed up ${component_name} to ${backup_target}"
         log_info "Manifest recorded: ${manifest_file}"
         return 0

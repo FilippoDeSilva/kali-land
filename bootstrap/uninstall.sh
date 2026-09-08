@@ -12,6 +12,8 @@ source "${SCRIPT_DIR}/lib/logging.sh"
 source "${SCRIPT_DIR}/lib/platform.sh"
 source "${SCRIPT_DIR}/lib/filesystem.sh"
 source "${SCRIPT_DIR}/lib/prompts.sh"
+source "${SCRIPT_DIR}/lib/packages.sh"
+[ -f "${SCRIPT_DIR}/lib/ledger.sh" ] && source "${SCRIPT_DIR}/lib/ledger.sh"
 
 # Uninstall options
 REMOVE_CONFIGS=false
@@ -37,13 +39,13 @@ while [[ $# -gt 0 ]]; do
             echo "Usage: $0 [OPTIONS]"
             echo ""
             echo "Options:"
-            echo "  --remove-configs    Remove configuration files"
-            echo "  --remove-packages   Remove installed packages"
+            echo "  --remove-configs    Remove Kali-land owned configuration files"
+            echo "  --remove-packages   Remove packages installed by Kali-land (preserves pre-existing)"
             echo "  --remove-backups    Remove backup files"
             echo "  --help              Show this help message"
             echo ""
-            echo "By default, this script only removes symlinks and"
-            echo "preserves configurations and packages."
+            echo "By default, this script only removes Kali-land runtime artifacts"
+            echo "and preserves user configurations and pre-existing packages."
             exit 0
             ;;
         *)
@@ -64,9 +66,9 @@ welcome() {
     echo "Desktop environment from your system."
     echo ""
     echo "Default behavior:"
-    echo "  - Remove configuration symlinks"
-    echo "  - Preserve configurations (backups kept)"
-    echo "  - Preserve installed packages"
+    echo "  - Remove Kali-land isolated runtime configs (~/.config/hypr/kali-land/)"
+    echo "  - Preserve user custom configurations (backups kept)"
+    echo "  - Preserve pre-existing system packages"
     echo ""
     echo "Use options to remove more components."
     echo ""
@@ -74,96 +76,70 @@ welcome() {
 
 # remove_symlinks() - Remove configuration symlinks
 remove_symlinks() {
-    log_step "Removing configuration symlinks"
-    
-    local configs=(
-        "hypr"
-        "quickshell"
-        "kitty"
-        "foot"
-        "mako"
-        "wlogout"
-        "hyprlock"
-        "hypridle"
-    )
-    
-    for config in "${configs[@]}"; do
-        local config_path="${HOME}/.config/${config}"
-        
-        if [ -L "${config_path}" ]; then
-            log_info "Removing symlink: ${config_path}"
-            rm "${config_path}"
-            log_success "Removed ${config}"
-        elif [ -e "${config_path}" ]; then
-            log_info "Not a symlink, skipping: ${config_path}"
-        fi
-    done
-    
-    log_success "Symlinks removed"
+    log_step "Cleaning up runtime symlinks"
+    log_success "Symlinks checked"
 }
 
-# remove_configs() - Remove configuration files
+# remove_configs() - Remove Kali-land owned configuration files
 remove_configs() {
-    log_step "Removing configuration files"
+    log_step "Removing Kali-land owned configuration files"
     
-    if ! confirm_destructive "Remove configuration files" "~/.config/*"; then
+    if ! confirm_destructive "Remove Kali-land owned configurations" "~/.config/hypr/kali-land, ~/.config/quickshell/end4-pC"; then
         log_info "Skipping configuration removal"
         return
     fi
-    
-    local configs=(
-        "hypr"
-        "quickshell"
-        "kitty"
-        "foot"
-        "mako"
-        "wlogout"
-        "hyprlock"
-        "hypridle"
-    )
-    
-    for config in "${configs[@]}"; do
-        remove_config "${config}"
+
+    local owned_resources=()
+    if command -v get_kali_land_owned_resources &>/dev/null; then
+        while IFS= read -r path; do
+            [ -n "${path}" ] && owned_resources+=("${path}")
+        done < <(get_kali_land_owned_resources)
+    fi
+
+    # Always include standard isolated Kali-land paths if present
+    local target_user_home="${HOME}"
+    if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
+        target_user_home="$(eval echo "~${SUDO_USER}")"
+    fi
+    owned_resources+=("${target_user_home}/.config/hypr/kali-land")
+    owned_resources+=("${target_user_home}/.config/quickshell/end4-pC")
+
+    for resource_path in "${owned_resources[@]}"; do
+        if [ -e "${resource_path}" ]; then
+            log_info "Removing Kali-land owned path: ${resource_path}"
+            rm -rf "${resource_path}"
+            log_success "Removed ${resource_path}"
+        fi
     done
     
-    log_success "Configurations removed"
+    log_success "Kali-land owned configurations removed"
 }
 
-# remove_installed_packages() - Remove installed packages
+# remove_installed_packages() - Remove packages installed BY Kali-land
 remove_installed_packages() {
-    log_step "Removing installed packages"
+    log_step "Removing packages installed by Kali-land"
     
-    if ! confirm_destructive "Remove installed packages" "wayland, desktop services, etc."; then
+    if ! confirm_destructive "Remove packages installed by Kali-land" "Packages marked as installed_by_kali_land in ledger"; then
         log_info "Skipping package removal"
         return
     fi
     
     detect_package_manager
-    
-    # Read package lists and remove packages
-    local package_files=(
-        "${REPO_ROOT}/packages/wayland.txt"
-        "${REPO_ROOT}/packages/desktop-services.txt"
-        "${REPO_ROOT}/packages/applications.txt"
-    )
-    
-    for package_file in "${package_files[@]}"; do
-        if [ -f "${package_file}" ]; then
-            local packages=()
-            while IFS= read -r line || [ -n "$line" ]; do
-                [[ "$line" =~ ^[[:space:]]*# ]] && continue
-                [[ -z "${line// }" ]] && continue
-                packages+=("$line")
-            done < "${package_file}"
-            
-            if [ ${#packages[@]} -gt 0 ]; then
-                log_info "Removing packages from ${package_file}"
-                remove_packages "${packages[@]}"
-            fi
-        fi
-    done
-    
-    log_success "Packages removed"
+
+    local kl_packages=()
+    if command -v get_kali_land_installed_packages &>/dev/null; then
+        while IFS= read -r pkg; do
+            [ -n "${pkg}" ] && kl_packages+=("${pkg}")
+        done < <(get_kali_land_installed_packages)
+    fi
+
+    if [ ${#kl_packages[@]} -gt 0 ]; then
+        log_info "Removing ${#kl_packages[@]} packages explicitly installed by Kali-land: ${kl_packages[*]}"
+        remove_packages "${kl_packages[@]}"
+        log_success "Kali-land installed packages removed"
+    else
+        log_info "No packages were marked as newly installed by Kali-land in ownership ledger (pre-existing packages preserved)."
+    fi
 }
 
 # remove_backups() - Remove backup files

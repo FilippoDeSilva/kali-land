@@ -4,55 +4,60 @@
 
 A modular, reproducible desktop platform for Kali Linux built on Wayland, Hyprland, and Quickshell.
 
-## Core Principle
+## Core Philosophy
 
-> **kali-land owns the environment; the user owns the experience.**
+> **Kali-land owns the plumbing, not the personality.**  
+> **Kali-land provides the floor, not the furniture.**  
+> **Kali-land owns the environment; the user owns the experience.**
 
-`kali-land` is not a Kali Linux fork, theme pack, or locked-in shell clone. It is a robust desktop/runtime layer around Kali Linux that provides a solid Wayland + Hyprland runtime foundation, desktop services, capability detection, and safety/rollback tooling, with first-class support for Quickshell-based desktop shells under a **Bring Your Own Shell (BYOS)** model.
+`kali-land` is not a Kali Linux fork, theme pack, or opinionated distribution. It is a minimal, robust desktop runtime foundation around Kali Linux that provides a solid Wayland + Hyprland runtime, desktop services, capability detection, resource ownership tracking, and safety tooling — with support for any desktop setup under a **Bring Your Own Setup (BYOS)** model.
 
 ## Overview
 
-`kali-land` provides a modern Wayland desktop environment that preserves Kali's security tooling while offering a polished user experience.
+`kali-land` provides a modern Wayland desktop environment that preserves 100% of Kali's security tooling while allowing complete user customization without taking ownership of unrelated dotfiles or application settings.
 
-**Note**: This project is currently in active development. While designed for VMware during development, it is engineered for bare-metal laptops and desktops as well. VMware-specific optimizations are applied dynamically when running inside a VM.
+**Note**: Engineered for both bare-metal hardware and virtualized environments (e.g. VMware), with dynamic hardware detection and profile optimization.
 
 ## Core Architecture
 
 ```text
-                         KALI LINUX
-                 security + Debian ecosystem
-                            │
-                         WAYLAND
-                            │
-                        HYPRLAND
-                  compositor + window IPC
-                            │
-                  ┌─────────┴─────────┐
-                  │                   │
-             Desktop Services     Shell Runtime
-                  │                   │
-          PipeWire / Network      Quickshell
-          Portals / Polkit            │
-          Notifications / IPC         │
-                  │            ┌──────┼──────┐
-                  │            │      │      │
-                  │         end4-pC  User   Future
-                  │            (ref) Shells Shells
-                  │
-                  └───────────┬───────┘
-                              │
-                         Applications
+                         USER LAND
+┌─────────────────────────────────────────────────────┐
+│  User Shell / Dotfiles / Themes / Workflows        │
+└─────────────────────────────────────────────────────┘
+                         ▲
+                         │ optional integration
+                         │
+┌─────────────────────────────────────────────────────┐
+│                   KALI-LAND                         │
+│  Integration Contract / Capability Engine           │
+│  Resource Ownership Ledger (~/.local/state/...)     │
+│  Backup / Rollback / Diagnostics / Lifecycle       │
+│  Platform Configuration (~/.config/hypr/kali-land/) │
+└─────────────────────────────────────────────────────┘
+                         ▲
+                         │
+┌─────────────────────────────────────────────────────┐
+│                 PLATFORM LAYER                      │
+│  Wayland / Hyprland / Desktop Services             │
+└─────────────────────────────────────────────────────┘
+                         ▲
+                         │
+┌─────────────────────────────────────────────────────┐
+│                  KALI LINUX                         │
+└─────────────────────────────────────────────────────┘
 ```
 
-### Platform Layer (kali-land-owned)
-- **Kali Linux**: Debian-based security distribution & package manager (`apt`).
-- **Wayland & Hyprland**: Wayland session protocol, tiling compositor, workspaces, and window IPC.
-- **Desktop Services**: PipeWire, NetworkManager, XDG desktop portals, Polkit, cliphist, notifications.
-- **Platform Infrastructure**: Capability detection, profile management (VMware / Bare metal), idempotent installer, diagnostics (`doctor`), and backups (`~/.local/state/kali-land/`).
+### Platform Foundation (Kali-land Owned)
+- **Kali Linux Base**: Debian security distribution (`apt`, `dpkg`, `systemd`).
+- **Wayland & Hyprland**: Wayland session protocol, tiling window compositor, window rules, and workspace IPC.
+- **Desktop Services**: PipeWire audio, NetworkManager, XDG desktop portals, Polkit authentication, cliphist, desktop notifications.
+- **State & Resource Ownership Ledger**: Track package provenance and file ownership at `~/.local/state/kali-land/state/installation.json`.
+- **Diagnostics & Safety**: Non-destructive installer, manifest backups, offline rollback, and `./bootstrap/doctor.sh`.
 
-### Experience Layer (User-owned)
-- **Quickshell Integrations**: First-class support for Quickshell desktop shells (`end4-pC` is the primary reference integration proof-of-concept).
-- **User Customizations**: Custom shell configurations, visual themes, keyboard workflows, and application choices.
+### Experience Layer (User Owned)
+- **Namespace-Isolated Integrations**: Desktop shell integrations live strictly in namespaced locations (e.g. `~/.config/quickshell/end4-pC/`), leaving the parent folder and user configurations untouched.
+- **User Customizations**: Custom dotfiles, terminal setups, wallpapers, keybindings, and application workflows.
 
 ## Requirements
 

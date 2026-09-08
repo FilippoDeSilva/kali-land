@@ -124,7 +124,7 @@ hl.bind(mainMod .. " + l", hl.dsp.exec_cmd("bash -c 'quickshell ipc call lock ac
    Create your main `shell.qml` file inside `integrations/my-shell/`.
 
 4. **Deploy via Installer**:
-   Deploy your custom integration to `~/.config/quickshell`:
+   Deploy your custom integration to its isolated namespace `~/.config/quickshell/<shell-name>`:
    ```bash
    ./bootstrap/install.sh
    ```
@@ -133,6 +133,7 @@ hl.bind(mainMod .. " + l", hl.dsp.exec_cmd("bash -c 'quickshell ipc call lock ac
    source bootstrap/lib/integrations.sh
    install_integration "my-shell"
    ```
+   *Note*: Deployment installs to `~/.config/quickshell/my-shell/`. It will never remove, wipe, or touch sibling folders or parent `~/.config/quickshell/` directory.
 
 ---
 

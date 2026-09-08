@@ -2,35 +2,50 @@
 
 ## Overview
 
-`kali-land` provides a modular, reproducible desktop runtime platform for Kali Linux.
+`kali-land` provides a minimal, composable desktop foundation for Kali Linux.
 
-> **"kali-land owns the environment; the user owns the experience."**
+> **"Kali-land owns the plumbing, not the personality."**  
+> **"Kali-land provides the floor, not the furniture."**  
+> **"Kali-land owns the environment; the user owns the experience."**
 
-The architecture separates the underlying **Platform** (runtime, compositor, desktop services, capability detection, safety) from the **Experience** (user-selected Quickshell UI configuration, visual theme, and workflows).
+The architecture separates the **Platform Foundation** (runtime, compositor, desktop services, capability engine, resource ownership ledger) from the **Experience Layer** (user-selected shell, themes, dotfiles, and application choices).
 
 ## Conceptual Model
 
 ```text
-                         KALI-LAND
-                            │
-        ┌───────────────────┼───────────────────┐
-        │                   │                   │
-     Runtime             Services            Shell Layer
-        │                   │                   │
-   Wayland              PipeWire             Quickshell
-   Hyprland             NetworkManager           │
-   XWayland             Portals                   ├── end4-pC (reference)
-   IPC                  Notifications              ├── Custom User Shells
-                        Polkit                    └── Future Shells
-                        Clipboard
+                         USER LAND
+┌─────────────────────────────────────────────────────┐
+│  User Shell / Dotfiles / Themes / Workflows        │
+└─────────────────────────────────────────────────────┘
+                         ▲
+                         │ optional integration
+                         │
+┌─────────────────────────────────────────────────────┐
+│                   KALI-LAND                         │
+│  Integration Contract / Capability Engine           │
+│  Resource Ownership Ledger (~/.local/state/...)     │
+│  Backup / Rollback / Diagnostics / Lifecycle       │
+│  Platform Configuration (~/.config/hypr/kali-land/) │
+└─────────────────────────────────────────────────────┘
+                         ▲
+                         │
+┌─────────────────────────────────────────────────────┐
+│                 PLATFORM LAYER                      │
+│  Wayland / Hyprland / Desktop Services             │
+└─────────────────────────────────────────────────────┘
+                         ▲
+                         │
+┌─────────────────────────────────────────────────────┐
+│                  KALI LINUX                         │
+└─────────────────────────────────────────────────────┘
 ```
 
 ## Architectural Boundaries
 
-### 1. Platform Layer (kali-land-owned)
+### 1. Platform Layer (Kali-land Owned)
 
 - **OS Base**: Kali Linux (Debian rolling, `apt`, `dpkg`, `systemd`).
-- **Display & Compositor**: Wayland session protocol, Hyprland tiling window manager, window rules, workspaces, and window IPC.
+- **Display & Compositor**: Wayland session protocol, Hyprland tiling window manager (`~/.config/hypr/kali-land/`), window rules, workspaces, and window IPC.
 - **Desktop Services**:
   - Audio: PipeWire / WirePlumber
   - Networking: NetworkManager (`nmcli`)
@@ -39,26 +54,30 @@ The architecture separates the underlying **Platform** (runtime, compositor, des
   - Clipboard: `cliphist` + `wl-clipboard`
   - Notifications: `libnotify` / desktop notification daemons
 - **Platform Infrastructure**:
-  - Capability detection (`wayland`, `hyprland`, `quickshell`, `pipewire`, `networkmanager`, etc.)
-  - Hardware & VM Profiles (`systemd-detect-virt` profile management for VMware and bare-metal)
-  - Safety & State: Timestamped backups stored in `~/.local/state/kali-land/backups/`
-  - Diagnostics: `./bootstrap/doctor.sh` health inspection tool.
+  - Capability engine (`wayland`, `hyprland`, `pipewire`, `networkmanager`, `quickshell`, etc.)
+  - Hardware & VM Profiles (`systemd-detect-virt` management for VMware and bare-metal)
+  - State & Resource Ledger: `~/.local/state/kali-land/state/installation.json` (tracks package provenance and file ownership).
+  - Safety & Backups: Structured timestamped manifests in `~/.local/state/kali-land/backups/`.
+  - Diagnostics: Provenance-aware `./bootstrap/doctor.sh`.
 
-### 2. Experience Layer (User-owned)
+### 2. Experience Layer (User Owned)
 
-- **Quickshell Integrations**: Supports a **Bring Your Own Shell (BYOS)** model. `end4-pC` is integrated as the primary reference proof-of-concept shell.
-- **User Customization**: Custom bars, launchers, themes, keyboard workflows, and application selections.
+- **Bring Your Own Setup (BYOS)**: Support for custom shells, dotfiles, and visual themes.
+- **Namespace-Isolated Shells**: Shell integrations live strictly in namespaced directories (e.g. `~/.config/quickshell/end4-pC/`). The parent directory `~/.config/quickshell/` is never wiped or claimed by Kali-land.
+- **User Workflows**: Terminal choices, text editors, wallpapers, hotkeys, and personal systemd user services.
 
 ## Configuration Ownership
 
 ```text
 Platform Configuration:
-  repository source of truth → ~/.config/hypr/, ~/.config/foot/
+  ~/.config/hypr/kali-land/      (Isolated platform configuration)
 
-User Shell Configuration:
-  ~/.config/quickshell/<shell>/ (Namespaced)
+User Shell Integrations:
+  ~/.config/quickshell/<shell>/ (Namespaced integration directories)
+
+Resource Provenance State:
+  ~/.local/state/kali-land/state/installation.json
 ```
 
-- System files are only modified when strictly necessary.
-- Before modifying any user configuration, `kali-land` executes `detect → backup → change → validate`.
-- Backups are stored in `~/.local/state/kali-land/backups/<timestamp>/` and can be restored offline.
+- Pre-existing user dotfiles and package selections are preserved.
+- Uninstallation and rollback purge ONLY resources recorded as created or installed by Kali-land in `installation.json`.

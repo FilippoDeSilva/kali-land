@@ -17,6 +17,7 @@ source "${SCRIPT_DIR}/lib/capabilities.sh"
 source "${SCRIPT_DIR}/lib/profile.sh"
 source "${SCRIPT_DIR}/lib/integrations.sh"
 source "${SCRIPT_DIR}/lib/backups.sh"
+source "${SCRIPT_DIR}/lib/ledger.sh"
 
 # Load environment variables if .env file exists
 if [ -f "${REPO_ROOT}/.env" ]; then
@@ -24,6 +25,11 @@ if [ -f "${REPO_ROOT}/.env" ]; then
     set -a
     source "${REPO_ROOT}/.env"
     set +a
+fi
+
+if [ -f "${REPO_ROOT}/packages/versions.env" ]; then
+    log_info "Sourcing pinned dependency matrix from packages/versions.env"
+    source "${REPO_ROOT}/packages/versions.env"
 fi
 
 if [ -n "${KALI_LAND_VERSION:-}" ]; then
@@ -46,10 +52,12 @@ cleanup_on_exit() {
 }
 trap cleanup_on_exit EXIT SIGINT SIGTERM SIGHUP
 
-# Installation phases
+# Installation options
 PHASE=0
 DRY_RUN=false
 INTERACTIVE=true
+SELECTED_SHELL=""
+SELECTED_TERMINAL=""
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -66,11 +74,26 @@ while [[ $# -gt 0 ]]; do
             INTERACTIVE=false
             shift
             ;;
+        --platform-only)
+            SELECTED_SHELL="none"
+            shift
+            ;;
+        --shell)
+            SELECTED_SHELL="$2"
+            shift 2
+            ;;
+        --terminal)
+            SELECTED_TERMINAL="$2"
+            shift 2
+            ;;
         --help)
             echo "Usage: $0 [OPTIONS]"
             echo ""
             echo "Options:"
             echo "  --phase <number>    Run specific phase (0-13)"
+            echo "  --platform-only     Install platform foundation without a shell (DIY mode)"
+            echo "  --shell <spec>      Specify shell integration (e.g. end4-pC, celestia, path:/your/folder, git:https://..., none)"
+            echo "  --terminal <name>   Specify default terminal (e.g. kitty, foot, alacritty)"
             echo "  --dry-run           Show what would be done without making changes"
             echo "  --non-interactive   Run without user prompts"
             echo "  --help              Show this help message"
@@ -164,6 +187,8 @@ phase_0_platform_detection() {
     load_profile
     detect_capabilities
     validate_platform
+
+    record_installation_metadata "${KALI_LAND_VERSION}" "${CURRENT_PROFILE:-default}" "${PLATFORM_DISTRO:-kali}"
     
     if ! is_kali; then
         log_warn "This project is designed for Kali Linux"
@@ -191,6 +216,18 @@ phase_1_repository_foundation() {
         log_success "Package manifests already exist in repository"
     else
         log_warn "No package manifests found in repository"
+    fi
+
+    # Install main CLI executable symlink
+    if [ -f "${REPO_ROOT}/bin/kali-land" ]; then
+        log_info "Installing kali-land CLI executable to /usr/local/bin/kali-land"
+        chmod +x "${REPO_ROOT}/bin/kali-land" 2>/dev/null || true
+        if sudo ln -sf "${REPO_ROOT}/bin/kali-land" /usr/local/bin/kali-land 2>/dev/null; then
+            log_success "CLI executable symlinked to /usr/local/bin/kali-land"
+            record_file_provenance "/usr/local/bin/kali-land" "created" "CLI Engine"
+        else
+            log_warn "Could not create symlink at /usr/local/bin/kali-land (requires root/sudo)"
+        fi
     fi
 
     log_success "Phase 1 complete"
@@ -338,9 +375,9 @@ phase_4_fonts() {
     log_success "Phase 4 complete"
 }
 
-# deploy_hyprland_config() - Deploy Hyprland Lua configuration files
+# deploy_hyprland_config() - Deploy Hyprland Lua configuration files to isolated kali-land namespace
 deploy_hyprland_config() {
-    log_step "Deploying Hyprland Lua Configuration"
+    log_step "Deploying Hyprland Lua Platform Configuration"
     ensure_directories
 
     local target_user_home="${HOME}"
@@ -348,25 +385,40 @@ deploy_hyprland_config() {
         target_user_home="$(eval echo "~${SUDO_USER}")"
     fi
     local hypr_config_dir="${target_user_home}/.config/hypr"
-    mkdir -p "${hypr_config_dir}"
+    local hypr_platform_dir="${hypr_config_dir}/kali-land"
+    mkdir -p "${hypr_platform_dir}"
 
     if [ -d "${REPO_ROOT}/config/hypr" ]; then
-        log_info "Deploying Lua configuration files to ${hypr_config_dir}"
+        log_info "Deploying platform Lua configuration files to ${hypr_platform_dir}"
 
-        # If legacy hyprland.conf exists, back it up and move to hyprland.conf.bak
-        if [ -f "${hypr_config_dir}/hyprland.conf" ]; then
-            log_warn "Legacy hyprland.conf detected. Backing up and disabling legacy config file..."
-            backup_config_with_manifest "${hypr_config_dir}/hyprland.conf" "Legacy Hyprland Config" 2>/dev/null || true
-            mv "${hypr_config_dir}/hyprland.conf" "${hypr_config_dir}/hyprland.conf.bak"
+        cp -r "${REPO_ROOT}/config/hypr/"*.lua "${hypr_platform_dir}/"
+
+        if command -v record_file_provenance &>/dev/null; then
+            record_file_provenance "${hypr_platform_dir}" "created" "Hyprland Platform Config"
         fi
 
-        cp -r "${REPO_ROOT}/config/hypr/"*.lua "${hypr_config_dir}/"
+        if [ -n "${SELECTED_TERMINAL}" ]; then
+            log_info "Setting default terminal to [${SELECTED_TERMINAL}] in ${hypr_platform_dir}/environment.lua"
+            sed -i "s/hl.env(\"TERMINAL\", \".*\")/hl.env(\"TERMINAL\", \"${SELECTED_TERMINAL}\")/" "${hypr_platform_dir}/environment.lua" 2>/dev/null || true
+        fi
 
-        if systemd-detect-virt --vm &>/dev/null; then
-            log_info "VM detected - setting terminal to foot (native Wayland)"
-            sed -i 's/hl.env("TERMINAL", "kitty")/hl.env("TERMINAL", "foot")/' "${hypr_config_dir}/environment.lua"
+        # If no top-level hyprland config exists, create entry point loader without overwriting user files
+        if [ ! -f "${hypr_config_dir}/hyprland.lua" ] && [ ! -f "${hypr_config_dir}/hyprland.conf" ]; then
+            log_info "Creating default Hyprland entry point loader at ${hypr_config_dir}/hyprland.lua"
+            cat <<'EOF' > "${hypr_config_dir}/hyprland.lua"
+-- Hyprland configuration entry point for Kali-land
+-- Loads platform configuration from ~/.config/hypr/kali-land/
+
+package.path = package.path .. ";" .. os.getenv("HOME") .. "/.config/hypr/kali-land/?.lua"
+
+require("config")
+EOF
+            if command -v record_file_provenance &>/dev/null; then
+                record_file_provenance "${hypr_config_dir}/hyprland.lua" "created" "Hyprland Entrypoint Loader"
+            fi
         else
-            log_info "Bare metal detected - keeping terminal as kitty (GPU accelerated)"
+            log_info "Pre-existing Hyprland configuration detected in ${hypr_config_dir}. Preserving user configuration."
+            log_info "Platform configs installed in ${hypr_platform_dir} can be required in your custom hyprland configuration."
         fi
 
         if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
@@ -375,7 +427,7 @@ deploy_hyprland_config() {
             chown -R "${SUDO_USER}:${user_group}" "${hypr_config_dir}" 2>/dev/null || true
         fi
 
-        log_success "Hyprland Lua configuration installed"
+        log_success "Hyprland Lua platform configuration installed at ${hypr_platform_dir}"
     else
         log_warn "Hyprland configuration directory not found in repository"
     fi
@@ -447,10 +499,34 @@ verify_sha256() {
     fi
 }
 
-# phase_6_quickshell_skeleton() - Install Quickshell skeleton
+# phase_6_quickshell_skeleton() - Install Quickshell skeleton & user-selected shell integration
 phase_6_quickshell_skeleton() {
-    log_step "Phase 5: Quickshell Installation"
+    log_step "Phase 6: Desktop Shell Integration Setup"
     
+    # Resolve selected shell integration
+    if [ -z "${SELECTED_SHELL}" ]; then
+        if ${INTERACTIVE:-true}; then
+            if command -v prompt_shell_selection &>/dev/null; then
+                SELECTED_SHELL=$(prompt_shell_selection)
+            else
+                SELECTED_SHELL="end4-pC"
+            fi
+        else
+            SELECTED_SHELL="end4-pC"
+        fi
+    fi
+
+    log_info "Selected shell option: [${SELECTED_SHELL}]"
+
+    if [ "${SELECTED_SHELL}" = "none" ] || [ "${SELECTED_SHELL}" = "DIY" ] || [ "${SELECTED_SHELL}" = "diy" ]; then
+        log_info "User selected Bare Minimal / DIY mode."
+        log_info "Skipping Quickshell installation and shell integration deployment."
+        log_info "Kali-land platform foundation installed. You have 100% freedom to hand-craft your setup!"
+        configure_quickshell_hypr_env "none"
+        log_success "Phase 6 complete (Bare Minimal / DIY Platform Mode)"
+        return 0
+    fi
+
     detect_package_manager
     update_package_cache
     
@@ -466,7 +542,7 @@ phase_6_quickshell_skeleton() {
     )
     
     for url in "${quickshell_urls[@]}"; do
-                log_info "Attempting download from ${url}..."
+        log_info "Attempting download from ${url}..."
         if curl -fsSL "${url}" -o /tmp/quickshell.tar.gz 2>/dev/null; then
             local sha_url="${url}.sha256"
             if verify_sha256 "/tmp/quickshell.tar.gz" "${sha_url}"; then
@@ -497,14 +573,13 @@ phase_6_quickshell_skeleton() {
         phase_6_quickshell_build_from_source
     fi
 
-    local shell_name="end4-pC"
-    log_info "Deploying default reference shell integration [${shell_name}]..."
-    install_integration "${shell_name}"
+    log_info "Deploying selected shell integration [${SELECTED_SHELL}] to isolated path..."
+    install_integration "${SELECTED_SHELL}"
     
-    configure_quickshell_hypr_env "${shell_name}"
+    configure_quickshell_hypr_env "${SELECTED_SHELL}"
     
-    log_success "Quickshell configuration completed"
-    log_success "Phase 5 complete"
+    log_success "Desktop shell integration completed for [${SELECTED_SHELL}]"
+    log_success "Phase 6 complete"
 }
 
 # configure_quickshell_hypr_env() - Configure Hyprland environment & autostart for Quickshell
@@ -514,18 +589,18 @@ configure_quickshell_hypr_env() {
     if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
         target_user_home="$(eval echo "~${SUDO_USER}")"
     fi
-    local hypr_env_file="${target_user_home}/.config/hypr/environment.lua"
-    local hypr_autostart="${target_user_home}/.config/hypr/autostart.lua"
+    local hypr_env_file="${target_user_home}/.config/hypr/kali-land/environment.lua"
+    local hypr_autostart="${target_user_home}/.config/hypr/kali-land/autostart.lua"
+
+    if [ "${shell_name}" = "none" ]; then
+        log_info "Configuring Hyprland platform autostart for Bare Minimal / DIY mode"
+        if [ -f "${hypr_autostart}" ]; then
+            sed -i '/quickshell/d' "${hypr_autostart}" 2>/dev/null || true
+        fi
+        return 0
+    fi
 
     if [ -f "${hypr_env_file}" ]; then
-        if is_vmware; then
-            log_info "Applying VMware environment overrides in ${hypr_env_file}"
-            sed -i '/hl.env("QT_QUICK_BACKEND", "software")/d' "${hypr_env_file}" 2>/dev/null || true
-            if ! grep -q "WLR_NO_HARDWARE_CURSORS" "${hypr_env_file}"; then
-                echo 'hl.env("WLR_NO_HARDWARE_CURSORS", "1")' >> "${hypr_env_file}"
-            fi
-        fi
-
         if ! grep -q "QS_CONFIG" "${hypr_env_file}"; then
             echo "hl.env(\"QS_CONFIG\", \"${shell_name}\")" >> "${hypr_env_file}"
             log_success "Added QS_CONFIG environment variable for ${shell_name}"
@@ -536,8 +611,8 @@ configure_quickshell_hypr_env() {
     fi
 
     if [ -f "${hypr_autostart}" ]; then
-        sed -i 's|quickshell --path [^"]*|quickshell|g' "${hypr_autostart}"
-        log_success "Hyprland autostart updated for end4-pC Quickshell configuration"
+        sed -i "s|quickshell.*|quickshell --path ~/.config/quickshell/${shell_name}|g" "${hypr_autostart}"
+        log_success "Hyprland autostart updated for isolated Quickshell configuration: ${shell_name}"
     fi
 
     if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then

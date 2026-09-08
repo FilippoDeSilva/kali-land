@@ -15,6 +15,7 @@ source "${SCRIPT_DIR}/lib/capabilities.sh"
 source "${SCRIPT_DIR}/lib/profile.sh"
 source "${SCRIPT_DIR}/lib/integrations.sh"
 source "${SCRIPT_DIR}/lib/backups.sh"
+[ -f "${SCRIPT_DIR}/lib/ledger.sh" ] && source "${SCRIPT_DIR}/lib/ledger.sh"
 
 # Test results
 declare -A TEST_RESULTS
@@ -95,25 +96,43 @@ if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
     TARGET_HOME="$(eval echo "~${SUDO_USER}")"
 fi
 
-# test_shell() - Test Quickshell shell
-test_shell() {
-    echo "=== Shell ==="
+# test_ledger() - Test resource ownership ledger health
+test_ledger() {
+    echo "=== State & Resource Ownership Ledger ==="
     
-    # Quickshell test
+    local ledger_path="${TARGET_HOME}/.local/state/kali-land/state/installation.json"
+    if [ -f "${ledger_path}" ]; then
+        echo "  Ledger          PASS (exists at ${ledger_path})"
+        TEST_RESULTS[Ledger]=PASS
+    else
+        echo "  Ledger          INFO (not initialized yet)"
+        TEST_RESULTS[Ledger]=INFO
+    fi
+    echo ""
+}
+
+# test_shell() - Test Quickshell runtime & integrations (Optional under BYOS)
+test_shell() {
+    echo "=== Shell Runtime & Integrations ==="
+    
+    # Quickshell runtime test
     if command -v quickshell &>/dev/null; then
         echo "  Quickshell      PASS (installed)"
         TEST_RESULTS[Quickshell]=PASS
     else
-        echo "  Quickshell      FAIL (not installed)"
-        TEST_RESULTS[Quickshell]=FAIL
+        echo "  Quickshell      INFO (optional shell runtime not installed)"
+        TEST_RESULTS[Quickshell]=INFO
     fi
     
-    # Config test
-    if [ -d "${TARGET_HOME}/.config/quickshell" ]; then
-        echo "  Config          PASS (exists)"
+    # Quickshell namespaced integration config test
+    if [ -d "${TARGET_HOME}/.config/quickshell/end4-pC" ]; then
+        echo "  end4-pC Shell   PASS (namespaced at ~/.config/quickshell/end4-pC)"
+        TEST_RESULTS[QuickshellConfig]=PASS
+    elif [ -d "${TARGET_HOME}/.config/quickshell" ]; then
+        echo "  Quickshell Dir  PASS (custom shell directory exists)"
         TEST_RESULTS[QuickshellConfig]=PASS
     else
-        echo "  Config          INFO (not found)"
+        echo "  Shell Config    INFO (no quickshell integration found)"
         TEST_RESULTS[QuickshellConfig]=INFO
     fi
     
@@ -185,27 +204,42 @@ test_services() {
 test_configuration() {
     echo "=== Configuration ==="
     
-    # Hyprland config test
-    if [ -f "${TARGET_HOME}/.config/hypr/hyprland.lua" ]; then
-        echo "  Hyprland config PASS (Lua format exists)"
-        TEST_RESULTS[HyprlandConfig]=PASS
-    elif [ -f "${TARGET_HOME}/.config/hypr/hyprland.conf" ]; then
-        echo "  Hyprland config WARN (old .conf format, consider migrating to Lua)"
-        TEST_RESULTS[HyprlandConfig]=WARN
+    # Hyprland platform config test
+    if [ -d "${TARGET_HOME}/.config/hypr/kali-land" ]; then
+        echo "  Platform Hypr   PASS (isolated at ~/.config/hypr/kali-land/)"
+        TEST_RESULTS[HyprlandPlatform]=PASS
     else
-        echo "  Hyprland config INFO (not found)"
+        echo "  Platform Hypr   INFO (~/.config/hypr/kali-land/ not found)"
+        TEST_RESULTS[HyprlandPlatform]=INFO
+    fi
+
+    # Hyprland entrypoint test
+    if [ -f "${TARGET_HOME}/.config/hypr/hyprland.lua" ] || [ -f "${TARGET_HOME}/.config/hypr/hyprland.conf" ]; then
+        echo "  Hyprland Config PASS (entry point file exists)"
+        TEST_RESULTS[HyprlandConfig]=PASS
+    else
+        echo "  Hyprland Config INFO (top-level config not found)"
         TEST_RESULTS[HyprlandConfig]=INFO
     fi
     
-    # Quickshell config test
-    if [ -d "${TARGET_HOME}/.config/quickshell" ]; then
-        echo "  Quickshell      PASS (exists)"
-        TEST_RESULTS[QuickshellConfig]=PASS
+    # CLI Engine test
+    if command -v kali-land &>/dev/null || [ -f "/usr/local/bin/kali-land" ]; then
+        echo "  CLI Engine      PASS (/usr/local/bin/kali-land available)"
+        TEST_RESULTS[CLIEngine]=PASS
     else
-        echo "  Quickshell      INFO (not found)"
-        TEST_RESULTS[QuickshellConfig]=INFO
+        echo "  CLI Engine      INFO (kali-land executable not symlinked in PATH)"
+        TEST_RESULTS[CLIEngine]=INFO
     fi
-    
+
+    # Ownership Ledger test
+    if [ -f "${TARGET_HOME}/.local/state/kali-land/state/installation.json" ]; then
+        echo "  Ownership Ledger PASS (installation.json present)"
+        TEST_RESULTS[LedgerState]=PASS
+    else
+        echo "  Ownership Ledger INFO (installation.json not initialized)"
+        TEST_RESULTS[LedgerState]=INFO
+    fi
+
     # Theme test
     if [ -d "${REPO_ROOT}/themes/default" ]; then
         echo "  Theme           PASS (exists)"
@@ -321,6 +355,7 @@ main() {
     echo ""
     
     test_platform
+    test_ledger
     test_package_manager_health
     test_profile_section
     test_capabilities_section

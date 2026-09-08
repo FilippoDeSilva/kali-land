@@ -12,10 +12,11 @@ sudo ./bootstrap/install.sh
 
 The installer will:
 - Detect your platform and validate requirements
-- Install all required dependencies
-- Configure Hyprland and Quickshell
-- Set up the end4-pC Material 3 desktop shell
-- Apply VMware optimizations if detected
+- Initialize the Resource Ownership Ledger (`~/.local/state/kali-land/state/installation.json`)
+- Install platform dependencies while tracking package provenance
+- Configure Hyprland platform infrastructure (`~/.config/hypr/kali-land/`)
+- Deploy optional shell integration (`~/.config/quickshell/end4-pC/`) without touching parent config folders
+- Apply hardware/VM environment optimizations dynamically
 
 ## Requirements
 
@@ -33,20 +34,18 @@ The installer will:
 
 2. Logout and select "Hyprland" from your display manager
 
-3. The Quickshell desktop shell will start automatically
+3. The desktop platform and optional shell integration will start automatically
 
 ## What Gets Installed
 
-**Core:**
+**Platform Infrastructure (Kali-land Owned):**
 - Hyprland (Wayland compositor)
-- Quickshell with end4-pC configuration
-- Desktop services (audio, network, notifications)
+- Desktop services (PipeWire audio, NetworkManager, XDG portals, Polkit, notifications)
+- Resource Ownership Ledger & State Tracking (`~/.local/state/kali-land/`)
 
-**Applications:**
-- Terminal (Foot/Kitty)
-- File manager (Thunar)
-- Browser (Firefox)
-- Editor (Geany)
+**Optional Integrations & Applications:**
+- `end4-pC` Quickshell reference integration (installed into isolated `~/.config/quickshell/end4-pC/`)
+- User-selectable terminal, file manager, and utilities
 
 ## Troubleshooting
 
