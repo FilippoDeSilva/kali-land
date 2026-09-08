@@ -230,7 +230,7 @@ resolve_custom_shell_path() {
             log_error "Custom directory does not exist: ${raw_path}"
             return 1
         fi
-    elif [[ "${shell_arg}" == "git:"* ]]; then
+    elif [[ "${shell_arg}" == "git:"* ]] || [[ "${shell_arg}" == "http://"* ]] || [[ "${shell_arg}" == "https://"* ]] || [[ "${shell_arg}" == "git@"* ]]; then
         local raw_url="${shell_arg#git:}"
         custom_name="custom-$(basename "${raw_url}" .git)"
         resolved_dir="${INTEGRATIONS_DIR}/${custom_name}"
@@ -259,9 +259,12 @@ resolve_custom_shell_path() {
 # validate_integration_capabilities() - Validate if system meets an integration's capabilities
 validate_integration_capabilities() {
     local shell_name=$1
+    local explicit_dir=${2:-}
     local shell_dir="${INTEGRATIONS_DIR}/${shell_name}"
     
-    if [ ! -d "${shell_dir}" ] && [ -d "${shell_name}" ]; then
+    if [ -n "${explicit_dir}" ] && [ -d "${explicit_dir}" ]; then
+        shell_dir="${explicit_dir}"
+    elif [ ! -d "${shell_dir}" ] && [ -d "${shell_name}" ]; then
         shell_dir="${shell_name}"
     fi
 
@@ -441,7 +444,7 @@ install_integration() {
     local shell_name="${raw_shell_name}"
     local source_dir="${INTEGRATIONS_DIR}/${shell_name}"
 
-    if [[ "${raw_shell_name}" == "path:"* ]] || [[ "${raw_shell_name}" == "git:"* ]] || [ -d "${raw_shell_name}" ]; then
+    if [[ "${raw_shell_name}" == "path:"* ]] || [[ "${raw_shell_name}" == "git:"* ]] || [[ "${raw_shell_name}" == "http://"* ]] || [[ "${raw_shell_name}" == "https://"* ]] || [[ "${raw_shell_name}" == "git@"* ]] || [ -d "${raw_shell_name}" ]; then
         local resolved_info
         resolved_info=$(resolve_custom_shell_path "${raw_shell_name}")
         if [ $? -eq 0 ] && [ -n "${resolved_info}" ]; then
@@ -470,7 +473,7 @@ install_integration() {
     auto_detect_shell_manifest "${source_dir}"
 
     # Validate capabilities
-    validate_integration_capabilities "${shell_name}" || log_warn "Deploying shell despite missing capabilities"
+    validate_integration_capabilities "${shell_name}" "${source_dir}" || log_warn "Deploying shell despite missing capabilities"
 
     # Install integration-specific package dependencies declared in manifest.yaml
     install_integration_dependencies "${shell_name}"
@@ -577,7 +580,7 @@ discover_shell() {
     echo ""
     echo "─── Pre-flight Capability Audit ───"
     if command -v validate_integration_capabilities &>/dev/null; then
-        validate_integration_capabilities "${shell_name}" || true
+        validate_integration_capabilities "${shell_name}" "${source_dir}" || true
     fi
     echo "=========================================================="
     echo ""
