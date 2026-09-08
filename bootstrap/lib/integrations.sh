@@ -738,20 +738,33 @@ remove_shell() {
     fi
 
     local target_dir="${target_user_home}/.config/quickshell/${shell_name}"
+    local integration_source="${INTEGRATIONS_DIR}/${shell_name}"
+    local removed_anything=false
 
-    if [ ! -d "${target_dir}" ]; then
-        log_warn "Shell integration [${raw_name}] (resolved: ${shell_name}) is not installed at ${target_dir}"
-        return 0
+    log_step "Removing shell integration [${shell_name}]..."
+
+    # 1. Remove deployed config directory in ~/.config/quickshell/
+    if [ -d "${target_dir}" ]; then
+        if command -v create_backup &>/dev/null; then
+            create_backup "${target_dir}" "Pre-removal backup of ${shell_name}"
+        fi
+        rm -rf "${target_dir}"
+        log_info "Removed deployed configuration at ${target_dir}"
+        removed_anything=true
     fi
 
-    log_step "Removing installed shell integration [${shell_name}] at ${target_dir}"
-    
-    if command -v create_backup &>/dev/null; then
-        create_backup "${target_dir}" "Pre-removal backup of ${shell_name}"
+    # 2. Remove cloned custom integration directory in integrations/
+    if [ -d "${integration_source}" ]; then
+        rm -rf "${integration_source}"
+        log_info "Removed integration source at ${integration_source}"
+        removed_anything=true
     fi
 
-    rm -rf "${target_dir}"
-    log_success "Shell integration [${shell_name}] removed cleanly."
+    if [ "${removed_anything}" = "true" ]; then
+        log_success "Shell integration [${shell_name}] removed cleanly."
+    else
+        log_warn "Shell integration [${raw_name}] (resolved: ${shell_name}) was not found installed."
+    fi
 }
 
 # list_all_shells() - List bundled integrations, custom installed shells, and active shell
@@ -774,35 +787,71 @@ list_all_shells() {
     echo "Active Experience: [${active_shell:-none}]"
     echo ""
 
-    echo "Bundled Integrations:"
+    echo "Bundled Stock Integrations:"
     if [ -d "${INTEGRATIONS_DIR}" ]; then
         for item in "${INTEGRATIONS_DIR}"/*; do
             if [ -d "${item}" ]; then
                 local name
                 name=$(basename "${item}")
-                local active_mark=" "
-                [ "${name}" = "${active_shell}" ] && active_mark="*"
-                echo "  ${active_mark} ${name}"
+                if [[ "${name}" != "custom-"* ]]; then
+                    local active_mark=" "
+                    [ "${name}" = "${active_shell}" ] && active_mark="*"
+                    echo "  ${active_mark} ${name}"
+                fi
             fi
         done
     fi
 
     echo ""
-    echo "Installed Custom Shells (~/.config/quickshell/):"
+    echo "Installed Custom Shells:"
+    local seen_shells=()
+
+    # Scan cloned custom integrations in repository integrations/
+    if [ -d "${INTEGRATIONS_DIR}" ]; then
+        for item in "${INTEGRATIONS_DIR}"/*; do
+            if [ -d "${item}" ]; then
+                local name
+                name=$(basename "${item}")
+                if [[ "${name}" == "custom-"* ]]; then
+                    seen_shells+=("${name}")
+                    local active_mark=" "
+                    [ "${name}" = "${active_shell}" ] && active_mark="*"
+                    echo "  ${active_mark} ${name} (custom integration)"
+                fi
+            fi
+        done
+    fi
+
+    # Scan deployed custom shells in ~/.config/quickshell/
     local qs_dir="${target_user_home}/.config/quickshell"
     if [ -d "${qs_dir}" ]; then
         for item in "${qs_dir}"/*; do
             if [ -d "${item}" ]; then
                 local name
                 name=$(basename "${item}")
+
+                # Skip backup directories
+                if [[ "${name}" == *".backup"* ]] || [[ "${name}" == "backup"* ]]; then
+                    continue
+                fi
+
+                local already_seen=false
+                for s in "${seen_shells[@]:-}"; do
+                    if [ "${s}" = "${name}" ]; then
+                        already_seen=true
+                        break
+                    fi
+                done
+                [ "${already_seen}" = "true" ] && continue
+
                 if [ ! -d "${INTEGRATIONS_DIR}/${name}" ]; then
-                    # Filter out non-shell data directories (assets, modules, scripts, services, translations, etc.)
-                    local has_qml
-                    has_qml=$(find "${item}" -maxdepth 2 -name "*.qml" 2>/dev/null | head -n 1)
-                    if [ -f "${item}/manifest.yaml" ] || [ -n "${has_qml}" ]; then
+                    # Must contain a root QML entrypoint (depth 1) or manifest.yaml to be a shell
+                    local has_root_qml
+                    has_root_qml=$(find "${item}" -maxdepth 1 -name "*.qml" 2>/dev/null | head -n 1)
+                    if [ -f "${item}/manifest.yaml" ] || [ -f "${item}/shell.qml" ] || [ -f "${item}/main.qml" ] || [ -n "${has_root_qml}" ]; then
                         local active_mark=" "
                         [ "${name}" = "${active_shell}" ] && active_mark="*"
-                        echo "  ${active_mark} ${name} (custom)"
+                        echo "  ${active_mark} ${name} (custom config)"
                     fi
                 fi
             fi
