@@ -10,6 +10,7 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 # Source library modules
 source "${REPO_ROOT}/bootstrap/lib/logging.sh"
 source "${REPO_ROOT}/bootstrap/lib/platform.sh"
+source "${REPO_ROOT}/bootstrap/lib/packages.sh"
 source "${REPO_ROOT}/bootstrap/lib/capabilities.sh"
 source "${REPO_ROOT}/bootstrap/lib/backups.sh"
 source "${REPO_ROOT}/bootstrap/lib/prompts.sh"

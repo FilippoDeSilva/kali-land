@@ -5,9 +5,11 @@
 [ -n "${INTEGRATIONS_SH_SOURCED:-}" ] && return 0
 readonly INTEGRATIONS_SH_SOURCED=1
 
-# Source logging, capabilities, and backups
+# Source logging, platform, packages, capabilities, and backups
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${LIB_DIR}/logging.sh"
+source "${LIB_DIR}/platform.sh"
+source "${LIB_DIR}/packages.sh"
 source "${LIB_DIR}/capabilities.sh"
 source "${LIB_DIR}/backups.sh"
 
@@ -277,7 +279,7 @@ validate_integration_capabilities() {
         return 1
     fi
 
-    if ! command -v detect_capabilities &>/dev/null; then
+    if [ ${#CAPABILITIES[@]} -eq 0 ] && command -v detect_capabilities &>/dev/null; then
         detect_capabilities
     fi
 
