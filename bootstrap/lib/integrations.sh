@@ -456,6 +456,78 @@ except Exception:
     log_success "Font requirements and assets successfully processed for [${shell_name}]"
 }
 
+# build_cmake_shell() - Build a shell that ships with CMakeLists.txt (e.g., Caelestia)
+build_cmake_shell() {
+    local shell_dir=$1
+    local shell_name
+    shell_name=$(basename "${shell_dir}")
+
+    log_step "Building native QML plugin for shell [${shell_name}] (cmake+ninja required)"
+
+    # Install cmake build dependencies
+    local need_cmake=()
+    command -v cmake &>/dev/null  || need_cmake+=("cmake")
+    command -v ninja &>/dev/null  || need_cmake+=("ninja-build")
+    command -v pkg-config &>/dev/null || need_cmake+=("pkg-config")
+    if [ ${#need_cmake[@]} -gt 0 ]; then
+        log_info "Installing cmake build tools: ${need_cmake[*]}"
+        sudo apt-get install -y "${need_cmake[@]}" &>/dev/null || \
+            log_warn "Failed to auto-install cmake tools, continuing..."
+    fi
+
+    # Additional Caelestia dependencies
+    local caelestia_deps=(
+        "libddcutil-dev"
+        "libpipewire-0.3-dev"
+        "libqalculate-dev"
+        "libsensors-dev"
+        "libaubio-dev"
+        "libcava"
+        "brightnessctl"
+        "power-profiles-daemon"
+        "qt6-base-dev"
+        "qt6-declarative-dev"
+        "qt6-shadertools-dev"
+        "libbrightnessctl-dev"
+        "fish"
+        "swappy"
+        "ddcutil"
+    )
+    log_info "Installing Caelestia native dependencies..."
+    sudo apt-get install -y "${caelestia_deps[@]}" &>/dev/null || \
+        log_warn "Some Caelestia dependencies not available in apt, continuing..."
+
+    local build_dir="${shell_dir}/build"
+    rm -rf "${build_dir}"
+    mkdir -p "${build_dir}"
+
+    log_info "Running cmake configure..."
+    if ! cmake -B "${build_dir}" -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/ \
+        -S "${shell_dir}" &>/dev/null; then
+        log_error "cmake configure failed for [${shell_name}]"
+        log_warn "You may need to install missing build dependencies manually"
+        log_info "See: https://github.com/caelestia-dots/shell#manual-installation"
+        return 1
+    fi
+
+    log_info "Building [${shell_name}] (this may take a minute)..."
+    if ! cmake --build "${build_dir}" &>/dev/null; then
+        log_error "cmake build failed for [${shell_name}]"
+        return 1
+    fi
+
+    log_info "Installing native QML plugin for [${shell_name}] to system..."
+    if ! sudo cmake --install "${build_dir}" &>/dev/null; then
+        log_error "cmake install failed for [${shell_name}] — may need sudo"
+        return 1
+    fi
+
+    log_success "Native QML plugin for [${shell_name}] installed successfully"
+    return 0
+}
+
 # install_integration() - Install a shell integration (bundled, custom path, or git) with prompt & backup protection
 install_integration() {
     local raw_shell_name=${1:-"end4-pC"}
@@ -489,6 +561,12 @@ install_integration() {
 
     # Auto-detect or synthesize manifest.yaml if missing
     auto_detect_shell_manifest "${source_dir}"
+
+    # If shell ships with CMakeLists.txt, it needs cmake build to register native QML types
+    if [ -f "${source_dir}/CMakeLists.txt" ]; then
+        log_info "Shell [${shell_name}] has a CMakeLists.txt — building native QML plugin..."
+        build_cmake_shell "${source_dir}" || log_warn "CMake build failed; shell may not function correctly without native QML types"
+    fi
 
     # Validate capabilities
     validate_integration_capabilities "${shell_name}" "${source_dir}" || log_warn "Deploying shell despite missing capabilities"
