@@ -551,7 +551,38 @@ configure_quickshell_hypr_env() {
         return 0
     fi
 
-    # 1. Update Hyprland Lua Environment (QS_CONFIG env var) in both locations
+    # Step 0: Deploy kali-land Hyprland config files from repo if not yet deployed
+    local repo_hypr_config=""
+    for candidate in \
+        "${REPO_ROOT:-}/config/hypr" \
+        "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null | xargs dirname 2>/dev/null)/../../config/hypr" \
+        "${HOME}/Desktop/kali-land/config/hypr" \
+        "/home/kali/Desktop/kali-land/config/hypr"; do
+        if [ -d "${candidate}" ]; then
+            repo_hypr_config="$(cd "${candidate}" && pwd)"
+            break
+        fi
+    done
+
+    if [ -n "${repo_hypr_config}" ]; then
+        for src_lua in "${repo_hypr_config}"/*.lua; do
+            [ -f "${src_lua}" ] || continue
+            local fname
+            fname=$(basename "${src_lua}")
+            local dest_kl="${hypr_dir}/kali-land/${fname}"
+            if [ ! -f "${dest_kl}" ]; then
+                cp "${src_lua}" "${dest_kl}"
+                log_info "Deployed ${fname} -> ${dest_kl}"
+            fi
+        done
+        # Deploy top-level hyprland.lua entry point if missing
+        if [ ! -f "${hypr_lua}" ] && [ -f "${repo_hypr_config}/hyprland.lua" ]; then
+            cp "${repo_hypr_config}/hyprland.lua" "${hypr_lua}"
+            log_info "Deployed hyprland.lua -> ${hypr_lua}"
+        fi
+    fi
+
+    # Step 1: Update QS_CONFIG in environment.lua in BOTH locations
     for env_file in "${env_lua_root}" "${env_lua_kl}"; do
         mkdir -p "$(dirname "${env_file}")"
         if [ -f "${env_file}" ]; then
@@ -563,7 +594,7 @@ configure_quickshell_hypr_env() {
         else
             echo "hl.env(\"QS_CONFIG\", \"${shell_name}\")" > "${env_file}"
         fi
-        log_success "Updated QS_CONFIG in ${env_file} -> ${shell_name}"
+        log_success "Set QS_CONFIG=\"${shell_name}\" in ${env_file}"
     done
 
     # 2. Update Hyprland Lua Autostart in both locations
@@ -609,6 +640,12 @@ require("rules")
 require("autostart")
 EOF
         log_success "Created main entry point ${hypr_lua}"
+    else
+        # Ensure kali-land/ is on the package path in the existing hyprland.lua
+        if [ -f "${hypr_lua}" ] && ! grep -q "kali-land" "${hypr_lua}"; then
+            sed -i '1s|^|package.path = package.path .. ";" .. os.getenv("HOME") .. "/.config/hypr/kali-land/?.lua"\n|' "${hypr_lua}"
+            log_success "Added kali-land package.path to ${hypr_lua}"
+        fi
     fi
 
     if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
@@ -616,6 +653,9 @@ EOF
         user_group="$(id -gn "${SUDO_USER}" 2>/dev/null || echo "${SUDO_USER}")"
         chown -R "${SUDO_USER}:${user_group}" "${hypr_dir}" 2>/dev/null || true
     fi
+
+    log_success "Hyprland configured: shell [${shell_name}] will launch on next login"
+    log_info "Launch NOW without re-login: quickshell --path ${qs_path}"
 }
 
 # resolve_runtime_environment() - Detect declared runtime (quickshell, celestia, waybar, none)

@@ -16,3 +16,7 @@ hl.env("QT_ACCESSIBILITY", "1")
 hl.env("TERMINAL", "kitty")
 hl.env("BROWSER", "firefox-esr")
 hl.env("EDITOR", "geany")
+
+-- Desktop Shell Integration (managed by kali-land CLI)
+-- Set to the shell namespace name, e.g. "end4-pC", "custom-caelestia-dots-shell"
+hl.env("QS_CONFIG", "none")
