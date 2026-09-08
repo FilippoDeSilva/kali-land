@@ -456,75 +456,241 @@ except Exception:
     log_success "Font requirements and assets successfully processed for [${shell_name}]"
 }
 
+# try_download_prebuilt_plugin() - Attempt to download a pre-built native QML plugin from GitHub Releases
+# Returns 0 if download+verify+install succeeded, 1 otherwise (caller falls back to local build)
+try_download_prebuilt_plugin() {
+    local shell_name="$1"   # e.g. "caelestia"
+    local artifact_base="$2" # e.g. "caelestia-plugin-linux"
+    local kl_release_repo="${3:-FilippoDeSilva/kali-land}"
+
+    # AGENT.md §35: Detect architecture explicitly; never assume x86_64
+    local raw_arch
+    raw_arch=$(uname -m)
+    local norm_arch
+    case "${raw_arch}" in
+        x86_64|amd64) norm_arch="x86_64" ;;
+        aarch64|arm64) norm_arch="aarch64" ;;
+        *) log_warn "Unsupported architecture: ${raw_arch} — no prebuilt available"; return 1 ;;
+    esac
+
+    # Check if a prebuilt artifact exists for this arch
+    local prebuilt_supported=false
+    for pa in "${PREBUILT_ARCHS[@]:-x86_64}"; do
+        [ "${pa}" = "${norm_arch}" ] && prebuilt_supported=true && break
+    done
+    if ! "${prebuilt_supported}"; then
+        log_info "No prebuilt artifact for arch ${norm_arch} — will build from source"
+        return 1
+    fi
+
+    if ! command -v curl &>/dev/null; then
+        log_warn "curl not found — cannot download prebuilt artifact"
+        return 1
+    fi
+
+    # Determine which release tag to target from the repo VERSION
+    local kl_version="${KALI_LAND_VERSION:-$(cat "${REPO_ROOT:-/dev/null}/VERSION" 2>/dev/null || echo "")}"
+    if [ -z "${kl_version}" ]; then
+        log_info "No kali-land release version found — cannot download prebuilt; will build from source"
+        return 1
+    fi
+
+    local artifact_name="${artifact_base}-${norm_arch}.tar.gz"
+    local checksum_name="${artifact_name}.sha256"
+    local base_url="https://github.com/${kl_release_repo}/releases/download/v${kl_version}"
+    local tmp_dir
+    tmp_dir=$(mktemp -d)
+
+    log_info "Trying prebuilt ${artifact_name} from release v${kl_version}..."
+
+    # Download artifact + checksum (silent, with timeout)
+    if ! curl -fsSL --connect-timeout 10 --max-time 120 \
+        -o "${tmp_dir}/${artifact_name}" \
+        "${base_url}/${artifact_name}" 2>/dev/null; then
+        log_info "Prebuilt artifact not available in release v${kl_version} — falling back to local build"
+        rm -rf "${tmp_dir}"
+        return 1
+    fi
+
+    if ! curl -fsSL --connect-timeout 10 --max-time 10 \
+        -o "${tmp_dir}/${checksum_name}" \
+        "${base_url}/${checksum_name}" 2>/dev/null; then
+        log_warn "Checksum file missing for prebuilt — skipping to ensure integrity; will build from source"
+        rm -rf "${tmp_dir}"
+        return 1
+    fi
+
+    # AGENT.md §36: Verify sha256 checksum before installing anything
+    log_info "Verifying sha256 checksum..."
+    cd "${tmp_dir}"
+    if ! sha256sum -c "${checksum_name}" &>/dev/null; then
+        log_error "Checksum verification FAILED for ${artifact_name} — refusing to install"
+        log_warn "The downloaded artifact may be corrupt or tampered with"
+        rm -rf "${tmp_dir}"
+        return 1
+    fi
+    log_success "Checksum verified: ${artifact_name}"
+
+    # Extract and install the prebuilt QML plugin
+    log_info "Installing prebuilt native QML plugin for [${shell_name}]..."
+    if ! sudo tar -xzf "${tmp_dir}/${artifact_name}" -C /; then
+        log_error "Failed to extract prebuilt artifact — falling back to local build"
+        rm -rf "${tmp_dir}"
+        return 1
+    fi
+
+    rm -rf "${tmp_dir}"
+    log_success "Prebuilt [${shell_name}] QML plugin installed from release v${kl_version} (${norm_arch})"
+    return 0
+}
+
 # build_cmake_shell() - Build a shell that ships with CMakeLists.txt (e.g., Caelestia)
+# First tries to download a prebuilt artifact from GitHub Releases for speed.
+# Falls back to local cmake build if no prebuilt is available or download fails.
 build_cmake_shell() {
     local shell_dir=$1
     local shell_name
     shell_name=$(basename "${shell_dir}")
 
-    log_step "Building native QML plugin for shell [${shell_name}] (cmake+ninja required)"
+    log_step "Preparing native QML plugin for shell [${shell_name}]"
 
-    # Install cmake build dependencies
-    local need_cmake=()
-    command -v cmake &>/dev/null  || need_cmake+=("cmake")
-    command -v ninja &>/dev/null  || need_cmake+=("ninja-build")
-    command -v pkg-config &>/dev/null || need_cmake+=("pkg-config")
-    if [ ${#need_cmake[@]} -gt 0 ]; then
-        log_info "Installing cmake build tools: ${need_cmake[*]}"
-        sudo apt-get install -y "${need_cmake[@]}" &>/dev/null || \
-            log_warn "Failed to auto-install cmake tools, continuing..."
+    # Fast path: try downloading prebuilt artifact from GitHub Release
+    if try_download_prebuilt_plugin "${shell_name}" "${CAELESTIA_ARTIFACT_NAME:-caelestia-plugin-linux}" "FilippoDeSilva/kali-land"; then
+        log_success "Using prebuilt artifact — skipping local cmake build"
+        return 0
     fi
 
-    # Additional Caelestia dependencies
-    local caelestia_deps=(
-        "libddcutil-dev"
-        "libpipewire-0.3-dev"
-        "libqalculate-dev"
-        "libsensors-dev"
-        "libaubio-dev"
-        "libcava"
-        "brightnessctl"
-        "power-profiles-daemon"
+    log_info "No prebuilt available — building [${shell_name}] from source (this takes a few minutes)"
+
+    # ── Idempotency: check if native QML type is already registered ──────────────
+    # Skip rebuild if Caelestia.Config is already available to the QML engine
+    if command -v qml6 &>/dev/null; then
+        if echo 'import Caelestia 1.0; Item {}' | qml6 --stdin &>/dev/null 2>&1; then
+            log_info "Native QML type Caelestia.Config already registered — skipping rebuild"
+            return 0
+        fi
+    fi
+
+    # ── Install cmake build toolchain ────────────────────────────────────────────
+    local need_tools=()
+    command -v cmake      &>/dev/null || need_tools+=("cmake")
+    command -v ninja      &>/dev/null || need_tools+=("ninja-build")
+    command -v pkg-config &>/dev/null || need_tools+=("pkg-config")
+    if [ ${#need_tools[@]} -gt 0 ]; then
+        log_info "Installing build toolchain: ${need_tools[*]}"
+        sudo apt-get install -y "${need_tools[@]}" 2>&1 | \
+            grep -E "^(Err|E:|dpkg-|Setting up)" || true
+    fi
+
+    # ── Mandatory Kali/Debian build dependencies ─────────────────────────────────
+    # AGENT.md §13: These are Debian/Kali package names, NOT Arch names.
+    local mandatory_deps=(
+        "cmake"
+        "ninja-build"
+        "pkg-config"
+        "build-essential"
+        "extra-cmake-modules"
         "qt6-base-dev"
+        "qt6-base-private-dev"
         "qt6-declarative-dev"
+        "qt6-declarative-private-dev"
         "qt6-shadertools-dev"
-        "libbrightnessctl-dev"
+        "wayland-protocols"
+        "libwayland-dev"
+        "libpipewire-0.3-dev"
+        "libddcutil-dev"
+        "libsensors4-dev"
+        "libqalculate-dev"
+        "ddcutil"
+        "brightnessctl"
         "fish"
         "swappy"
-        "ddcutil"
     )
-    log_info "Installing Caelestia native dependencies..."
-    sudo apt-get install -y "${caelestia_deps[@]}" &>/dev/null || \
-        log_warn "Some Caelestia dependencies not available in apt, continuing..."
 
-    local build_dir="${shell_dir}/build"
-    rm -rf "${build_dir}"
-    mkdir -p "${build_dir}"
+    # ── Optional Kali/Debian dependencies (shell degrades gracefully if missing) ──
+    local optional_deps=(
+        "libaubio-dev"        # audio beat detection (optional visualizer feature)
+        "power-profiles-daemon"  # battery/power profiles (optional)
+        "spirv-tools"         # shader optimization (optional, improves GPU perf)
+    )
 
-    log_info "Running cmake configure..."
-    if ! cmake -B "${build_dir}" -G Ninja \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_INSTALL_PREFIX=/ \
-        -S "${shell_dir}" &>/dev/null; then
-        log_error "cmake configure failed for [${shell_name}]"
-        log_warn "You may need to install missing build dependencies manually"
+    log_info "Installing mandatory Caelestia build dependencies..."
+    local failed_mandatory=()
+    for dep in "${mandatory_deps[@]}"; do
+        if ! dpkg -l "${dep}" &>/dev/null 2>&1; then
+            if ! sudo apt-get install -y "${dep}" &>/dev/null 2>&1; then
+                failed_mandatory+=("${dep}")
+                log_warn "  [MISSING] ${dep} — not available in apt"
+            fi
+        fi
+    done
+    if [ ${#failed_mandatory[@]} -gt 0 ]; then
+        log_error "Failed to install mandatory dependencies: ${failed_mandatory[*]}"
         log_info "See: https://github.com/caelestia-dots/shell#manual-installation"
         return 1
     fi
 
-    log_info "Building [${shell_name}] (this may take a minute)..."
-    if ! cmake --build "${build_dir}" &>/dev/null; then
+    log_info "Installing optional Caelestia dependencies (failures are non-fatal)..."
+    for dep in "${optional_deps[@]}"; do
+        if ! dpkg -l "${dep}" &>/dev/null 2>&1; then
+            sudo apt-get install -y "${dep}" &>/dev/null 2>&1 || \
+                log_info "  [OPTIONAL SKIP] ${dep} not available — feature may be limited"
+        fi
+    done
+
+    # AGENT.md §55: Record installed packages for ownership tracking / uninstall safety
+    if declare -f ledger_record_packages &>/dev/null; then
+        ledger_record_packages "integration:${shell_name}" "${mandatory_deps[@]}"
+    fi
+
+    # ── cmake configure → build → install ────────────────────────────────────────
+    local build_dir="${shell_dir}/build"
+    # Idempotency: reuse existing build dir if source is unchanged
+    if [ -f "${build_dir}/CMakeCache.txt" ]; then
+        log_info "Existing build dir found — running incremental build"
+    else
+        rm -rf "${build_dir}"
+        mkdir -p "${build_dir}"
+    fi
+
+    log_info "Running cmake configure..."
+    local cmake_log
+    cmake_log=$(mktemp)
+    if ! cmake -B "${build_dir}" -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/ \
+        -S "${shell_dir}" > "${cmake_log}" 2>&1; then
+        log_error "cmake configure failed for [${shell_name}]"
+        # AGENT.md §48: Show errors, not hide them
+        log_error "cmake output:"
+        tail -n 30 "${cmake_log}" | while IFS= read -r line; do log_info "  ${line}"; done
+        rm -f "${cmake_log}"
+        log_info "Full cmake log: ${cmake_log}"
+        log_info "Install missing deps and retry: kali-land shell install <url>"
+        log_info "Manual install docs: https://github.com/caelestia-dots/shell#manual-installation"
+        return 1
+    fi
+    rm -f "${cmake_log}"
+
+    log_info "Building [${shell_name}] (this may take a few minutes)..."
+    local build_log
+    build_log=$(mktemp)
+    if ! cmake --build "${build_dir}" > "${build_log}" 2>&1; then
         log_error "cmake build failed for [${shell_name}]"
+        tail -n 30 "${build_log}" | while IFS= read -r line; do log_info "  ${line}"; done
+        rm -f "${build_log}"
+        return 1
+    fi
+    rm -f "${build_log}"
+
+    log_info "Installing native QML plugin to system (requires sudo)..."
+    if ! sudo cmake --install "${build_dir}" 2>&1 | grep -E "^(-- Installing|CMake Error)" | \
+            while IFS= read -r line; do log_info "  ${line}"; done; then
+        log_error "cmake install failed for [${shell_name}]"
         return 1
     fi
 
-    log_info "Installing native QML plugin for [${shell_name}] to system..."
-    if ! sudo cmake --install "${build_dir}" &>/dev/null; then
-        log_error "cmake install failed for [${shell_name}] — may need sudo"
-        return 1
-    fi
-
-    log_success "Native QML plugin for [${shell_name}] installed successfully"
+    log_success "Native QML plugin for [${shell_name}] built and installed from source"
     return 0
 }
 

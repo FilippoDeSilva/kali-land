@@ -1,0 +1,259 @@
+name: Build Artifacts
+
+# AGENT.md §33-36: Reproducible, versioned, architecture-aware, checksum-verified builds.
+# All pinned versions are in packages/versions.env — do NOT inline version strings here.
+
+on:
+  push:
+    tags:
+      - "v*"
+  pull_request:
+    branches:
+      - main
+      - feat/cli-byos-architecture
+  workflow_dispatch:
+
+env:
+  DEBIAN_FRONTEND: noninteractive
+
+jobs:
+  # ── Job 1: Build Quickshell ──────────────────────────────────────────────────
+  build-quickshell:
+    name: Build Quickshell (x86_64)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    container:
+      image: kalilinux/kali-rolling:latest
+    # aarch64: no native runner on free plan — falls back to local source build per AGENT.md §35
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Load pinned versions from versions.env
+        run: |
+          set -a; source packages/versions.env; set +a
+          echo "QUICKSHELL_TAG=${QUICKSHELL_TAG}" >> "$GITHUB_ENV"
+          echo "QUICKSHELL_REPO=${QUICKSHELL_REPO}" >> "$GITHUB_ENV"
+          echo "CPPTRACE_VERSION=${CPPTRACE_VERSION}" >> "$GITHUB_ENV"
+          echo "CPPTRACE_REPO=${CPPTRACE_REPO}" >> "$GITHUB_ENV"
+          echo "KALI_LAND_VERSION=$(cat VERSION)" >> "$GITHUB_ENV"
+
+      - name: Install build dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            ca-certificates curl git cmake ninja-build build-essential \
+            extra-cmake-modules qt6-base-dev qt6-base-private-dev \
+            qt6-declarative-dev qt6-declarative-private-dev \
+            qt6-wayland-dev qt6-wayland-private-dev qt6-shadertools-dev \
+            qt6-tools-dev qt6-scxml-dev libqt6waylandclient6 \
+            libcli11-dev libdrm-dev libgbm-dev libxcb1-dev \
+            libpipewire-0.3-dev libpam0g-dev \
+            libpolkit-gobject-1-dev libpolkit-agent-1-dev libglib2.0-dev \
+            pkg-config spirv-tools libvulkan-dev libjemalloc-dev \
+            libdwarf-dev libunwind-dev wayland-protocols libwayland-dev \
+            libegl-dev libgl-dev cargo rustc jq
+
+      - name: Build cpptrace (pinned ${{ env.CPPTRACE_VERSION }})
+        run: |
+          git clone --branch "${{ env.CPPTRACE_VERSION }}" \
+            "https://github.com/${{ env.CPPTRACE_REPO }}.git" /tmp/cpptrace
+          cd /tmp/cpptrace && mkdir -p build && cd build
+          cmake -GNinja -DCMAKE_BUILD_TYPE=Release \
+            -DCPPTRACE_UNWIND_WITH_LIBUNWIND=ON \
+            -DCPPTRACE_GET_BACKTRACE_WITH_LIBUNWIND=ON ..
+          ninja && cmake --install .
+
+      - name: Clone Quickshell (pinned ${{ env.QUICKSHELL_TAG }})
+        run: |
+          git clone --recursive --branch "${{ env.QUICKSHELL_TAG }}" \
+            "https://github.com/${{ env.QUICKSHELL_REPO }}.git" quickshell
+
+      - name: Build Quickshell
+        run: |
+          cd quickshell
+          echo "QUICKSHELL_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          mkdir -p build && cd build
+          cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DDISTRIBUTOR=kali-land ..
+          ninja
+
+      - name: Package Quickshell artifact
+        run: |
+          cd quickshell/build
+          QS_BIN=$(find . -name quickshell -type f -executable | head -n 1)
+          [ -z "$QS_BIN" ] && echo "Error: quickshell binary not found" && exit 1
+          cp "$QS_BIN" ./quickshell-bin
+          BUILT_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          cat > build-info.json << 'BEOF'
+          {"placeholder": true}
+          BEOF
+          # Overwrite with real values using printf
+          printf '{"component":"quickshell","version":"%s","source_commit":"%s","source_repo":"%s","arch":"x86_64","kali_land_version":"%s","built_at":"%s","builder":"github-actions"}\n' \
+            "${{ env.QUICKSHELL_TAG }}" "${{ env.QUICKSHELL_COMMIT }}" \
+            "${{ env.QUICKSHELL_REPO }}" "${{ env.KALI_LAND_VERSION }}" \
+            "${BUILT_AT}" > build-info.json
+          tar -czf "$GITHUB_WORKSPACE/quickshell-linux-x86_64.tar.gz" quickshell-bin build-info.json
+          cd "$GITHUB_WORKSPACE"
+          sha256sum quickshell-linux-x86_64.tar.gz > quickshell-linux-x86_64.tar.gz.sha256
+
+      - name: Upload artifact (PR/branch)
+        uses: actions/upload-artifact@v4
+        with:
+          name: quickshell-x86_64
+          path: |
+            quickshell-linux-x86_64.tar.gz
+            quickshell-linux-x86_64.tar.gz.sha256
+          retention-days: 30
+
+      - name: Upload to GitHub Release (tags only)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            quickshell-linux-x86_64.tar.gz
+            quickshell-linux-x86_64.tar.gz.sha256
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ── Job 2: Build Caelestia Native QML Plugin ─────────────────────────────────
+  build-caelestia-plugin:
+    name: Build Caelestia QML Plugin (x86_64)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    container:
+      image: kalilinux/kali-rolling:latest
+
+    steps:
+      - name: Checkout kali-land repository
+        uses: actions/checkout@v4
+
+      - name: Load pinned Caelestia version
+        run: |
+          set -a; source packages/versions.env; set +a
+          echo "CAELESTIA_COMMIT=${CAELESTIA_COMMIT}" >> "$GITHUB_ENV"
+          echo "CAELESTIA_REPO=${CAELESTIA_REPO}" >> "$GITHUB_ENV"
+          echo "CAELESTIA_ARTIFACT_NAME=${CAELESTIA_ARTIFACT_NAME}" >> "$GITHUB_ENV"
+          echo "KALI_LAND_VERSION=$(cat VERSION)" >> "$GITHUB_ENV"
+
+      - name: Install Caelestia build dependencies (Kali/Debian package names)
+        run: |
+          apt-get update
+          # Mandatory deps — Debian/Kali names, NOT Arch names (AGENT.md §13)
+          apt-get install -y --no-install-recommends \
+            cmake ninja-build pkg-config build-essential extra-cmake-modules \
+            qt6-base-dev qt6-base-private-dev \
+            qt6-declarative-dev qt6-declarative-private-dev \
+            qt6-shadertools-dev wayland-protocols libwayland-dev \
+            libpipewire-0.3-dev libddcutil-dev libsensors4-dev \
+            libqalculate-dev ddcutil brightnessctl fish swappy git jq
+          # Optional deps — non-fatal if unavailable in Kali rolling
+          apt-get install -y libaubio-dev power-profiles-daemon spirv-tools || true
+
+      - name: Clone Caelestia at pinned commit SHA
+        run: |
+          git clone "https://github.com/${{ env.CAELESTIA_REPO }}.git" caelestia-shell
+          cd caelestia-shell
+          git checkout "${{ env.CAELESTIA_COMMIT }}"
+          echo "Pinned to commit: $(git rev-parse HEAD)"
+
+      - name: Build Caelestia native QML plugin
+        run: |
+          cd caelestia-shell
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/
+          cmake --build build
+
+      - name: Install and package Caelestia artifact
+        run: |
+          cd caelestia-shell
+          STAGING=$(mktemp -d)
+          cmake --install build --prefix "${STAGING}"
+          BUILT_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          printf '{"component":"caelestia-plugin","source_commit":"%s","source_repo":"%s","arch":"x86_64","kali_land_version":"%s","built_at":"%s","builder":"github-actions","install_prefix":"/","note":"Extract with: sudo tar -xzf <artifact> -C /"}\n' \
+            "${{ env.CAELESTIA_COMMIT }}" "${{ env.CAELESTIA_REPO }}" \
+            "${{ env.KALI_LAND_VERSION }}" "${BUILT_AT}" > "${STAGING}/build-info.json"
+          ARTIFACT_FILE="${{ env.CAELESTIA_ARTIFACT_NAME }}-x86_64.tar.gz"
+          tar -czf "$GITHUB_WORKSPACE/${ARTIFACT_FILE}" -C "${STAGING}" .
+          cd "$GITHUB_WORKSPACE"
+          sha256sum "${ARTIFACT_FILE}" > "${ARTIFACT_FILE}.sha256"
+          echo "Artifact contents (first 20):"
+          tar -tzf "${ARTIFACT_FILE}" | head -20
+
+      - name: Upload artifact (PR/branch)
+        uses: actions/upload-artifact@v4
+        with:
+          name: caelestia-plugin-x86_64
+          path: |
+            ${{ env.CAELESTIA_ARTIFACT_NAME }}-x86_64.tar.gz
+            ${{ env.CAELESTIA_ARTIFACT_NAME }}-x86_64.tar.gz.sha256
+          retention-days: 30
+
+      - name: Upload to GitHub Release (tags only)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            ${{ env.CAELESTIA_ARTIFACT_NAME }}-x86_64.tar.gz
+            ${{ env.CAELESTIA_ARTIFACT_NAME }}-x86_64.tar.gz.sha256
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ── Job 3: Build Matugen ─────────────────────────────────────────────────────
+  build-matugen:
+    name: Build Matugen (x86_64)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    container:
+      image: kalilinux/kali-rolling:latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Load pinned Matugen version
+        run: |
+          set -a; source packages/versions.env; set +a
+          echo "MATUGEN_VERSION=${MATUGEN_VERSION}" >> "$GITHUB_ENV"
+          echo "KALI_LAND_VERSION=$(cat VERSION)" >> "$GITHUB_ENV"
+
+      - name: Install Rust toolchain
+        run: apt-get update && apt-get install -y cargo rustc
+
+      - name: Build Matugen (pinned ${{ env.MATUGEN_VERSION }})
+        run: |
+          cargo install matugen --version "${{ env.MATUGEN_VERSION }}" --root /tmp/matugen-root
+
+      - name: Package Matugen artifact
+        run: |
+          cd /tmp/matugen-root/bin
+          BUILT_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          printf '{"component":"matugen","version":"%s","arch":"x86_64","kali_land_version":"%s","built_at":"%s","builder":"github-actions"}\n' \
+            "${{ env.MATUGEN_VERSION }}" "${{ env.KALI_LAND_VERSION }}" "${BUILT_AT}" > build-info.json
+          tar -czf "$GITHUB_WORKSPACE/matugen-linux-x86_64.tar.gz" matugen build-info.json
+          cd "$GITHUB_WORKSPACE"
+          sha256sum matugen-linux-x86_64.tar.gz > matugen-linux-x86_64.tar.gz.sha256
+
+      - name: Upload artifact (PR/branch)
+        uses: actions/upload-artifact@v4
+        with:
+          name: matugen-x86_64
+          path: |
+            matugen-linux-x86_64.tar.gz
+            matugen-linux-x86_64.tar.gz.sha256
+          retention-days: 30
+
+      - name: Upload to GitHub Release (tags only)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            matugen-linux-x86_64.tar.gz
+            matugen-linux-x86_64.tar.gz.sha256
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
