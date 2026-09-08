@@ -279,10 +279,9 @@ validate_integration_capabilities() {
         return 1
     fi
 
-    if ! declare -p CAPABILITIES &>/dev/null || [ ${#CAPABILITIES[@]} -eq 0 ]; then
-        if command -v detect_capabilities &>/dev/null; then
-            detect_capabilities
-        fi
+    declare -g -A CAPABILITIES 2>/dev/null || true
+    if [ -z "${CAPABILITIES["wayland"]:-}" ] && command -v detect_capabilities &>/dev/null; then
+        detect_capabilities
     fi
 
     local missing_required=0

@@ -10,7 +10,7 @@ LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${LIB_DIR}/logging.sh"
 
 # Capabilities associative array: CAPABILITIES[<name>]="AVAILABLE|UNAVAILABLE"
-declare -g -A CAPABILITIES
+declare -g -A CAPABILITIES 2>/dev/null || true
 
 # detect_capabilities() - Detect all system and desktop capabilities
 detect_capabilities() {
@@ -62,6 +62,9 @@ detect_cap() {
 # has_capability() - Check if a capability is available
 has_capability() {
     local cap_name=$1
+    if [ -z "${CAPABILITIES["wayland"]:-}" ] && command -v detect_capabilities &>/dev/null; then
+        detect_capabilities
+    fi
     [ "${CAPABILITIES[${cap_name}]:-UNAVAILABLE}" = "AVAILABLE" ]
 }
 
