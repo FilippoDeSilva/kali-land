@@ -587,7 +587,7 @@ phase_6_quickshell_skeleton() {
     log_success "Phase 6 complete"
 }
 
-# configure_quickshell_hypr_env() - Configure Hyprland autostart & environment for Quickshell
+# configure_quickshell_hypr_env() - Configure Hyprland autostart & environment for Quickshell (Lua & Conf)
 configure_quickshell_hypr_env() {
     local raw_name="${1:-end4-pC}"
     local target_user_home="${HOME}"
@@ -603,22 +603,61 @@ configure_quickshell_hypr_env() {
     local hypr_dir="${target_user_home}/.config/hypr"
     mkdir -p "${hypr_dir}/kali-land"
 
-    local hypr_env_file="${hypr_dir}/kali-land/environment.lua"
-    local hypr_autostart="${hypr_dir}/kali-land/autostart.lua"
+    # Paths for both root ~/.config/hypr/ and ~/.config/hypr/kali-land/
+    local env_lua="${hypr_dir}/environment.lua"
+    local env_lua_kl="${hypr_dir}/kali-land/environment.lua"
+    local autostart_lua="${hypr_dir}/autostart.lua"
+    local autostart_lua_kl="${hypr_dir}/kali-land/autostart.lua"
     local hypr_conf="${hypr_dir}/hyprland.conf"
 
+    log_step "Configuring Hyprland environment & autostart for shell [${shell_name}]"
+
+    # Handle "none" / DIY mode
     if [ "${shell_name}" = "none" ]; then
         log_info "Configuring Hyprland autostart for Bare Minimal / DIY mode"
-        [ -f "${hypr_autostart}" ] && sed -i '/quickshell/d' "${hypr_autostart}" 2>/dev/null || true
+        for f in "${env_lua}" "${env_lua_kl}"; do
+            [ -f "${f}" ] && sed -i 's|hl\.env("QS_CONFIG".*|hl.env("QS_CONFIG", "none")|g' "${f}" 2>/dev/null || true
+        done
+        for f in "${autostart_lua}" "${autostart_lua_kl}"; do
+            [ -f "${f}" ] && sed -i '/quickshell/d' "${f}" 2>/dev/null || true
+        done
         [ -f "${hypr_conf}" ] && sed -i '/quickshell/d' "${hypr_conf}" 2>/dev/null || true
         return 0
     fi
 
-    local qs_path="${target_user_home}/.config/quickshell/${shell_name}"
-    local qs_cmd="exec-once = quickshell --path ${qs_path}"
+    # 1. Update Hyprland Lua Environment (QS_CONFIG env var)
+    for env_file in "${env_lua}" "${env_lua_kl}"; do
+        if [ -f "${env_file}" ]; then
+            if grep -q "QS_CONFIG" "${env_file}"; then
+                sed -i "s|hl\.env(\"QS_CONFIG\".*|hl.env(\"QS_CONFIG\", \"${shell_name}\")|g" "${env_file}"
+            else
+                echo "hl.env(\"QS_CONFIG\", \"${shell_name}\")" >> "${env_file}"
+            fi
+            log_success "Updated QS_CONFIG in ${env_file} -> ${shell_name}"
+        fi
+    done
 
-    # 1. Update/Create hyprland.conf autostart line
+    # 2. Update Hyprland Lua Autostart
+    for auto_file in "${autostart_lua}" "${autostart_lua_kl}"; do
+        if [ -f "${auto_file}" ]; then
+            if ! grep -q "QS_CONFIG" "${auto_file}" && ! grep -q "quickshell" "${auto_file}"; then
+                cat <<EOF >> "${auto_file}"
+
+-- Auto-added by kali-land CLI
+local qs_config = os.getenv("QS_CONFIG") or "${shell_name}"
+if qs_config and qs_config ~= "" and qs_config ~= "none" then
+    local shell_path = os.getenv("HOME") .. "/.config/quickshell/" .. qs_config
+    hl.exec_cmd("quickshell --path " .. shell_path)
+end
+EOF
+            fi
+            log_success "Verified Hyprland Lua autostart in ${auto_file}"
+        fi
+    done
+
+    # 3. Update legacy hyprland.conf if present
     if [ -f "${hypr_conf}" ]; then
+        local qs_cmd="exec-once = quickshell --path ${target_user_home}/.config/quickshell/${shell_name}"
         if grep -q "quickshell" "${hypr_conf}"; then
             sed -i "s|.*quickshell.*|${qs_cmd}|g" "${hypr_conf}"
         else
@@ -626,27 +665,7 @@ configure_quickshell_hypr_env() {
             echo "# Auto-configured by kali-land" >> "${hypr_conf}"
             echo "${qs_cmd}" >> "${hypr_conf}"
         fi
-        log_success "Updated ${hypr_conf} autostart -> ${qs_cmd}"
-    fi
-
-    # 2. Update/Create kali-land autostart.lua
-    if [ -f "${hypr_autostart}" ]; then
-        if grep -q "quickshell" "${hypr_autostart}"; then
-            sed -i "s|.*quickshell.*|${qs_cmd}|g" "${hypr_autostart}"
-        else
-            echo "${qs_cmd}" >> "${hypr_autostart}"
-        fi
-        log_success "Updated ${hypr_autostart} -> ${qs_cmd}"
-    fi
-
-    # 3. Environment variables
-    if [ -f "${hypr_env_file}" ]; then
-        if ! grep -q "QS_CONFIG" "${hypr_env_file}"; then
-            echo "hl.env(\"QS_CONFIG\", \"${shell_name}\")" >> "${hypr_env_file}"
-        fi
-        if ! grep -q "QT_QPA_PLATFORM" "${hypr_env_file}"; then
-            echo 'hl.env("QT_QPA_PLATFORM", "wayland")' >> "${hypr_env_file}"
-        fi
+        log_success "Updated ${hypr_conf} -> ${qs_cmd}"
     fi
 
     if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
