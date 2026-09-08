@@ -279,8 +279,10 @@ validate_integration_capabilities() {
         return 1
     fi
 
-    if [ ${#CAPABILITIES[@]} -eq 0 ] && command -v detect_capabilities &>/dev/null; then
-        detect_capabilities
+    if ! declare -p CAPABILITIES &>/dev/null || [ ${#CAPABILITIES[@]} -eq 0 ]; then
+        if command -v detect_capabilities &>/dev/null; then
+            detect_capabilities
+        fi
     fi
 
     local missing_required=0
@@ -533,12 +535,15 @@ discover_shell() {
     if [[ "${target_arg}" == "http://"* ]] || [[ "${target_arg}" == "https://"* ]] || [[ "${target_arg}" == "git@"* ]]; then
         shell_name="custom-$(basename "${target_arg}" .git)"
         source_dir="/tmp/kali-land-discover-${shell_name}"
-        rm -rf "${source_dir}"
-        log_info "Cloning remote repository for audit: ${target_arg}"
-        git clone --depth 1 "${target_arg}" "${source_dir}" &>/dev/null || {
-            log_error "Failed to clone repository from ${target_arg}"
-            return 1
-        }
+        if [ -d "${source_dir}" ]; then
+            log_info "Using cached temporary audit repository at ${source_dir}"
+        else
+            log_info "Cloning remote repository for audit: ${target_arg}"
+            git clone --depth 1 "${target_arg}" "${source_dir}" &>/dev/null || {
+                log_error "Failed to clone repository from ${target_arg}"
+                return 1
+            }
+        fi
         temp_clone=true
     elif [ -d "${target_arg}" ]; then
         source_dir="$(cd "${target_arg}" && pwd)"
@@ -587,7 +592,6 @@ discover_shell() {
     echo "=========================================================="
     echo ""
 
-    ${temp_clone} && rm -rf "${source_dir}"
     return 0
 }
 
