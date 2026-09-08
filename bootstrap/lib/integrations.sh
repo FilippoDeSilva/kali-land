@@ -599,7 +599,7 @@ build_cmake_shell() {
         "libwayland-dev"
         "libpipewire-0.3-dev"
         "libddcutil-dev"
-        "libsensors4-dev"
+        "libsensors-dev"
         "libqalculate-dev"
         "ddcutil"
         "brightnessctl"

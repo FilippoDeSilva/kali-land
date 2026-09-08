@@ -148,7 +148,7 @@ jobs:
             qt6-base-dev qt6-base-private-dev \
             qt6-declarative-dev qt6-declarative-private-dev \
             qt6-shadertools-dev wayland-protocols libwayland-dev \
-            libpipewire-0.3-dev libddcutil-dev libsensors4-dev \
+            libpipewire-0.3-dev libddcutil-dev libsensors-dev \
             libqalculate-dev ddcutil brightnessctl fish swappy git jq
           # Optional deps — non-fatal if unavailable in Kali rolling
           apt-get install -y libaubio-dev power-profiles-daemon spirv-tools || true
