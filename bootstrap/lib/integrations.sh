@@ -502,8 +502,80 @@ install_integration() {
     # Use protected config installation flow (prompt -> backup -> deploy)
     protect_and_install_config "${source_dir}" "${target_dir}" "Shell Integration (${shell_name})"
 
+    # Automatically activate this shell integration in Hyprland autostart
+    configure_quickshell_hypr_env "${shell_name}"
+
     # Export resolved shell name back for calling context
     SELECTED_SHELL="${shell_name}"
+}
+
+# configure_quickshell_hypr_env() - Configure Hyprland autostart & environment for Quickshell
+configure_quickshell_hypr_env() {
+    local raw_name="${1:-end4-pC}"
+    local target_user_home="${HOME}"
+    if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
+        target_user_home="$(eval echo "~${SUDO_USER}")"
+    fi
+
+    local shell_name="${raw_name}"
+    if command -v resolve_installed_shell_name &>/dev/null; then
+        shell_name=$(resolve_installed_shell_name "${raw_name}")
+    fi
+
+    local hypr_dir="${target_user_home}/.config/hypr"
+    mkdir -p "${hypr_dir}/kali-land"
+
+    local hypr_env_file="${hypr_dir}/kali-land/environment.lua"
+    local hypr_autostart="${hypr_dir}/kali-land/autostart.lua"
+    local hypr_conf="${hypr_dir}/hyprland.conf"
+
+    if [ "${shell_name}" = "none" ]; then
+        log_info "Configuring Hyprland autostart for Bare Minimal / DIY mode"
+        [ -f "${hypr_autostart}" ] && sed -i '/quickshell/d' "${hypr_autostart}" 2>/dev/null || true
+        [ -f "${hypr_conf}" ] && sed -i '/quickshell/d' "${hypr_conf}" 2>/dev/null || true
+        return 0
+    fi
+
+    local qs_path="${target_user_home}/.config/quickshell/${shell_name}"
+    local qs_cmd="exec-once = quickshell --path ${qs_path}"
+
+    # 1. Update/Create hyprland.conf autostart line
+    if [ -f "${hypr_conf}" ]; then
+        if grep -q "quickshell" "${hypr_conf}"; then
+            sed -i "s|.*quickshell.*|${qs_cmd}|g" "${hypr_conf}"
+        else
+            echo "" >> "${hypr_conf}"
+            echo "# Auto-configured by kali-land" >> "${hypr_conf}"
+            echo "${qs_cmd}" >> "${hypr_conf}"
+        fi
+        log_success "Updated ${hypr_conf} autostart -> ${qs_cmd}"
+    fi
+
+    # 2. Update/Create kali-land autostart.lua
+    if [ -f "${hypr_autostart}" ]; then
+        if grep -q "quickshell" "${hypr_autostart}"; then
+            sed -i "s|.*quickshell.*|${qs_cmd}|g" "${hypr_autostart}"
+        else
+            echo "${qs_cmd}" >> "${hypr_autostart}"
+        fi
+        log_success "Updated ${hypr_autostart} -> ${qs_cmd}"
+    fi
+
+    # 3. Environment variables
+    if [ -f "${hypr_env_file}" ]; then
+        if ! grep -q "QS_CONFIG" "${hypr_env_file}"; then
+            echo "hl.env(\"QS_CONFIG\", \"${shell_name}\")" >> "${hypr_env_file}"
+        fi
+        if ! grep -q "QT_QPA_PLATFORM" "${hypr_env_file}"; then
+            echo 'hl.env("QT_QPA_PLATFORM", "wayland")' >> "${hypr_env_file}"
+        fi
+    fi
+
+    if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
+        local user_group
+        user_group="$(id -gn "${SUDO_USER}" 2>/dev/null || echo "${SUDO_USER}")"
+        chown -R "${SUDO_USER}:${user_group}" "${hypr_dir}" 2>/dev/null || true
+    fi
 }
 
 # resolve_runtime_environment() - Detect declared runtime (quickshell, celestia, waybar, none)
