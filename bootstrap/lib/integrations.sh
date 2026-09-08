@@ -234,7 +234,22 @@ resolve_custom_shell_path() {
         fi
     elif [[ "${shell_arg}" == "git:"* ]] || [[ "${shell_arg}" == "http://"* ]] || [[ "${shell_arg}" == "https://"* ]] || [[ "${shell_arg}" == "git@"* ]]; then
         local raw_url="${shell_arg#git:}"
-        custom_name="custom-$(basename "${raw_url}" .git)"
+        local repo_base
+        repo_base="$(basename "${raw_url}" .git)"
+        
+        # If repo name is generic (like "shell" or "quickshell"), prepend org name
+        if [ "${repo_base}" = "shell" ] || [ "${repo_base}" = "quickshell" ]; then
+            local org_name
+            org_name=$(echo "${raw_url}" | sed -E 's|.*[:/]([^/]+)/[^/]+(\.git)?$|\1|')
+            if [ -n "${org_name}" ] && [ "${org_name}" != "${raw_url}" ]; then
+                custom_name="custom-${org_name}-${repo_base}"
+            else
+                custom_name="custom-${repo_base}"
+            fi
+        else
+            custom_name="custom-${repo_base}"
+        fi
+
         resolved_dir="${INTEGRATIONS_DIR}/${custom_name}"
 
         log_step "Cloning custom shell repository from ${raw_url}"
@@ -606,13 +621,84 @@ import_shell() {
     install_integration "path:${target_arg}"
 }
 
+# resolve_installed_shell_name() - Smart resolver mapping identifier, url, or substring to installed shell namespace
+resolve_installed_shell_name() {
+    local query=$1
+    local target_user_home="${HOME}"
+    if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
+        target_user_home="$(eval echo "~${SUDO_USER}")"
+    fi
+    local qs_dir="${target_user_home}/.config/quickshell"
+
+    [ -z "${query}" ] && echo "" && return 0
+
+    # If query is full URL, resolve repo name
+    if [[ "${query}" == "http://"* ]] || [[ "${query}" == "https://"* ]] || [[ "${query}" == "git@"* ]]; then
+        local repo_base
+        repo_base="$(basename "${query}" .git)"
+        if [ "${repo_base}" = "shell" ] || [ "${repo_base}" = "quickshell" ]; then
+            local org_name
+            org_name=$(echo "${query}" | sed -E 's|.*[:/]([^/]+)/[^/]+(\.git)?$|\1|')
+            query="custom-${org_name}-${repo_base}"
+        else
+            query="custom-${repo_base}"
+        fi
+    fi
+
+    # 1. Direct exact match in ~/.config/quickshell/
+    if [ -d "${qs_dir}/${query}" ]; then
+        echo "${query}"
+        return 0
+    fi
+    # 2. Match in INTEGRATIONS_DIR
+    if [ -d "${INTEGRATIONS_DIR}/${query}" ]; then
+        echo "${query}"
+        return 0
+    fi
+    # 3. Match with custom- prefix
+    if [ -d "${qs_dir}/custom-${query}" ]; then
+        echo "custom-${query}"
+        return 0
+    fi
+    # 4. Match with custom-<query>-shell
+    if [ -d "${qs_dir}/custom-${query}-shell" ]; then
+        echo "custom-${query}-shell"
+        return 0
+    fi
+    # 5. Try stripped custom- prefix
+    local stripped="${query#custom-}"
+    if [ -d "${qs_dir}/${stripped}" ]; then
+        echo "${stripped}"
+        return 0
+    fi
+    # 6. Substring match under ~/.config/quickshell/
+    if [ -d "${qs_dir}" ]; then
+        for match in "${qs_dir}"/*; do
+            if [ -d "${match}" ]; then
+                local bname
+                bname="$(basename "${match}")"
+                if [[ "${bname}" == *"${stripped}"* ]]; then
+                    echo "${bname}"
+                    return 0
+                fi
+            fi
+        done
+    fi
+
+    # Fallback to query
+    echo "${query}"
+}
+
 # switch_shell() - Switch active shell integration and update Hyprland autostart
 switch_shell() {
-    local target_shell=$1
-    if [ -z "${target_shell}" ]; then
+    local raw_target=$1
+    if [ -z "${raw_target}" ]; then
         log_error "Usage: kali-land shell switch <integration-id|none>"
         return 1
     fi
+
+    local target_shell
+    target_shell=$(resolve_installed_shell_name "${raw_target}")
 
     log_step "Switching active desktop shell to [${target_shell}]"
 
@@ -637,11 +723,14 @@ switch_shell() {
 
 # remove_shell() - Safely remove an installed shell integration namespace
 remove_shell() {
-    local shell_name=$1
-    if [ -z "${shell_name}" ]; then
+    local raw_name=$1
+    if [ -z "${raw_name}" ]; then
         log_error "Usage: kali-land shell remove <integration-id>"
         return 1
     fi
+
+    local shell_name
+    shell_name=$(resolve_installed_shell_name "${raw_name}")
 
     local target_user_home="${HOME}"
     if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
@@ -651,7 +740,7 @@ remove_shell() {
     local target_dir="${target_user_home}/.config/quickshell/${shell_name}"
 
     if [ ! -d "${target_dir}" ]; then
-        log_warn "Shell integration [${shell_name}] is not installed at ${target_dir}"
+        log_warn "Shell integration [${raw_name}] (resolved: ${shell_name}) is not installed at ${target_dir}"
         return 0
     fi
 
@@ -707,9 +796,14 @@ list_all_shells() {
                 local name
                 name=$(basename "${item}")
                 if [ ! -d "${INTEGRATIONS_DIR}/${name}" ]; then
-                    local active_mark=" "
-                    [ "${name}" = "${active_shell}" ] && active_mark="*"
-                    echo "  ${active_mark} ${name} (custom)"
+                    # Filter out non-shell data directories (assets, modules, scripts, services, translations, etc.)
+                    local has_qml
+                    has_qml=$(find "${item}" -maxdepth 2 -name "*.qml" 2>/dev/null | head -n 1)
+                    if [ -f "${item}/manifest.yaml" ] || [ -n "${has_qml}" ]; then
+                        local active_mark=" "
+                        [ "${name}" = "${active_shell}" ] && active_mark="*"
+                        echo "  ${active_mark} ${name} (custom)"
+                    fi
                 fi
             fi
         done
