@@ -163,16 +163,16 @@ jobs:
       - name: Build Caelestia native QML plugin
         run: |
           cd caelestia-shell
-          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
           cmake --build build
 
       - name: Install and package Caelestia artifact
         run: |
           cd caelestia-shell
           STAGING=$(mktemp -d)
-          cmake --install build --prefix "${STAGING}"
+          DESTDIR="${STAGING}" cmake --install build
           BUILT_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-          printf '{"component":"caelestia-plugin","source_commit":"%s","source_repo":"%s","arch":"x86_64","kali_land_version":"%s","built_at":"%s","builder":"github-actions","install_prefix":"/","note":"Extract with: sudo tar -xzf <artifact> -C /"}\n' \
+          printf '{"component":"caelestia-plugin","source_commit":"%s","source_repo":"%s","arch":"x86_64","kali_land_version":"%s","built_at":"%s","builder":"github-actions","install_prefix":"/usr","note":"Extract with: sudo tar -xzf <artifact> -C /"}\n' \
             "${{ env.CAELESTIA_COMMIT }}" "${{ env.CAELESTIA_REPO }}" \
             "${{ env.KALI_LAND_VERSION }}" "${BUILT_AT}" > "${STAGING}/build-info.json"
           ARTIFACT_FILE="${{ env.CAELESTIA_ARTIFACT_NAME }}-x86_64.tar.gz"

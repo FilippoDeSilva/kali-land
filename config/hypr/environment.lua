@@ -17,6 +17,10 @@ hl.env("TERMINAL", "kitty")
 hl.env("BROWSER", "firefox-esr")
 hl.env("EDITOR", "geany")
 
+-- Qt QML import path (for native shell plugins like Caelestia.Config)
+hl.env("QML2_IMPORT_PATH", "/usr/lib/x86_64-linux-gnu/qt6/qml:/usr/lib/qt6/qml:/usr/local/lib/qt6/qml")
+hl.env("QML_IMPORT_PATH", "/usr/lib/x86_64-linux-gnu/qt6/qml:/usr/lib/qt6/qml:/usr/local/lib/qt6/qml")
+
 -- Desktop Shell Integration (managed by kali-land CLI)
 -- Set to the shell namespace name, e.g. "end4-pC", "custom-caelestia-dots-shell"
 hl.env("QS_CONFIG", "none")

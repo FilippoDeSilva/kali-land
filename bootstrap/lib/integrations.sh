@@ -565,7 +565,9 @@ build_cmake_shell() {
     # ── Idempotency: check if native QML type is already registered ──────────────
     # Skip rebuild if Caelestia.Config is already available to the QML engine
     if command -v qml6 &>/dev/null; then
-        if echo 'import Caelestia 1.0; Item {}' | qml6 --stdin &>/dev/null 2>&1; then
+        if echo 'import Caelestia.Config; Item {}' | qml6 --stdin &>/dev/null 2>&1 || \
+           echo 'import Caelestia 1.0; Item {}' | qml6 --stdin &>/dev/null 2>&1 || \
+           echo 'import Caelestia; Item {}' | qml6 --stdin &>/dev/null 2>&1; then
             log_info "Native QML type Caelestia.Config already registered — skipping rebuild"
             return 0
         fi
@@ -658,7 +660,7 @@ build_cmake_shell() {
     cmake_log=$(mktemp)
     if ! cmake -B "${build_dir}" -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_INSTALL_PREFIX=/ \
+        -DCMAKE_INSTALL_PREFIX=/usr \
         -S "${shell_dir}" > "${cmake_log}" 2>&1; then
         log_error "cmake configure failed for [${shell_name}]"
         # AGENT.md §48: Show errors, not hide them
