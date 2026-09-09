@@ -153,6 +153,19 @@ jobs:
           # Optional deps — non-fatal if unavailable in Kali rolling
           apt-get install -y libaubio-dev power-profiles-daemon spirv-tools || true
 
+      - name: Build and install cava dependency
+        run: |
+          apt-get install -y libfftw3-dev libasound2-dev libpulse-dev libiniparser-dev libtool automake
+          git clone --depth 1 https://github.com/karlstav/cava.git /tmp/cava
+          cd /tmp/cava
+          if [ -f CMakeLists.txt ]; then
+            cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
+            cmake --build build
+            cmake --install build
+          else
+            ./autogen.sh && ./configure --prefix=/usr && make -j$(nproc) && make install
+          fi
+
       - name: Clone Caelestia at pinned commit SHA
         run: |
           git clone "https://github.com/${{ env.CAELESTIA_REPO }}.git" caelestia-shell

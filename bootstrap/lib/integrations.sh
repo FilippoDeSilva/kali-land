@@ -645,6 +645,29 @@ build_cmake_shell() {
         ledger_record_packages "integration:${shell_name}" "${mandatory_deps[@]}"
     fi
 
+    # ── Ensure cava pkg-config is available (Caelestia requirement) ────────────
+    if ! pkg-config --exists cava &>/dev/null && ! pkg-config --exists libcava &>/dev/null; then
+        log_info "Pkg-config module 'cava' not found — building cava from source..."
+        local cava_tmp
+        cava_tmp=$(mktemp -d)
+        if git clone --depth 1 https://github.com/karlstav/cava.git "${cava_tmp}/cava" &>/dev/null; then
+            sudo apt-get install -y libfftw3-dev libasound2-dev libpulse-dev libiniparser-dev libtool automake cmake &>/dev/null || true
+            if [ -f "${cava_tmp}/cava/CMakeLists.txt" ]; then
+                cmake -B "${cava_tmp}/cava/build" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -S "${cava_tmp}/cava" &>/dev/null && \
+                cmake --build "${cava_tmp}/cava/build" &>/dev/null && \
+                sudo cmake --install "${cava_tmp}/cava/build" &>/dev/null
+            else
+                (cd "${cava_tmp}/cava" && ./autogen.sh && ./configure --prefix=/usr && make -j$(nproc) && sudo make install) &>/dev/null
+            fi
+            if pkg-config --exists cava &>/dev/null || pkg-config --exists libcava &>/dev/null; then
+                log_success "Built and installed cava package successfully"
+            else
+                log_warn "cava build non-fatal — attempting Caelestia configure"
+            fi
+        fi
+        rm -rf "${cava_tmp}"
+    fi
+
     # ── cmake configure → build → install ────────────────────────────────────────
     local build_dir="${shell_dir}/build"
     # Idempotency: reuse existing build dir if source is unchanged
