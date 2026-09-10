@@ -1,0 +1,81 @@
+name: caelestia-shell
+version: "1.0.0"
+type: quickshell
+description: "Qt6 Quickshell desktop shell reference integration for kali-land"
+provenance: "https://github.com/caelestia-dots/shell.git"
+
+entry: "shell.qml"
+
+requires:
+  capabilities:
+    - wayland
+    - hyprland
+    - quickshell
+  packages:
+    - cmake
+    - ninja-build
+    - pkg-config
+    - build-essential
+    - extra-cmake-modules
+    - qt6-base-dev
+    - qt6-base-private-dev
+    - qt6-declarative-dev
+    - qt6-declarative-private-dev
+    - qt6-shadertools-dev
+    - qml6-module-qtcore
+    - qml6-module-qtqml
+    - qml6-module-qtqml-workerscript
+    - qml6-module-qtquick
+    - qml6-module-qtquick-controls
+    - qml6-module-qtquick-layouts
+    - qml6-module-qtquick-templates
+    - qml6-module-qtquick-window
+    - qml6-module-qtquick-shapes
+    - qml6-module-qtquick-effects
+    - qml6-module-qt5compat-graphicaleffects
+    - wayland-protocols
+    - libwayland-dev
+    - libpipewire-0.3-dev
+    - libddcutil-dev
+    - libsensors-dev
+    - libqalculate-dev
+    - ddcutil
+    - brightnessctl
+    - fish
+    - swappy
+    - brightnessctl
+    - playerctl
+    - libnotify-bin
+    - fontconfig
+    - grim
+    - slurp
+    - wl-clipboard
+    - wf-recorder
+    - jq
+  fonts:
+    packages:
+      - fonts-font-awesome
+      - fonts-jetbrains-mono
+      - fonts-noto-color-emoji
+      - fonts-inter
+      - fonts-roboto
+
+optional:
+  capabilities:
+    - pipewire
+    - wireplumber
+    - networkmanager
+    - notifications
+    - portals
+    - polkit
+    - clipboard
+    - screenshot
+    - lock
+    - idle
+    - bluetooth
+    - battery
+    - brightness
+
+environment:
+  QT_QUICK_BACKEND: "software" # recommended for virtual machine compatibility
+  QS_CONFIG: "caelestia-shell"

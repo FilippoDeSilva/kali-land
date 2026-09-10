@@ -56,6 +56,7 @@ trap cleanup_on_exit EXIT SIGINT SIGTERM SIGHUP
 PHASE=0
 DRY_RUN=false
 INTERACTIVE=true
+SELECTED_COMPOSITOR=""
 SELECTED_SHELL=""
 SELECTED_TERMINAL=""
 
@@ -78,6 +79,10 @@ while [[ $# -gt 0 ]]; do
             SELECTED_SHELL="none"
             shift
             ;;
+        --compositor)
+            SELECTED_COMPOSITOR="$2"
+            shift 2
+            ;;
         --shell)
             SELECTED_SHELL="$2"
             shift 2
@@ -92,6 +97,7 @@ while [[ $# -gt 0 ]]; do
             echo "Options:"
             echo "  --phase <number>    Run specific phase (0-13)"
             echo "  --platform-only     Install platform foundation without a shell (DIY mode)"
+            echo "  --compositor <name> Specify compositor (e.g. hyprland, niri)"
             echo "  --shell <spec>      Specify shell integration (e.g. end4-pC, celestia, path:/your/folder, git:https://..., none)"
             echo "  --terminal <name>   Specify default terminal (e.g. kitty, foot, alacritty)"
             echo "  --dry-run           Show what would be done without making changes"
@@ -116,13 +122,13 @@ welcome() {
     echo "This installer will set up a professional, modular"
     echo "desktop environment on your Kali Linux system."
     echo ""
-    echo "Stack: Kali + Wayland + Hyprland + Quickshell"
+    echo "Stack: Kali + Wayland + [Compositor] + [Shell]"
     echo ""
     echo "The installation is divided into phases:"
     echo "  Phase 0:  Platform detection"
     echo "  Phase 1:  Repository foundation"
     echo "  Phase 2:  Wayland foundation"
-    echo "  Phase 3:  Hyprland installation"
+    echo "  Phase 3:  Compositor installation"
     echo "  Phase 4:  Desktop services"
     echo "  Phase 5:  Quickshell skeleton"
     echo "  Phase 6:  Quickshell bar"
@@ -134,6 +140,38 @@ welcome() {
     echo "  Phase 12: Reliability testing"
     echo "  Phase 13: Documentation"
     echo ""
+}
+
+# prompt_compositor_selection() - Interactive prompt for compositor selection
+prompt_compositor_selection() {
+    echo "=========================================="
+    echo "  Compositor Selection"
+    echo "=========================================="
+    echo ""
+    echo "Select your Wayland compositor:"
+    echo ""
+    echo "  1) Hyprland    - Dynamic tiling compositor (recommended, default)"
+    echo "  2) Niri        - Scrollable-tiling compositor (experimental)"
+    echo ""
+    
+    local choice
+    while true; do
+        printf "%b" "${COLOR_PROMPT:-}Select choice [1-2]:${COLOR_RESET:-} "
+        read choice
+        case "${choice}" in
+            1|hyprland|Hyprland)
+                echo "hyprland"
+                return 0
+                ;;
+            2|niri|Niri)
+                echo "niri"
+                return 0
+                ;;
+            *)
+                log_error "Invalid selection. Please enter 1 or 2."
+                ;;
+        esac
+    done
 }
 
 # get_github_credentials() - Get GitHub credentials from environment or prompt
@@ -265,103 +303,113 @@ phase_2_wayland_foundation() {
     log_success "Phase 2 complete"
 }
 
-# phase_3_hyprland_installation() - Install Hyprland
-phase_3_hyprland_installation() {
-    log_step "Phase 3: Hyprland Installation"
+# phase_3_compositor_installation() - Install selected compositor (Hyprland or Niri)
+phase_3_compositor_installation() {
+    local compositor="${SELECTED_COMPOSITOR:-hyprland}"
+    log_step "Phase 3: ${compositor^} Installation"
     
     detect_package_manager
     update_package_cache
     
-    # Check if Hyprland is available in Kali repositories
-    if apt-cache policy hyprland &>/dev/null; then
-        log_info "Hyprland is available in Kali repositories"
-        log_info "Installing packaged Hyprland..."
+    if [ "${compositor}" = "niri" ]; then
+        log_info "Niri is currently experimental"
+        log_info "Falling back to Hyprland for stability"
+        compositor="hyprland"
+        SELECTED_COMPOSITOR="hyprland"
+    fi
+    
+    # Check if compositor is available in Kali repositories
+    if apt-cache policy "${compositor}" &>/dev/null; then
+        log_info "${compositor^} is available in Kali repositories"
+        log_info "Installing packaged ${compositor}..."
         
-        if ${PACKAGE_MANAGER} install -y hyprland; then
-            log_success "Hyprland installed successfully from package"
+        if ${PACKAGE_MANAGER} install -y "${compositor}"; then
+            log_success "${compositor^} installed successfully from package"
         else
-            log_error "Failed to install Hyprland package"
-            log_info "You may need to install Hyprland manually"
+            log_error "Failed to install ${compositor} package"
+            log_info "You may need to install ${compositor} manually"
             log_info "See docs/installation.md for manual installation instructions"
             return 1
         fi
     else
-        log_info "Hyprland is not available in Kali repositories"
-        log_info "Building Hyprland from source..."
+        log_info "${compositor^} is not available in Kali repositories"
+        log_info "Building ${compositor} from source..."
         
-        # Install build dependencies
-        log_info "Installing Hyprland build dependencies..."
-        local build_deps="cmake g++ libpango-1.0-0 libpangocairo-1.0-0 libxkbcommon0 libxkbcommon-x11-0 libxcb-icccm4 libxcb-keysyms1 libxcb-render-util0 libxcb-xinerama0 libxcb-xkb1 libxcb-cursor0 libxcb-res0 git libcairo2-dev libpango1.0-dev libxcb-randr0-dev libxcb-util-dev libxcb-xfixes0-dev libxcb-shape0-dev libxcb-xinerama0-dev libxcb-render0-dev libgl1-mesa-dev libglvnd-dev libegl1-mesa-dev libpixman-1-dev libxkbcommon-dev xorg-dev glslang-dev glslang-tools libaquamarine-dev"
-        
-        # Install dependencies with graceful failure handling
-        local missing_deps=()
-        for dep in ${build_deps}; do
-            if apt-cache policy "${dep}" &>/dev/null; then
-                log_info "Installing ${dep}..."
-                ${PACKAGE_MANAGER} install -y "${dep}" || log_warn "Failed to install ${dep}, continuing..."
-            else
-                log_warn "Build dependency not available: ${dep}"
-                missing_deps+=("${dep}")
+        # Install build dependencies for Hyprland
+        if [ "${compositor}" = "hyprland" ]; then
+            log_info "Installing Hyprland build dependencies..."
+            local build_deps="cmake g++ libpango-1.0-0 libpangocairo-1.0-0 libxkbcommon0 libxkbcommon-x11-0 libxcb-icccm4 libxcb-keysyms1 libxcb-render-util0 libxcb-xinerama0 libxcb-xkb1 libxcb-cursor0 libxcb-res0 git libcairo2-dev libpango1.0-dev libxcb-randr0-dev libxcb-util-dev libxcb-xfixes0-dev libxcb-shape0-dev libxcb-xinerama0-dev libxcb-render0-dev libgl1-mesa-dev libglvnd-dev libegl1-mesa-dev libpixman-1-dev libxkbcommon-dev xorg-dev glslang-dev glslang-tools libaquamarine-dev"
+            
+            # Install dependencies with graceful failure handling
+            local missing_deps=()
+            for dep in ${build_deps}; do
+                if apt-cache policy "${dep}" &>/dev/null; then
+                    log_info "Installing ${dep}..."
+                    ${PACKAGE_MANAGER} install -y "${dep}" || log_warn "Failed to install ${dep}, continuing..."
+                else
+                    log_warn "Build dependency not available: ${dep}"
+                    missing_deps+=("${dep}")
+                fi
+            done
+            
+            if [ ${#missing_deps[@]} -gt 0 ]; then
+                log_warn "Some build dependencies were missing, build may fail"
             fi
-        done
-        
-        if [ ${#missing_deps[@]} -gt 0 ]; then
-            log_warn "Some build dependencies were missing, build may fail"
-        fi
-        
-        # Clone and build Hyprland
-        local build_dir="/tmp/hyprland-build"
-        rm -rf "${build_dir}"
-        mkdir -p "${build_dir}"
-        
-        log_info "Cloning Hyprland repository..."
-        if command -v git &>/dev/null; then
-            if clone_with_credentials "https://github.com/hyprwm/Hyprland.git" "${build_dir}/hyprland"; then
-                log_success "Repository cloned"
+            
+            # Clone and build Hyprland
+            local build_dir="/tmp/hyprland-build"
+            rm -rf "${build_dir}"
+            mkdir -p "${build_dir}"
+            
+            log_info "Cloning Hyprland repository..."
+            if command -v git &>/dev/null; then
+                if clone_with_credentials "https://github.com/hyprwm/Hyprland.git" "${build_dir}/hyprland"; then
+                    log_success "Repository cloned"
+                else
+                    log_error "Failed to clone Hyprland repository"
+                    log_info "You may need to install Hyprland manually"
+                    log_info "See docs/installation.md for manual installation instructions"
+                    return 1
+                fi
             else
-                log_error "Failed to clone Hyprland repository"
+                log_error "git is not installed, cannot clone repository"
                 log_info "You may need to install Hyprland manually"
                 log_info "See docs/installation.md for manual installation instructions"
                 return 1
             fi
-        else
-            log_error "git is not installed, cannot clone repository"
-            log_info "You may need to install Hyprland manually"
-            log_info "See docs/installation.md for manual installation instructions"
-            return 1
-        fi
-        
-        log_info "Building Hyprland..."
-        cd "${build_dir}/hyprland"
-        
-        # Check for install script and use appropriate method
-        if [ -f "./install.sh" ]; then
-            log_info "Using official install script..."
-            if ./install.sh; then
-                log_success "Hyprland installed successfully"
+            
+            log_info "Building Hyprland..."
+            cd "${build_dir}/hyprland"
+            
+            # Check for install script and use appropriate method
+            if [ -f "./install.sh" ]; then
+                log_info "Using official install script..."
+                if ./install.sh; then
+                    log_success "Hyprland installed successfully"
+                else
+                    log_error "Failed to build/install Hyprland using install script"
+                    log_info "You may need to install Hyprland manually"
+                    log_info "See docs/installation.md for manual installation instructions"
+                    return 1
+                fi
             else
-                log_error "Failed to build/install Hyprland using install script"
-                log_info "You may need to install Hyprland manually"
-                log_info "See docs/installation.md for manual installation instructions"
-                return 1
+                log_info "No install script found, trying manual cmake build..."
+                mkdir -p build && cd build
+                if cmake .. && make && sudo make install; then
+                    log_success "Hyprland installed successfully"
+                else
+                    log_error "Failed to build/install Hyprland using cmake"
+                    log_info "You may need to install Hyprland manually"
+                    log_info "See docs/installation.md for manual installation instructions"
+                    return 1
+                fi
             fi
-        else
-            log_info "No install script found, trying manual cmake build..."
-            mkdir -p build && cd build
-            if cmake .. && make && sudo make install; then
-                log_success "Hyprland installed successfully"
-            else
-                log_error "Failed to build/install Hyprland using cmake"
-                log_info "You may need to install Hyprland manually"
-                log_info "See docs/installation.md for manual installation instructions"
-                return 1
+            
+            # Cleanup
+            cd "${REPO_ROOT}"
+            if [ -d "${build_dir}" ]; then
+                rm -rf "${build_dir}" || log_warn "Failed to cleanup build directory: ${build_dir}"
             fi
-        fi
-        
-        # Cleanup
-        cd "${REPO_ROOT}"
-        if [ -d "${build_dir}" ]; then
-            rm -rf "${build_dir}" || log_warn "Failed to cleanup build directory: ${build_dir}"
         fi
     fi
     
@@ -507,12 +555,18 @@ phase_6_quickshell_skeleton() {
     if [ -z "${SELECTED_SHELL}" ]; then
         if ${INTERACTIVE:-true}; then
             if command -v prompt_shell_selection &>/dev/null; then
-                SELECTED_SHELL=$(prompt_shell_selection)
+                # Check if we're in a terminal that can handle interactive input
+                if [ -t 0 ]; then
+                    SELECTED_SHELL=$(prompt_shell_selection)
+                else
+                    log_warn "No interactive terminal detected, using default shell"
+                    SELECTED_SHELL="caelestia-shell"
+                fi
             else
-                SELECTED_SHELL="end4-pC"
+                SELECTED_SHELL="caelestia-shell"
             fi
         else
-            SELECTED_SHELL="end4-pC"
+            SELECTED_SHELL="caelestia-shell"
         fi
     fi
 
@@ -981,6 +1035,20 @@ main() {
     # Get GitHub credentials for private repositories if needed
     get_github_credentials
     
+    # Prompt for compositor selection if not specified
+    if [ -z "${SELECTED_COMPOSITOR}" ] && ${INTERACTIVE}; then
+        if [ -t 0 ]; then
+            SELECTED_COMPOSITOR=$(prompt_compositor_selection)
+        else
+            log_warn "No interactive terminal detected, using default compositor (Hyprland)"
+            SELECTED_COMPOSITOR="hyprland"
+        fi
+    else
+        SELECTED_COMPOSITOR="${SELECTED_COMPOSITOR:-hyprland}"
+    fi
+    
+    log_info "Selected compositor: ${SELECTED_COMPOSITOR}"
+    
     if ${INTERACTIVE} && ! confirm "Begin installation?" "y"; then
         log_info "Installation cancelled"
         exit 0
@@ -1000,9 +1068,9 @@ main() {
     phase_2_wayland_foundation || phase_failed=true
     
     # Critical component installations
-    if ! phase_3_hyprland_installation; then
-        log_error "Critical phase failed: Hyprland installation"
-        log_error "Cannot continue without Hyprland"
+    if ! phase_3_compositor_installation; then
+        log_error "Critical phase failed: Compositor installation"
+        log_error "Cannot continue without compositor"
         if ${INTERACTIVE}; then
             if ! confirm "Continue anyway (desktop will be incomplete)?" "n"; then
                 log_info "Installation cancelled due to critical failure"

@@ -607,6 +607,7 @@ build_cmake_shell() {
         "brightnessctl"
         "fish"
         "swappy"
+        "meson"
     )
 
     # ── Optional Kali/Debian dependencies (shell degrades gracefully if missing) ──
@@ -647,25 +648,108 @@ build_cmake_shell() {
 
     # ── Ensure cava pkg-config is available (Caelestia requirement) ────────────
     if ! pkg-config --exists cava &>/dev/null && ! pkg-config --exists libcava &>/dev/null; then
-        log_info "Pkg-config module 'cava' not found — building cava from source..."
-        local cava_tmp
-        cava_tmp=$(mktemp -d)
-        if git clone --depth 1 https://github.com/karlstav/cava.git "${cava_tmp}/cava" &>/dev/null; then
-            sudo apt-get install -y libfftw3-dev libasound2-dev libpulse-dev libiniparser-dev libtool automake cmake &>/dev/null || true
-            if [ -f "${cava_tmp}/cava/CMakeLists.txt" ]; then
-                cmake -B "${cava_tmp}/cava/build" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -S "${cava_tmp}/cava" &>/dev/null && \
-                cmake --build "${cava_tmp}/cava/build" &>/dev/null && \
-                sudo cmake --install "${cava_tmp}/cava/build" &>/dev/null
-            else
-                (cd "${cava_tmp}/cava" && ./autogen.sh && ./configure --prefix=/usr && make -j$(nproc) && sudo make install) &>/dev/null
-            fi
+        log_info "Pkg-config module 'cava' not found — Caelestia requires libcava development library"
+        log_info "Kali's cava package only includes CLI tool, checking if libcava is available..."
+        
+        # First try to install libcava if available in Kali repos
+        if apt-cache show libcava-dev &>/dev/null || apt-cache show libcava &>/dev/null; then
+            log_info "Installing libcava from Kali repositories..."
+            sudo apt-get install -y libcava-dev libcava &>/dev/null || true
+            
             if pkg-config --exists cava &>/dev/null || pkg-config --exists libcava &>/dev/null; then
-                log_success "Built and installed cava package successfully"
+                log_success "libcava installed from Kali repositories"
             else
-                log_warn "cava build non-fatal — attempting Caelestia configure"
+                log_warn "libcava package installed but pkg-config still can't find it, building from source..."
             fi
         fi
+        
+        # If still not available, build from source
+        if ! pkg-config --exists cava &>/dev/null && ! pkg-config --exists libcava &>/dev/null; then
+            log_info "Building libcava from source..."
+            
+            local cava_tmp
+            cava_tmp=$(mktemp -d)
+            local build_success=false
+            
+            log_info "Cloning cava repository for libcava build..."
+            if git clone --depth 1 https://github.com/LukashonakV/cava.git "${cava_tmp}/cava" &>/dev/null; then
+                log_info "Installing cava build dependencies..."
+                sudo apt-get install -y libfftw3-dev libasound2-dev libpulse-dev libiniparser-dev libtool automake meson pkg-config &>/dev/null || true
+                
+                log_info "Building libcava shared library (this may take a few minutes)..."
+                local original_dir="$(pwd)"
+                cd "${cava_tmp}/cava" || { log_warn "Failed to enter cava directory"; cd "${original_dir}"; rm -rf "${cava_tmp}"; return 1; }
+                
+                # Build using meson (recommended method for libcava)
+                if command -v meson &>/dev/null; then
+                    log_info "Using meson build system for libcava..."
+                    if meson setup build --prefix=/usr &>/dev/null; then
+                        log_info "Compiling libcava with ninja..."
+                        if ninja -C build &>/dev/null; then
+                            log_info "Installing libcava..."
+                            sudo ninja -C build install &>/dev/null
+                            
+                            # Update library cache
+                            sudo ldconfig &>/dev/null || true
+                            
+                            # Verify installation
+                            if pkg-config --exists cava &>/dev/null || pkg-config --exists libcava &>/dev/null; then
+                                log_success "libcava built and installed successfully"
+                                build_success=true
+                            else
+                                log_warn "libcava installed but pkg-config still can't find it"
+                                # Try to manually set PKG_CONFIG_PATH
+                                export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig:$PKG_CONFIG_PATH"
+                                if pkg-config --exists cava &>/dev/null || pkg-config --exists libcava &>/dev/null; then
+                                    log_success "libcava found after updating PKG_CONFIG_PATH"
+                                    build_success=true
+                                else
+                                    log_warn "libcava pkg-config still not found, Caelestia may have limited audio features"
+                                fi
+                            fi
+                        else
+                            log_warn "Failed to compile libcava with ninja"
+                        fi
+                    else
+                        log_warn "Failed to setup meson build for libcava"
+                    fi
+                else
+                    log_warn "meson not found, trying alternative build methods..."
+                    # Fallback to autogen if meson fails
+                    if [ -f "./autogen.sh" ]; then
+                        log_info "Building libcava with autogen..."
+                        if ./autogen.sh &>/dev/null && \
+                           ./configure --prefix=/usr &>/dev/null && \
+                           make -j$(nproc) &>/dev/null && \
+                           sudo make install &>/dev/null; then
+                            
+                            sudo ldconfig &>/dev/null || true
+                            
+                            if pkg-config --exists cava &>/dev/null || pkg-config --exists libcava &>/dev/null; then
+                                log_success "libcava built and installed successfully via autogen"
+                                build_success=true
+                            else
+                                log_warn "libcava build failed — Caelestia may have limited audio visualization features"
+                            fi
+                        else
+                            log_warn "autogen build failed"
+                        fi
+                    fi
+                fi
+            fi
+                
+            cd "${original_dir}" || true
+        else
+            log_warn "Failed to clone cava repository"
+        fi
+        
         rm -rf "${cava_tmp}"
+        
+        if ! ${build_success}; then
+            log_warn "libcava build failed — Caelestia may have limited audio visualization features"
+        fi
+    else
+        log_success "cava pkg-config module already available"
     fi
 
     # ── cmake configure → build → install ────────────────────────────────────────
@@ -684,6 +768,11 @@ build_cmake_shell() {
     if ! cmake -B "${build_dir}" -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX=/usr \
+        -DCMAKE_INSTALL_LIBDIR=/usr/lib/x86_64-linux-gnu \
+        -DCMAKE_INSTALL_QMLDIR=/usr/lib/x86_64-linux-gnu/qt6/qml \
+        -DVERSION="1.0.0" \
+        -DGIT_REVISION="kali-land" \
+        -DDISTRIBUTOR="kali-land" \
         -S "${shell_dir}" > "${cmake_log}" 2>&1; then
         log_error "cmake configure failed for [${shell_name}]"
         # AGENT.md §48: Show errors, not hide them
@@ -714,6 +803,9 @@ build_cmake_shell() {
         log_error "cmake install failed for [${shell_name}]"
         return 1
     fi
+    
+    # Update library cache
+    sudo ldconfig &>/dev/null || true
 
     log_success "Native QML plugin for [${shell_name}] built and installed from source"
     return 0
@@ -734,6 +826,19 @@ install_integration() {
         else
             log_error "Failed to resolve custom shell path: ${raw_shell_name}"
             return 1
+        fi
+    fi
+
+    # Alias resolution for standard shell names
+    if [ ! -d "${source_dir}" ]; then
+        if [ "${shell_name}" = "caelestia" ] || [ "${shell_name}" = "celestia" ] || [ "${shell_name}" = "custom-caelestia-dots-shell" ]; then
+            if [ -d "${INTEGRATIONS_DIR}/caelestia-shell" ]; then
+                shell_name="caelestia-shell"
+                source_dir="${INTEGRATIONS_DIR}/${shell_name}"
+            elif [ -d "${INTEGRATIONS_DIR}/caelestia" ]; then
+                shell_name="caelestia"
+                source_dir="${INTEGRATIONS_DIR}/${shell_name}"
+            fi
         fi
     fi
 
@@ -1281,6 +1386,3 @@ list_all_shells() {
     echo "=========================================================="
     echo ""
 }
-
-
-
