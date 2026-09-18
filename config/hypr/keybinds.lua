@@ -64,6 +64,9 @@ hl.bind(mainMod .. " + i", exec_ipc("quickshell ipc call settings toggle"))
 hl.bind(mainMod .. " + SHIFT + t", exec_ipc("~/.config/quickshell/scripts/colors/switchwall.sh --noswitch"))
 hl.bind(mainMod .. " + slash", exec_ipc("quickshell ipc call search toggle"))
 
+-- Seamless Desktop Shell Switcher (hypr-shell-switcher)
+hl.bind(mainMod .. " + ALT + s", exec_ipc("hypr-shell-switcher || ~/.local/bin/hypr-shell-switcher"))
+
 
 -- ===================================================================
 -- 6. end4-pC Sidebars & Status Bar

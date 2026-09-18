@@ -1,0 +1,60 @@
+# Starship Prompt Configuration for Kali-Land
+# Tailored for Kali Linux aesthetics, performance, and clear security context
+
+add_newline = false
+command_timeout = 500
+
+format = """
+[   kali ](bg:#0582ca fg:#ffffff bold)\
+[](fg:#0582ca bg:#00a896)\
+$directory\
+[](fg:#00a896 bg:#1d2d44)\
+$git_branch\
+$git_status\
+[](fg:#1d2d44 bg:#2b2d42)\
+$status\
+$cmd_duration\
+[](fg:#2b2d42)\
+\n$character"""
+
+[character]
+success_symbol = "[❯](bold #00d2ff)"
+error_symbol = "[❯](bold #ff0055)"
+vimcmd_symbol = "[❮](bold #00b4d8)"
+
+[directory]
+style = "bg:#00a896 fg:#ffffff bold"
+format = "[ $path ]($style)"
+truncation_length = 3
+truncation_symbol = "…/"
+
+[git_branch]
+symbol = " "
+style = "bg:#1d2d44 fg:#00d2ff bold"
+format = "[ $symbol$branch ]($style)"
+
+[git_status]
+style = "bg:#1d2d44 fg:#ffb703"
+format = "[$all_status$ahead_behind ]($style)"
+
+[status]
+disabled = false
+style = "bg:#2b2d42 fg:#ff0055"
+symbol = "❌ "
+format = "[ $symbol$status ]($style)"
+
+[cmd_duration]
+min_time = 2_000
+style = "bg:#2b2d42 fg:#ffd166"
+format = "[ ⏱ $duration ]($style)"
+
+[username]
+show_always = true
+style_user = "bg:#0582ca fg:#ffffff"
+style_root = "bg:#ff0055 fg:#ffffff bold"
+format = "[ $user ]($style)"
+
+[hostname]
+ssh_only = false
+style = "bg:#0582ca fg:#ffffff"
+format = "@[$hostname]($style)"

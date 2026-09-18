@@ -1,0 +1,23 @@
+# Herdr Terminal Multiplexer Configuration - Kali-Land
+# Agent-aware terminal multiplexer settings
+
+[general]
+default_shell = "/bin/zsh"
+mouse_enabled = true
+session_persistence = true
+
+[ui]
+theme = "kali-dark"
+background = "#0f141d"
+foreground = "#e6edf3"
+accent = "#00d2ff"
+tab_active_bg = "#0582ca"
+tab_active_fg = "#ffffff"
+tab_inactive_bg = "#1d2d44"
+tab_inactive_fg = "#8b949e"
+
+[agent_status]
+working_icon = "⚙️"
+idle_icon = "💤"
+blocked_icon = "🛑"
+done_icon = "✅"

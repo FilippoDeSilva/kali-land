@@ -502,6 +502,10 @@ phase_6_quickshell_skeleton() {
     install_integration "${shell_name}"
     
     configure_quickshell_hypr_env "${shell_name}"
+
+    log_info "Installing hypr-shell-switcher and Kali terminal stack..."
+    install_hypr_shell_switcher
+    install_terminal_stack
     
     log_success "Quickshell configuration completed"
     log_success "Phase 5 complete"

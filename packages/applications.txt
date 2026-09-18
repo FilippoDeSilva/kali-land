@@ -1,6 +1,13 @@
 # Terminal and applications
-kitty
 foot
+kitty
+zsh
+zsh-autosuggestions
+zsh-syntax-highlighting
+starship
+fastfetch
+fonts-firacode
+fonts-jetbrains-mono
 qterminal
 thunar
 firefox-esr

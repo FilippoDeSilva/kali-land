@@ -223,3 +223,93 @@ install_integration() {
     protect_and_install_config "${source_dir}" "${target_dir}" "Shell Integration (${shell_name})"
 }
 
+# install_hypr_shell_switcher() - Install external hypr-shell-switcher utility
+install_hypr_shell_switcher() {
+    log_step "Installing hypr-shell-switcher for seamless shell toggling"
+
+    local bin_dir="/usr/local/bin"
+    if [ ! -w "${bin_dir}" ]; then
+        bin_dir="${HOME}/.local/bin"
+        mkdir -p "${bin_dir}"
+    fi
+
+    if command -v hypr-shell-switcher &>/dev/null; then
+        log_info "hypr-shell-switcher is already installed in system PATH"
+        return 0
+    fi
+
+    log_info "Deploying hypr-shell-switcher script to ${bin_dir}/hypr-shell-switcher"
+    cat << 'EOF' > "${bin_dir}/hypr-shell-switcher"
+#!/bin/bash
+# hypr-shell-switcher helper for kali-land
+FLAVORS_DIR="${HOME}/.config/quickshell/flavors"
+ACTIVE_LINK="${HOME}/.config/quickshell/active"
+CURRENT_CONFIG="${HOME}/.config/quickshell"
+
+if [ ! -d "${FLAVORS_DIR}" ]; then
+    echo "No shell flavors found in ${FLAVORS_DIR}"
+    exit 1
+fi
+
+SELECTION=$(ls -1 "${FLAVORS_DIR}" | rofi -dmenu -p "Select Desktop Shell")
+if [ -n "${SELECTION}" ] && [ -d "${FLAVORS_DIR}/${SELECTION}" ]; then
+    echo "Switching shell to ${SELECTION}..."
+    pkill quickshell 2>/dev/null || true
+    rm -rf "${CURRENT_CONFIG}"/* 2>/dev/null || true
+    cp -r "${FLAVORS_DIR}/${SELECTION}/"* "${CURRENT_CONFIG}/" 2>/dev/null || true
+    quickshell &
+fi
+EOF
+    chmod +x "${bin_dir}/hypr-shell-switcher"
+    log_success "hypr-shell-switcher successfully deployed"
+}
+
+# install_terminal_stack() - Deploy Starship prompt, Zsh, Foot & Herdr configuration
+install_terminal_stack() {
+    local target_user_home="${HOME}"
+    if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
+        target_user_home="$(eval echo "~${SUDO_USER}")"
+    fi
+
+    log_step "Deploying Kali Terminal Stack (Starship, Zsh, Foot, Herdr)"
+
+    local repo_config="${LIB_DIR}/../../config"
+
+    # Deploy Starship config
+    if [ -f "${repo_config}/starship/starship.toml" ]; then
+        mkdir -p "${target_user_home}/.config/starship"
+        cp "${repo_config}/starship/starship.toml" "${target_user_home}/.config/starship/starship.toml"
+        log_info "Starship prompt configuration deployed"
+    fi
+
+    # Deploy Zsh config
+    if [ -f "${repo_config}/zsh/.zshrc" ]; then
+        cp "${repo_config}/zsh/.zshrc" "${target_user_home}/.zshrc"
+        log_info ".zshrc deployed to ${target_user_home}/.zshrc"
+    fi
+
+    # Deploy Foot config
+    if [ -f "${repo_config}/foot/foot.ini" ]; then
+        mkdir -p "${target_user_home}/.config/foot"
+        cp "${repo_config}/foot/foot.ini" "${target_user_home}/.config/foot/foot.ini"
+        log_info "Foot terminal configuration deployed"
+    fi
+
+    # Deploy Herdr config
+    if [ -f "${repo_config}/herdr/config.toml" ]; then
+        mkdir -p "${target_user_home}/.config/herdr"
+        cp "${repo_config}/herdr/config.toml" "${target_user_home}/.config/herdr/config.toml"
+        log_info "Herdr multiplexer configuration deployed"
+    fi
+
+    # Fix file permissions if run with sudo
+    if [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != "root" ]; then
+        local user_group
+        user_group="$(id -gn "${SUDO_USER}" 2>/dev/null || echo "${SUDO_USER}")"
+        chown -R "${SUDO_USER}:${user_group}" "${target_user_home}/.config" "${target_user_home}/.zshrc" 2>/dev/null || true
+    fi
+
+    log_success "Kali Terminal Stack deployed successfully"
+}
+
+

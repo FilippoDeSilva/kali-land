@@ -18,9 +18,7 @@ hl.env("QT_AUTO_SCREEN_SCALE_FACTOR", "1")
 hl.env("QT_ACCESSIBILITY", "1")
 
 -- Default applications
--- Use foot for VMs (native Wayland), kitty for bare metal (GPU accelerated)
--- The install script will auto-detect VM vs bare metal and set the appropriate terminal
--- Default to kitty (GPU accelerated), installer will change to foot for VMs
-hl.env("TERMINAL", "kitty")
+-- Foot terminal with Herdr terminal multiplexer support
+hl.env("TERMINAL", "foot -e herdr")
 hl.env("BROWSER", "firefox-esr")
 hl.env("EDITOR", "geany")
